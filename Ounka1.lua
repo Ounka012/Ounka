@@ -1,6 +1,6 @@
 
 
-បែបយល់អត់អាឆ្កួត --[[
+ --[[
     MKRA Ultimate Hub | VIP EDITION v4.0 (No External Library)
     UI ផ្ទាល់ គ្មាន Rayfield គ្មាន URL
     រចនាដោយ Oun ka - ស្អាត ឥន្ទធនូ ពន្លឺភ្លឺភ្លែត
