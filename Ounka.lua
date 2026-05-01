@@ -1,359 +1,473 @@
-LS1bWwogICAgOTkgTmlnaHQgVklQIFBybyAtIFVsdGltYXRlIE1hZ25ldCBFZGl0aW9uIChVcGRh
-dGVkKQogICAg4Z6U4Z6T4Z-S4Z6Q4Z-C4Z6Y4Z6Y4Z674Z6B4Z6E4Z624Z6a4Z-WIOGekeGetuGe
-ieGeouGfkuGek-GegOGem-GfgeGehCAoUGxheWVyIE1hZ25ldCkKLS1dXQoKbG9jYWwgUmF5Zmll
-bGQgPSBsb2Fkc3RyaW5nKGdhbWU6SHR0cEdldCgnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRl
-bnQuY29tL1Npcml1c1NvZnR3YXJlTHRkL1JheWZpZWxkL21haW4vc291cmNlLmx1YScpKSgpCgot
-LSBTZXJ2aWNlcwpsb2NhbCBQbGF5ZXJzID0gZ2FtZTpHZXRTZXJ2aWNlKCJQbGF5ZXJzIikKbG9j
-YWwgUnVuU2VydmljZSA9IGdhbWU6R2V0U2VydmljZSgiUnVuU2VydmljZSIpCmxvY2FsIExpZ2h0
-aW5nID0gZ2FtZTpHZXRTZXJ2aWNlKCJMaWdodGluZyIpCmxvY2FsIFdvcmtzcGFjZSA9IGdhbWU6
-R2V0U2VydmljZSgiV29ya3NwYWNlIikKbG9jYWwgTG9jYWxQbGF5ZXIgPSBQbGF5ZXJzLkxvY2Fs
-UGxheWVyCgotLSBTdGF0ZQpsb2NhbCBGZWF0dXJlU3RhdGVzID0gewogICAgTm9jbGlwID0gZmFs
-c2UsCiAgICBGbHkgPSBmYWxzZSwKICAgIEVuZW15RVNQID0gZmFsc2UsCiAgICBNYWduZXRDb2Fs
-ID0gZmFsc2UsCiAgICBNYWduZXRGdWVsID0gZmFsc2UsCiAgICBNYWduZXRIZWFsaW5nID0gZmFs
-c2UsCiAgICBNYWduZXRNZXRhbCA9IGZhbHNlLAogICAgTWFnbmV0UGxheWVycyA9IGZhbHNlLCAg
-IC0tIOGelOGek-GfkuGekOGfguGemOGekOGfkuGemOGeuAogICAgR29sZENoZXN0RVNQID0gZmFs
-c2UsCiAgICBEYXlMaWdodCA9IGZhbHNlLAogICAgU3BlZWRYMyA9IGZhbHNlLAp9CgotLSBDb25m
-aWcKbG9jYWwgRmx5U3BlZWQgPSA1MApsb2NhbCBNYWduZXRSYW5nZSA9IDUwMApsb2NhbCBNYWdu
-ZXRTdHJlbmd0aCA9IDEyMApsb2NhbCBDdXJyZW50V2Fsa1NwZWVkID0gMTYKbG9jYWwgQ3VycmVu
-dEp1bXBQb3dlciA9IDUwCgotLSBDb25uZWN0aW9ucwpsb2NhbCBGbHlDb25uZWN0aW9uLCBOb2Ns
-aXBDb25uZWN0aW9uLCBNYWduZXRDb25uZWN0aW9uCmxvY2FsIEZseUF0dGFjaG1lbnQsIExpbmVh
-clZlbCwgQWxpZ25PcmllbnQKCi0tIENhY2hlCmxvY2FsIEVuZW15RVNQX09iamVjdHMgPSB7fQps
-b2NhbCBDaGVzdEVTUF9PYmplY3RzID0ge30KbG9jYWwgTWFnbmV0VGFyZ2V0cyA9IHt9CmxvY2Fs
-IE1hZ25ldFRhcmdldFNldCA9IHt9CgotLSBLZXl3b3Jkcwpsb2NhbCBDb2FsTmFtZXMgPSB7ImNv
-YWwiLCAiY2hhcmNvYWwiLCAiY2FyYm9uIiwgIm9yZV9jb2FsIiwgImNvYWxvcmUiLCAiY29hbF9v
-cmUiLCAicm9ja19jb2FsIn0KbG9jYWwgRnVlbE5hbWVzID0geyJmdWVsIiwgImdhcyIsICJjYW5p
-c3RlciIsICJqZXJyeSIsICJwZXRyb2wiLCAiZ2Fzb2xpbmUiLCAiZnVlbGNhbiIsICJnYXNjYW4i
-fQpsb2NhbCBIZWFsaW5nTmFtZXMgPSB7Im1lZGtpdCIsICJiYW5kYWdlIiwgImhlYWx0aCIsICJm
-aXJzdGFpZCIsICJmaXJzdCBhaWQiLCAicG90aW9uIiwgInN0aW0iLCAiaGVhbCIsICJhaWRraXQi
-LCAiaGVhbHRocGFjayIsICJtZWRpY2luZSJ9CmxvY2FsIE1ldGFsTmFtZXMgPSB7Imlyb24iLCAi
-bWV0YWwiLCAic3RlZWwiLCAiY29wcGVyIiwgImJyb256ZSIsICJzY3JhcCIsICJvcmVfaXJvbiIs
-ICJpcm9ub3JlIiwgImlyb25fb3JlIiwgIm1ldGFscGllY2UiLCAiaW5nb3QifQoKLS0gSGVscGVy
-cwpsb2NhbCBmdW5jdGlvbiBjb250YWluc0tleXdvcmQobmFtZSwga2V5d29yZHMpCiAgICBuYW1l
-ID0gc3RyaW5nLmxvd2VyKG5hbWUpCiAgICBmb3IgXywga3cgaW4gaXBhaXJzKGtleXdvcmRzKSBk
-bwogICAgICAgIGlmIHN0cmluZy5maW5kKG5hbWUsIGt3KSB0aGVuIHJldHVybiB0cnVlIGVuZAog
-ICAgZW5kCiAgICByZXR1cm4gZmFsc2UKZW5kCgpsb2NhbCBmdW5jdGlvbiBnZXRNb2RlbFRhcmdl
-dFBhcnQobW9kZWwpCiAgICByZXR1cm4gbW9kZWwuUHJpbWFyeVBhcnQgb3IgbW9kZWw6RmluZEZp
-cnN0Q2hpbGQoIkh1bWFub2lkUm9vdFBhcnQiKSBvciBtb2RlbDpGaW5kRmlyc3RDaGlsZCgiSGFu
-ZGxlIikgb3IgbW9kZWw6RmluZEZpcnN0Q2hpbGRXaGljaElzQSgiQmFzZVBhcnQiKQplbmQKCi0t
-ID09PT09PT09PT09PT09PT09PT09IEVuZW15IEVTUCA9PT09PT09PT09PT09PT09PT09PQpsb2Nh
-bCBmdW5jdGlvbiBDbGVhckVuZW15RVNQKCkKICAgIGZvciBfLCBvYmogaW4gcGFpcnMoRW5lbXlF
-U1BfT2JqZWN0cykgZG8gaWYgb2JqIGFuZCBvYmouUGFyZW50IHRoZW4gb2JqOkRlc3Ryb3koKSBl
-bmQgZW5kCiAgICBFbmVteUVTUF9PYmplY3RzID0ge30KZW5kCgpsb2NhbCBmdW5jdGlvbiBBcHBs
-eUVuZW15RVNQKCkKICAgIENsZWFyRW5lbXlFU1AoKQogICAgZm9yIF8sIG9iaiBpbiBwYWlycyhX
-b3Jrc3BhY2U6R2V0RGVzY2VuZGFudHMoKSkgZG8KICAgICAgICBpZiBvYmo6SXNBKCJNb2RlbCIp
-IGFuZCBvYmo6RmluZEZpcnN0Q2hpbGRPZkNsYXNzKCJIdW1hbm9pZCIpIHRoZW4KICAgICAgICAg
-ICAgbG9jYWwgaXNQbGF5ZXIgPSBmYWxzZQogICAgICAgICAgICBmb3IgXywgcCBpbiBwYWlycyhQ
-bGF5ZXJzOkdldFBsYXllcnMoKSkgZG8KICAgICAgICAgICAgICAgIGlmIHAuQ2hhcmFjdGVyID09
-IG9iaiB0aGVuIGlzUGxheWVyID0gdHJ1ZSBicmVhayBlbmQKICAgICAgICAgICAgZW5kCiAgICAg
-ICAgICAgIGlmIG5vdCBpc1BsYXllciB0aGVuCiAgICAgICAgICAgICAgICBsb2NhbCBoaWdobGln
-aHQgPSBJbnN0YW5jZS5uZXcoIkhpZ2hsaWdodCIpCiAgICAgICAgICAgICAgICBoaWdobGlnaHQu
-RmlsbENvbG9yID0gQ29sb3IzLmZyb21SR0IoMjU1LDAsMCkKICAgICAgICAgICAgICAgIGhpZ2hs
-aWdodC5PdXRsaW5lQ29sb3IgPSBDb2xvcjMuZnJvbVJHQigyNTUsMCwwKQogICAgICAgICAgICAg
-ICAgaGlnaGxpZ2h0LkZpbGxUcmFuc3BhcmVuY3kgPSAwLjUKICAgICAgICAgICAgICAgIGhpZ2hs
-aWdodC5QYXJlbnQgPSBvYmoKICAgICAgICAgICAgICAgIHRhYmxlLmluc2VydChFbmVteUVTUF9P
-YmplY3RzLCBoaWdobGlnaHQpCgogICAgICAgICAgICAgICAgbG9jYWwgcHJpbWFyeSA9IG9iajpG
-aW5kRmlyc3RDaGlsZCgiSHVtYW5vaWRSb290UGFydCIpIG9yIG9iai5QcmltYXJ5UGFydAogICAg
-ICAgICAgICAgICAgaWYgcHJpbWFyeSB0aGVuCiAgICAgICAgICAgICAgICAgICAgbG9jYWwgYmls
-bGJvYXJkID0gSW5zdGFuY2UubmV3KCJCaWxsYm9hcmRHdWkiKQogICAgICAgICAgICAgICAgICAg
-IGJpbGxib2FyZC5TaXplID0gVURpbTIubmV3KDAsMTAwLDAsMzApCiAgICAgICAgICAgICAgICAg
-ICAgYmlsbGJvYXJkLlN0dWRzT2Zmc2V0ID0gVmVjdG9yMy5uZXcoMCwzLDApCiAgICAgICAgICAg
-ICAgICAgICAgYmlsbGJvYXJkLkFsd2F5c09uVG9wID0gdHJ1ZQogICAgICAgICAgICAgICAgICAg
-IGJpbGxib2FyZC5QYXJlbnQgPSBwcmltYXJ5CiAgICAgICAgICAgICAgICAgICAgbG9jYWwgdGV4
-dCA9IEluc3RhbmNlLm5ldygiVGV4dExhYmVsIikKICAgICAgICAgICAgICAgICAgICB0ZXh0LlNp
-emUgPSBVRGltMi5uZXcoMSwwLDEsMCkKICAgICAgICAgICAgICAgICAgICB0ZXh0LkJhY2tncm91
-bmRUcmFuc3BhcmVuY3kgPSAxCiAgICAgICAgICAgICAgICAgICAgdGV4dC5UZXh0Q29sb3IzID0g
-Q29sb3IzLmZyb21SR0IoMjU1LDAsMCkKICAgICAgICAgICAgICAgICAgICB0ZXh0LlRleHRTdHJv
-a2VUcmFuc3BhcmVuY3kgPSAwCiAgICAgICAgICAgICAgICAgICAgdGV4dC5UZXh0U2NhbGVkID0g
-dHJ1ZQogICAgICAgICAgICAgICAgICAgIHRleHQuVGV4dCA9ICLimKAgIiAuLiBvYmouTmFtZQog
-ICAgICAgICAgICAgICAgICAgIHRleHQuUGFyZW50ID0gYmlsbGJvYXJkCiAgICAgICAgICAgICAg
-ICAgICAgdGFibGUuaW5zZXJ0KEVuZW15RVNQX09iamVjdHMsIGJpbGxib2FyZCkKICAgICAgICAg
-ICAgICAgIGVuZAogICAgICAgICAgICBlbmQKICAgICAgICBlbmQKICAgIGVuZAplbmQKCi0tID09
-PT09PT09PT09PT09PT09PT09IEdvbGQgQ2hlc3QgRVNQID09PT09PT09PT09PT09PT09PT09Cmxv
-Y2FsIGZ1bmN0aW9uIENsZWFyQ2hlc3RFU1AoKQogICAgZm9yIF8sIG9iaiBpbiBwYWlycyhDaGVz
-dEVTUF9PYmplY3RzKSBkbyBpZiBvYmogYW5kIG9iai5QYXJlbnQgdGhlbiBvYmo6RGVzdHJveSgp
-IGVuZCBlbmQKICAgIENoZXN0RVNQX09iamVjdHMgPSB7fQplbmQKCmxvY2FsIGZ1bmN0aW9uIEFw
-cGx5R29sZENoZXN0RVNQKCkKICAgIENsZWFyQ2hlc3RFU1AoKQogICAgZm9yIF8sIG9iaiBpbiBw
-YWlycyhXb3Jrc3BhY2U6R2V0RGVzY2VuZGFudHMoKSkgZG8KICAgICAgICBpZiBvYmo6SXNBKCJN
-b2RlbCIpIGFuZCAob2JqLk5hbWU6bG93ZXIoKTpmaW5kKCJjaGVzdCIpIG9yIG9iai5OYW1lOmxv
-d2VyKCk6ZmluZCgidHJlYXN1cmUiKSBvciBvYmouTmFtZTpsb3dlcigpOmZpbmQoImJveCIpIG9y
-IG9iai5OYW1lOmxvd2VyKCk6ZmluZCgiY3JhdGUiKSkgdGhlbgogICAgICAgICAgICBpZiBub3Qg
-b2JqOkZpbmRGaXJzdENoaWxkKCJIdW1hbm9pZCIpIHRoZW4KICAgICAgICAgICAgICAgIGxvY2Fs
-IGhpZ2hsaWdodCA9IEluc3RhbmNlLm5ldygiSGlnaGxpZ2h0IikKICAgICAgICAgICAgICAgIGhp
-Z2hsaWdodC5GaWxsQ29sb3IgPSBDb2xvcjMuZnJvbVJHQigyNTUsMjE1LDApCiAgICAgICAgICAg
-ICAgICBoaWdobGlnaHQuT3V0bGluZUNvbG9yID0gQ29sb3IzLmZyb21SR0IoMjU1LDI1NSwyNTUp
-CiAgICAgICAgICAgICAgICBoaWdobGlnaHQuRmlsbFRyYW5zcGFyZW5jeSA9IDAuNAogICAgICAg
-ICAgICAgICAgaGlnaGxpZ2h0LlBhcmVudCA9IG9iagogICAgICAgICAgICAgICAgdGFibGUuaW5z
-ZXJ0KENoZXN0RVNQX09iamVjdHMsIGhpZ2hsaWdodCkKCiAgICAgICAgICAgICAgICBsb2NhbCBw
-cmltYXJ5ID0gb2JqLlByaW1hcnlQYXJ0IG9yIG9iajpGaW5kRmlyc3RDaGlsZCgiSHVtYW5vaWRS
-b290UGFydCIpCiAgICAgICAgICAgICAgICBpZiBwcmltYXJ5IHRoZW4KICAgICAgICAgICAgICAg
-ICAgICBsb2NhbCBiaWxsYm9hcmQgPSBJbnN0YW5jZS5uZXcoIkJpbGxib2FyZEd1aSIpCiAgICAg
-ICAgICAgICAgICAgICAgYmlsbGJvYXJkLlNpemUgPSBVRGltMi5uZXcoMCwxMjAsMCwzMCkKICAg
-ICAgICAgICAgICAgICAgICBiaWxsYm9hcmQuU3R1ZHNPZmZzZXQgPSBWZWN0b3IzLm5ldygwLDMs
-MCkKICAgICAgICAgICAgICAgICAgICBiaWxsYm9hcmQuQWx3YXlzT25Ub3AgPSB0cnVlCiAgICAg
-ICAgICAgICAgICAgICAgYmlsbGJvYXJkLlBhcmVudCA9IHByaW1hcnkKICAgICAgICAgICAgICAg
-ICAgICBsb2NhbCB0ZXh0ID0gSW5zdGFuY2UubmV3KCJUZXh0TGFiZWwiKQogICAgICAgICAgICAg
-ICAgICAgIHRleHQuU2l6ZSA9IFVEaW0yLm5ldygxLDAsMSwwKQogICAgICAgICAgICAgICAgICAg
-IHRleHQuQmFja2dyb3VuZFRyYW5zcGFyZW5jeSA9IDEKICAgICAgICAgICAgICAgICAgICB0ZXh0
-LlRleHRDb2xvcjMgPSBDb2xvcjMuZnJvbVJHQigyNTUsMjE1LDApCiAgICAgICAgICAgICAgICAg
-ICAgdGV4dC5UZXh0U3Ryb2tlVHJhbnNwYXJlbmN5ID0gMAogICAgICAgICAgICAgICAgICAgIHRl
-eHQuVGV4dFNjYWxlZCA9IHRydWUKICAgICAgICAgICAgICAgICAgICB0ZXh0LlRleHQgPSAi4pyo
-IOGeoOGet-GelOGemOGetuGenyDinKgiCiAgICAgICAgICAgICAgICAgICAgdGV4dC5QYXJlbnQg
-PSBiaWxsYm9hcmQKICAgICAgICAgICAgICAgICAgICB0YWJsZS5pbnNlcnQoQ2hlc3RFU1BfT2Jq
-ZWN0cywgYmlsbGJvYXJkKQogICAgICAgICAgICAgICAgZW5kCiAgICAgICAgICAgIGVuZAogICAg
-ICAgIGVuZAogICAgZW5kCmVuZAoKLS0gPT09PT09PT09PT09PT09PT09PT0gRGF5IExpZ2h0ID09
-PT09PT09PT09PT09PT09PT09CmxvY2FsIGZ1bmN0aW9uIEVuYWJsZURheUxpZ2h0KCkKICAgIExp
-Z2h0aW5nLkNsb2NrVGltZSA9IDE0CiAgICBMaWdodGluZy5CcmlnaHRuZXNzID0gNQogICAgTGln
-aHRpbmcuQW1iaWVudCA9IENvbG9yMy5mcm9tUkdCKDIwMCwyMDAsMjIwKQogICAgTGlnaHRpbmcu
-T3V0ZG9vckFtYmllbnQgPSBDb2xvcjMuZnJvbVJHQigxODAsMTgwLDIwMCkKICAgIExpZ2h0aW5n
-LkZvZ0VuZCA9IDEwMDAwMAplbmQKCmxvY2FsIGZ1bmN0aW9uIERpc2FibGVEYXlMaWdodCgpCiAg
-ICBMaWdodGluZy5CcmlnaHRuZXNzID0gMQogICAgTGlnaHRpbmcuQW1iaWVudCA9IENvbG9yMy5m
-cm9tUkdCKDAsMCwwKQogICAgTGlnaHRpbmcuT3V0ZG9vckFtYmllbnQgPSBDb2xvcjMuZnJvbVJH
-QigwLDAsMCkKZW5kCgotLSA9PT09PT09PT09PT09PT09PT09PSBTcGVlZCAmIEp1bXAgPT09PT09
-PT09PT09PT09PT09PT0KbG9jYWwgZnVuY3Rpb24gQXBwbHlTcGVlZEFuZEp1bXAoY2hhcmFjdGVy
-KQogICAgbG9jYWwgaHVtID0gY2hhcmFjdGVyIGFuZCBjaGFyYWN0ZXI6RmluZEZpcnN0Q2hpbGRP
-ZkNsYXNzKCJIdW1hbm9pZCIpCiAgICBpZiBodW0gdGhlbgogICAgICAgIGh1bS5XYWxrU3BlZWQg
-PSBGZWF0dXJlU3RhdGVzLlNwZWVkWDMgYW5kIChDdXJyZW50V2Fsa1NwZWVkICogMykgb3IgQ3Vy
-cmVudFdhbGtTcGVlZAogICAgICAgIGh1bS5KdW1wUG93ZXIgPSBDdXJyZW50SnVtcFBvd2VyCiAg
-ICBlbmQKZW5kCgpsb2NhbCBmdW5jdGlvbiBVcGRhdGVTcGVlZEFuZEp1bXAoKQogICAgaWYgTG9j
-YWxQbGF5ZXIuQ2hhcmFjdGVyIHRoZW4gQXBwbHlTcGVlZEFuZEp1bXAoTG9jYWxQbGF5ZXIuQ2hh
-cmFjdGVyKSBlbmQKZW5kCgotLSA9PT09PT09PT09PT09PT09PT09PSBGbHkgPT09PT09PT09PT09
-PT09PT09PT0KbG9jYWwgZnVuY3Rpb24gU3RvcEZseSgpCiAgICBGZWF0dXJlU3RhdGVzLkZseSA9
-IGZhbHNlCiAgICBpZiBGbHlDb25uZWN0aW9uIHRoZW4gRmx5Q29ubmVjdGlvbjpEaXNjb25uZWN0
-KCkgRmx5Q29ubmVjdGlvbiA9IG5pbCBlbmQKICAgIGlmIExpbmVhclZlbCB0aGVuIExpbmVhclZl
-bDpEZXN0cm95KCkgTGluZWFyVmVsID0gbmlsIGVuZAogICAgaWYgQWxpZ25PcmllbnQgdGhlbiBB
-bGlnbk9yaWVudDpEZXN0cm95KCkgQWxpZ25PcmllbnQgPSBuaWwgZW5kCiAgICBpZiBGbHlBdHRh
-Y2htZW50IHRoZW4gRmx5QXR0YWNobWVudDpEZXN0cm95KCkgRmx5QXR0YWNobWVudCA9IG5pbCBl
-bmQKICAgIGxvY2FsIGNoYXIgPSBMb2NhbFBsYXllci5DaGFyYWN0ZXIKICAgIGlmIGNoYXIgdGhl
-bgogICAgICAgIGxvY2FsIGh1bSA9IGNoYXI6RmluZEZpcnN0Q2hpbGRPZkNsYXNzKCJIdW1hbm9p
-ZCIpCiAgICAgICAgbG9jYWwgaHJwID0gY2hhcjpGaW5kRmlyc3RDaGlsZCgiSHVtYW5vaWRSb290
-UGFydCIpCiAgICAgICAgaWYgaHVtIHRoZW4gaHVtLlBsYXRmb3JtU3RhbmQgPSBmYWxzZSBlbmQK
-ICAgICAgICBpZiBocnAgdGhlbiBocnAuQXNzZW1ibHlMaW5lYXJWZWxvY2l0eSA9IFZlY3RvcjMu
-emVybyBlbmQKICAgIGVuZAplbmQKCmxvY2FsIGZ1bmN0aW9uIFN0YXJ0Rmx5KCkKICAgIGxvY2Fs
-IGNoYXIgPSBMb2NhbFBsYXllci5DaGFyYWN0ZXIKICAgIGlmIG5vdCBjaGFyIHRoZW4gcmV0dXJu
-IGVuZAogICAgbG9jYWwgaHJwID0gY2hhcjpGaW5kRmlyc3RDaGlsZCgiSHVtYW5vaWRSb290UGFy
-dCIpCiAgICBsb2NhbCBodW0gPSBjaGFyOkZpbmRGaXJzdENoaWxkT2ZDbGFzcygiSHVtYW5vaWQi
-KQogICAgaWYgbm90IGhycCBvciBub3QgaHVtIHRoZW4gcmV0dXJuIGVuZAoKICAgIGh1bS5QbGF0
-Zm9ybVN0YW5kID0gdHJ1ZQogICAgaHJwLkFzc2VtYmx5TGluZWFyVmVsb2NpdHkgPSBWZWN0b3Iz
-Lnplcm8KCiAgICBGbHlBdHRhY2htZW50ID0gSW5zdGFuY2UubmV3KCJBdHRhY2htZW50Iik7IEZs
-eUF0dGFjaG1lbnQuUGFyZW50ID0gaHJwCiAgICBMaW5lYXJWZWwgPSBJbnN0YW5jZS5uZXcoIkxp
-bmVhclZlbG9jaXR5IikKICAgIExpbmVhclZlbC5BdHRhY2htZW50MCA9IEZseUF0dGFjaG1lbnQK
-ICAgIExpbmVhclZlbC5NYXhGb3JjZSA9IG1hdGguaHVnZQogICAgTGluZWFyVmVsLlZlbG9jaXR5
-Q29uc3RyYWludE1vZGUgPSBFbnVtLlZlbG9jaXR5Q29uc3RyYWludE1vZGUuVmVjdG9yCiAgICBM
-aW5lYXJWZWwuUGFyZW50ID0gaHJwCiAgICBBbGlnbk9yaWVudCA9IEluc3RhbmNlLm5ldygiQWxp
-Z25PcmllbnRhdGlvbiIpCiAgICBBbGlnbk9yaWVudC5BdHRhY2htZW50MCA9IEZseUF0dGFjaG1l
-bnQKICAgIEFsaWduT3JpZW50Lk1heFRvcnF1ZSA9IG1hdGguaHVnZQogICAgQWxpZ25PcmllbnQu
-TWF4QW5ndWxhclZlbG9jaXR5ID0gbWF0aC5odWdlCiAgICBBbGlnbk9yaWVudC5SZXNwb25zaXZl
-bmVzcyA9IDIwMAogICAgQWxpZ25PcmllbnQuUGFyZW50ID0gaHJwCgogICAgRmVhdHVyZVN0YXRl
-cy5GbHkgPSB0cnVlCgogICAgaWYgRmx5Q29ubmVjdGlvbiB0aGVuIEZseUNvbm5lY3Rpb246RGlz
-Y29ubmVjdCgpIGVuZAogICAgRmx5Q29ubmVjdGlvbiA9IFJ1blNlcnZpY2UuUmVuZGVyU3RlcHBl
-ZDpDb25uZWN0KGZ1bmN0aW9uKCkKICAgICAgICBpZiBub3QgRmVhdHVyZVN0YXRlcy5GbHkgb3Ig
-bm90IExpbmVhclZlbCB0aGVuIHJldHVybiBlbmQKICAgICAgICBsb2NhbCBjYW1lcmEgPSBXb3Jr
-c3BhY2UuQ3VycmVudENhbWVyYQogICAgICAgIGxvY2FsIGNoYXIyID0gTG9jYWxQbGF5ZXIuQ2hh
-cmFjdGVyCiAgICAgICAgaWYgbm90IGNoYXIyIHRoZW4gcmV0dXJuIGVuZAogICAgICAgIGxvY2Fs
-IGh1bTIgPSBjaGFyMjpGaW5kRmlyc3RDaGlsZE9mQ2xhc3MoIkh1bWFub2lkIikKICAgICAgICBp
-ZiBub3QgaHVtMiB0aGVuIHJldHVybiBlbmQKCiAgICAgICAgbG9jYWwgbW92ZURpciA9IFZlY3Rv
-cjMuemVybwogICAgICAgIGlmIGh1bTIuTW92ZURpcmVjdGlvbi5NYWduaXR1ZGUgPiAwIHRoZW4K
-ICAgICAgICAgICAgbW92ZURpciA9IGh1bTIuTW92ZURpcmVjdGlvbiAqIEZseVNwZWVkCiAgICAg
-ICAgZW5kCiAgICAgICAgTGluZWFyVmVsLlZlY3RvclZlbG9jaXR5ID0gbW92ZURpcgogICAgICAg
-IEFsaWduT3JpZW50LkNGcmFtZSA9IENGcmFtZS5uZXcoVmVjdG9yMy56ZXJvLCBjYW1lcmEuQ0Zy
-YW1lLkxvb2tWZWN0b3IpCiAgICBlbmQpCmVuZAoKLS0gPT09PT09PT09PT09PT09PT09PT0gTm9j
-bGlwID09PT09PT09PT09PT09PT09PT09CmxvY2FsIGZ1bmN0aW9uIFN0YXJ0Tm9jbGlwKCkKICAg
-IGlmIE5vY2xpcENvbm5lY3Rpb24gdGhlbiByZXR1cm4gZW5kCiAgICBOb2NsaXBDb25uZWN0aW9u
-ID0gUnVuU2VydmljZS5TdGVwcGVkOkNvbm5lY3QoZnVuY3Rpb24oKQogICAgICAgIGlmIG5vdCBG
-ZWF0dXJlU3RhdGVzLk5vY2xpcCB0aGVuIHJldHVybiBlbmQKICAgICAgICBsb2NhbCBjaGFyID0g
-TG9jYWxQbGF5ZXIuQ2hhcmFjdGVyCiAgICAgICAgaWYgY2hhciB0aGVuCiAgICAgICAgICAgIGZv
-ciBfLCBwYXJ0IGluIHBhaXJzKGNoYXI6R2V0RGVzY2VuZGFudHMoKSkgZG8KICAgICAgICAgICAg
-ICAgIGlmIHBhcnQ6SXNBKCJCYXNlUGFydCIpIGFuZCBwYXJ0LkNhbkNvbGxpZGUgdGhlbiBwYXJ0
-LkNhbkNvbGxpZGUgPSBmYWxzZSBlbmQKICAgICAgICAgICAgZW5kCiAgICAgICAgZW5kCiAgICBl
-bmQpCmVuZAoKbG9jYWwgZnVuY3Rpb24gU3RvcE5vY2xpcCgpCiAgICBpZiBOb2NsaXBDb25uZWN0
-aW9uIHRoZW4gTm9jbGlwQ29ubmVjdGlvbjpEaXNjb25uZWN0KCkgTm9jbGlwQ29ubmVjdGlvbiA9
-IG5pbCBlbmQKICAgIGxvY2FsIGNoYXIgPSBMb2NhbFBsYXllci5DaGFyYWN0ZXIKICAgIGlmIGNo
-YXIgdGhlbgogICAgICAgIGZvciBfLCBwYXJ0IGluIHBhaXJzKGNoYXI6R2V0RGVzY2VuZGFudHMo
-KSkgZG8KICAgICAgICAgICAgaWYgcGFydDpJc0EoIkJhc2VQYXJ0IikgdGhlbiBwYXJ0LkNhbkNv
-bGxpZGUgPSB0cnVlIGVuZAogICAgICAgIGVuZAogICAgZW5kCmVuZAoKLS0gPT09PT09PT09PT09
-PT09PT09PT0gTWFnbmV0IFN5c3RlbSAoVXBkYXRlZCB3aXRoIFBsYXllciBNYWduZXQpID09PT09
-PT09PT09PT09PT09PT09CmxvY2FsIGZ1bmN0aW9uIGlzVmFsaWRUYXJnZXQob2JqKQogICAgaWYg
-bm90IG9iaiB0aGVuIHJldHVybiBmYWxzZSBlbmQKICAgIGxvY2FsIG5hbWUgPSBvYmouTmFtZQog
-ICAgaWYgRmVhdHVyZVN0YXRlcy5NYWduZXRDb2FsIGFuZCBjb250YWluc0tleXdvcmQobmFtZSwg
-Q29hbE5hbWVzKSB0aGVuIHJldHVybiB0cnVlIGVuZAogICAgaWYgRmVhdHVyZVN0YXRlcy5NYWdu
-ZXRGdWVsIGFuZCBjb250YWluc0tleXdvcmQobmFtZSwgRnVlbE5hbWVzKSB0aGVuIHJldHVybiB0
-cnVlIGVuZAogICAgaWYgRmVhdHVyZVN0YXRlcy5NYWduZXRIZWFsaW5nIGFuZCBjb250YWluc0tl
-eXdvcmQobmFtZSwgSGVhbGluZ05hbWVzKSB0aGVuIHJldHVybiB0cnVlIGVuZAogICAgaWYgRmVh
-dHVyZVN0YXRlcy5NYWduZXRNZXRhbCBhbmQgY29udGFpbnNLZXl3b3JkKG5hbWUsIE1ldGFsTmFt
-ZXMpIHRoZW4gcmV0dXJuIHRydWUgZW5kCiAgICByZXR1cm4gZmFsc2UKZW5kCgotLSDhnpbhnrfh
-npPhnrfhno_hn5LhnpnhnpDhnrbhnofhnrbhno_hnr3hnqLhnoThn5LhnoLhnqLhn5LhnpPhnoDh
-npvhn4HhnoThnpXhn5Lhnp_hn4HhnoQKbG9jYWwgZnVuY3Rpb24gaXNQbGF5ZXJDaGFyYWN0ZXIo
-b2JqKQogICAgaWYgbm90IEZlYXR1cmVTdGF0ZXMuTWFnbmV0UGxheWVycyB0aGVuIHJldHVybiBm
-YWxzZSBlbmQKICAgIGlmIG5vdCBvYmo6SXNBKCJNb2RlbCIpIHRoZW4gcmV0dXJuIGZhbHNlIGVu
-ZAogICAgaWYgbm90IG9iajpGaW5kRmlyc3RDaGlsZE9mQ2xhc3MoIkh1bWFub2lkIikgdGhlbiBy
-ZXR1cm4gZmFsc2UgZW5kCiAgICByZXR1cm4gb2JqIH49IExvY2FsUGxheWVyLkNoYXJhY3Rlcgpl
-bmQKCmxvY2FsIGZ1bmN0aW9uIHRyeUFkZFRhcmdldChvYmopCiAgICBsb2NhbCBpc0FueU1hZ25l
-dE9uID0gRmVhdHVyZVN0YXRlcy5NYWduZXRDb2FsIG9yIEZlYXR1cmVTdGF0ZXMuTWFnbmV0RnVl
-bCBvciBGZWF0dXJlU3RhdGVzLk1hZ25ldEhlYWxpbmcgb3IgRmVhdHVyZVN0YXRlcy5NYWduZXRN
-ZXRhbCBvciBGZWF0dXJlU3RhdGVzLk1hZ25ldFBsYXllcnMKICAgIGlmIG5vdCBpc0FueU1hZ25l
-dE9uIHRoZW4gcmV0dXJuIGVuZAoKICAgIC0tIOGelOGfkuGemuGen-Get-Gek-GelOGevuGeh-Ge
-tuGeouGfkuGek-GegOGem-GfgeGehAogICAgaWYgaXNQbGF5ZXJDaGFyYWN0ZXIob2JqKSB0aGVu
-CiAgICAgICAgbG9jYWwgcm9vdCA9IG9iajpGaW5kRmlyc3RDaGlsZCgiSHVtYW5vaWRSb290UGFy
-dCIpCiAgICAgICAgaWYgcm9vdCB0aGVuCiAgICAgICAgICAgIGlmIG5vdCBNYWduZXRUYXJnZXRT
-ZXRbcm9vdF0gdGhlbgogICAgICAgICAgICAgICAgTWFnbmV0VGFyZ2V0U2V0W3Jvb3RdID0gdHJ1
-ZQogICAgICAgICAgICAgICAgdGFibGUuaW5zZXJ0KE1hZ25ldFRhcmdldHMsIHJvb3QpCiAgICAg
-ICAgICAgIGVuZAogICAgICAgIGVuZAogICAgICAgIHJldHVybgogICAgZW5kCgogICAgLS0g4Z6S
-4Z6T4Z6S4Z624Z6T4Z6S4Z6Y4Z-S4Z6Y4Z6P4Z62CiAgICBpZiBub3QgaXNWYWxpZFRhcmdldChv
-YmopIHRoZW4gcmV0dXJuIGVuZAoKICAgIGxvY2FsIHBhcnQgPSBuaWwKICAgIGlmIG9iajpJc0Eo
-IkJhc2VQYXJ0IikgdGhlbiBwYXJ0ID0gb2JqCiAgICBlbHNlaWYgb2JqOklzQSgiTW9kZWwiKSB0
-aGVuIHBhcnQgPSBnZXRNb2RlbFRhcmdldFBhcnQob2JqKQogICAgZWxzZWlmIG9iajpJc0EoIlRv
-b2wiKSB0aGVuIHBhcnQgPSBvYmo6RmluZEZpcnN0Q2hpbGQoIkhhbmRsZSIpCiAgICBlbmQKICAg
-IGlmIG5vdCBwYXJ0IHRoZW4gcmV0dXJuIGVuZAogICAgaWYgTWFnbmV0VGFyZ2V0U2V0W3BhcnRd
-IHRoZW4gcmV0dXJuIGVuZAoKICAgIE1hZ25ldFRhcmdldFNldFtwYXJ0XSA9IHRydWUKICAgIHRh
-YmxlLmluc2VydChNYWduZXRUYXJnZXRzLCBwYXJ0KQplbmQKCmxvY2FsIGZ1bmN0aW9uIHNjYW5G
-b3JUYXJnZXRzKCkKICAgIHRhYmxlLmNsZWFyKE1hZ25ldFRhcmdldHMpCiAgICB0YWJsZS5jbGVh
-cihNYWduZXRUYXJnZXRTZXQpCiAgICAtLSDhnpThnpPhn5LhnpDhn4Lhnpjhno_hnr3hnqLhnoTh
-n5LhnoLhnqLhn5LhnpPhnoDhnpvhn4HhnoThnorhn4LhnpvhnpjhnrbhnpPhnp_hn5Lhnprhnrbh
-npThn4sKICAgIGlmIEZlYXR1cmVTdGF0ZXMuTWFnbmV0UGxheWVycyB0aGVuCiAgICAgICAgZm9y
-IF8sIHBsciBpbiBpcGFpcnMoUGxheWVyczpHZXRQbGF5ZXJzKCkpIGRvCiAgICAgICAgICAgIGlm
-IHBsciB-PSBMb2NhbFBsYXllciBhbmQgcGxyLkNoYXJhY3RlciB0aGVuCiAgICAgICAgICAgICAg
-ICB0cnlBZGRUYXJnZXQocGxyLkNoYXJhY3RlcikKICAgICAgICAgICAgZW5kCiAgICAgICAgZW5k
-CiAgICBlbmQKICAgIC0tIOGekuGek-GekuGetuGekwogICAgZm9yIF8sIG9iaiBpbiBpcGFpcnMo
-V29ya3NwYWNlOkdldERlc2NlbmRhbnRzKCkpIGRvCiAgICAgICAgdHJ5QWRkVGFyZ2V0KG9iaikK
-ICAgIGVuZAplbmQKCmxvY2FsIGZ1bmN0aW9uIG9uRGVzY2VuZGFudEFkZGVkKGRlc2NlbmRhbnQp
-CiAgICB0cnlBZGRUYXJnZXQoZGVzY2VuZGFudCkKZW5kCgotLSDhnpPhn4Xhnpbhn4HhnpvhnqLh
-n5LhnpPhnoDhnpvhn4HhnoThnpDhn5LhnpjhnrjhnoXhnrzhnpsKbG9jYWwgZnVuY3Rpb24gb25Q
-bGF5ZXJBZGRlZChwbHIpCiAgICBpZiBub3QgRmVhdHVyZVN0YXRlcy5NYWduZXRQbGF5ZXJzIHRo
-ZW4gcmV0dXJuIGVuZAogICAgcGxyLkNoYXJhY3RlckFkZGVkOkNvbm5lY3QoZnVuY3Rpb24oY2hh
-cikKICAgICAgICBpZiBGZWF0dXJlU3RhdGVzLk1hZ25ldFBsYXllcnMgdGhlbgogICAgICAgICAg
-ICBsb2NhbCByb290ID0gY2hhcjpGaW5kRmlyc3RDaGlsZCgiSHVtYW5vaWRSb290UGFydCIpCiAg
-ICAgICAgICAgIGlmIHJvb3QgdGhlbgogICAgICAgICAgICAgICAgaWYgbm90IE1hZ25ldFRhcmdl
-dFNldFtyb290XSB0aGVuCiAgICAgICAgICAgICAgICAgICAgTWFnbmV0VGFyZ2V0U2V0W3Jvb3Rd
-ID0gdHJ1ZQogICAgICAgICAgICAgICAgICAgIHRhYmxlLmluc2VydChNYWduZXRUYXJnZXRzLCBy
-b290KQogICAgICAgICAgICAgICAgZW5kCiAgICAgICAgICAgIGVuZAogICAgICAgIGVuZAogICAg
-ZW5kKQogICAgaWYgcGxyLkNoYXJhY3RlciB0aGVuCiAgICAgICAgbG9jYWwgcm9vdCA9IHBsci5D
-aGFyYWN0ZXI6RmluZEZpcnN0Q2hpbGQoIkh1bWFub2lkUm9vdFBhcnQiKQogICAgICAgIGlmIHJv
-b3QgYW5kIG5vdCBNYWduZXRUYXJnZXRTZXRbcm9vdF0gdGhlbgogICAgICAgICAgICBNYWduZXRU
-YXJnZXRTZXRbcm9vdF0gPSB0cnVlCiAgICAgICAgICAgIHRhYmxlLmluc2VydChNYWduZXRUYXJn
-ZXRzLCByb290KQogICAgICAgIGVuZAogICAgZW5kCmVuZAoKLS0g4Z6X4Z-S4Z6H4Z624Z6U4Z-L
-IGV2ZW50IOGen-GemOGfkuGemuGetuGelOGfi-GeouGfkuGek-GegOGem-GfgeGehOGekOGfkuGe
-mOGeuApmb3IgXywgcGxyIGluIGlwYWlycyhQbGF5ZXJzOkdldFBsYXllcnMoKSkgZG8KICAgIGlm
-IHBsciB-PSBMb2NhbFBsYXllciB0aGVuIG9uUGxheWVyQWRkZWQocGxyKSBlbmQKZW5kClBsYXll
-cnMuUGxheWVyQWRkZWQ6Q29ubmVjdChvblBsYXllckFkZGVkKQoKbG9jYWwgZnVuY3Rpb24gbWFn
-bmV0VXBkYXRlKCkKICAgIGxvY2FsIGNoYXIgPSBMb2NhbFBsYXllci5DaGFyYWN0ZXIKICAgIGlm
-IG5vdCBjaGFyIHRoZW4gcmV0dXJuIGVuZAogICAgbG9jYWwgcm9vdCA9IGNoYXI6RmluZEZpcnN0
-Q2hpbGQoIkh1bWFub2lkUm9vdFBhcnQiKQogICAgaWYgbm90IHJvb3QgdGhlbiByZXR1cm4gZW5k
-CiAgICBsb2NhbCBwbGF5ZXJQb3MgPSByb290LlBvc2l0aW9uCgogICAgZm9yIGkgPSAjTWFnbmV0
-VGFyZ2V0cywgMSwgLTEgZG8KICAgICAgICBsb2NhbCBwYXJ0ID0gTWFnbmV0VGFyZ2V0c1tpXQog
-ICAgICAgIGlmIG5vdCBwYXJ0IG9yIG5vdCBwYXJ0LlBhcmVudCB0aGVuCiAgICAgICAgICAgIE1h
-Z25ldFRhcmdldFNldFtwYXJ0XSA9IG5pbAogICAgICAgICAgICB0YWJsZS5yZW1vdmUoTWFnbmV0
-VGFyZ2V0cywgaSkKICAgICAgICAgICAgY29udGludWUKICAgICAgICBlbmQKCiAgICAgICAgbG9j
-YWwgZGVsdGEgPSBwbGF5ZXJQb3MgLSBwYXJ0LlBvc2l0aW9uCiAgICAgICAgbG9jYWwgZGlzdGFu
-Y2UgPSBkZWx0YS5NYWduaXR1ZGUKICAgICAgICBpZiBkaXN0YW5jZSA-IDAuNSBhbmQgZGlzdGFu
-Y2UgPCBNYWduZXRSYW5nZSB0aGVuCiAgICAgICAgICAgIGxvY2FsIGRpcmVjdGlvbiA9IGRlbHRh
-LlVuaXQKICAgICAgICAgICAgaWYgcGFydC5BbmNob3JlZCB0aGVuCiAgICAgICAgICAgICAgICBw
-YXJ0LkNGcmFtZSA9IHBhcnQuQ0ZyYW1lICsgZGlyZWN0aW9uICogKE1hZ25ldFN0cmVuZ3RoICog
-MC4wNSkKICAgICAgICAgICAgZWxzZQogICAgICAgICAgICAgICAgcGFydC5Bc3NlbWJseUxpbmVh
-clZlbG9jaXR5ID0gZGlyZWN0aW9uICogTWFnbmV0U3RyZW5ndGgKICAgICAgICAgICAgZW5kCiAg
-ICAgICAgZW5kCiAgICBlbmQKZW5kCgpsb2NhbCBmdW5jdGlvbiBTdGFydE1hZ25ldCgpCiAgICBp
-ZiBNYWduZXRDb25uZWN0aW9uIHRoZW4gcmV0dXJuIGVuZAogICAgc2NhbkZvclRhcmdldHMoKQog
-ICAgTWFnbmV0Q29ubmVjdGlvbiA9IFJ1blNlcnZpY2UuSGVhcnRiZWF0OkNvbm5lY3QobWFnbmV0
-VXBkYXRlKQogICAgV29ya3NwYWNlLkRlc2NlbmRhbnRBZGRlZDpDb25uZWN0KG9uRGVzY2VuZGFu
-dEFkZGVkKQplbmQKCmxvY2FsIGZ1bmN0aW9uIFN0b3BNYWduZXQoKQogICAgaWYgTWFnbmV0Q29u
-bmVjdGlvbiB0aGVuIE1hZ25ldENvbm5lY3Rpb246RGlzY29ubmVjdCgpIE1hZ25ldENvbm5lY3Rp
-b24gPSBuaWwgZW5kCiAgICB0YWJsZS5jbGVhcihNYWduZXRUYXJnZXRzKQogICAgdGFibGUuY2xl
-YXIoTWFnbmV0VGFyZ2V0U2V0KQplbmQKCmxvY2FsIGZ1bmN0aW9uIFJlZnJlc2hNYWduZXQoKQog
-ICAgU3RvcE1hZ25ldCgpCiAgICBpZiBGZWF0dXJlU3RhdGVzLk1hZ25ldENvYWwgb3IgRmVhdHVy
-ZVN0YXRlcy5NYWduZXRGdWVsIG9yIEZlYXR1cmVTdGF0ZXMuTWFnbmV0SGVhbGluZyBvciBGZWF0
-dXJlU3RhdGVzLk1hZ25ldE1ldGFsIG9yIEZlYXR1cmVTdGF0ZXMuTWFnbmV0UGxheWVycyB0aGVu
-CiAgICAgICAgU3RhcnRNYWduZXQoKQogICAgZW5kCmVuZAoKLS0gPT09PT09PT09PT09PT09PT09
-PT0gQ2hhcmFjdGVyIFJlc3RvcmUgPT09PT09PT09PT09PT09PT09PT0KTG9jYWxQbGF5ZXIuQ2hh
-cmFjdGVyQWRkZWQ6Q29ubmVjdChmdW5jdGlvbihuZXdDaGFyKQogICAgdGFzay53YWl0KDAuNSkK
-ICAgIEFwcGx5U3BlZWRBbmRKdW1wKG5ld0NoYXIpCiAgICBpZiBGZWF0dXJlU3RhdGVzLkVuZW15
-RVNQIHRoZW4gQXBwbHlFbmVteUVTUCgpIGVuZAogICAgaWYgRmVhdHVyZVN0YXRlcy5Hb2xkQ2hl
-c3RFU1AgdGhlbiBBcHBseUdvbGRDaGVzdEVTUCgpIGVuZAogICAgaWYgRmVhdHVyZVN0YXRlcy5O
-b2NsaXAgdGhlbiBTdG9wTm9jbGlwKCk7IFN0YXJ0Tm9jbGlwKCkgZW5kCiAgICBpZiBGZWF0dXJl
-U3RhdGVzLkZseSB0aGVuIFN0b3BGbHkoKTsgU3RhcnRGbHkoKSBlbmQKICAgIGlmIEZlYXR1cmVT
-dGF0ZXMuTWFnbmV0Q29hbCBvciBGZWF0dXJlU3RhdGVzLk1hZ25ldEZ1ZWwgb3IgRmVhdHVyZVN0
-YXRlcy5NYWduZXRIZWFsaW5nIG9yIEZlYXR1cmVTdGF0ZXMuTWFnbmV0TWV0YWwgb3IgRmVhdHVy
-ZVN0YXRlcy5NYWduZXRQbGF5ZXJzIHRoZW4KICAgICAgICBTdG9wTWFnbmV0KCkKICAgICAgICBT
-dGFydE1hZ25ldCgpCiAgICBlbmQKZW5kKQoKLS0gPT09PT09PT09PT09PT09PT09PT0gR1VJID09
-PT09PT09PT09PT09PT09PT09CmxvY2FsIFdpbmRvdyA9IFJheWZpZWxkOkNyZWF0ZVdpbmRvdyh7
-CiAgICBOYW1lID0gIjk5IE5pZ2h0IFZJUCBQcm8iLAogICAgTG9hZGluZ1RpdGxlID0gIlVsdGlt
-YXRlICsgUGxheWVyIE1hZ25ldCIsCiAgICBMb2FkaW5nU3VidGl0bGUgPSAi4Z6K4Z-E4Z6ZIG1r
-cmEgJiBPdW5rYSIsCiAgICBDb25maWd1cmF0aW9uU2F2aW5nID0geyBFbmFibGVkID0gZmFsc2Ug
-fSwKICAgIERpc2NvcmQgPSB7IEVuYWJsZWQgPSBmYWxzZSB9LAogICAgS2V5U3lzdGVtID0gZmFs
-c2UKfSkKCi0tIEVuZW15IEVTUCBUYWIKbG9jYWwgRVNQVGFiID0gV2luZG93OkNyZWF0ZVRhYigi
-4Z6f4Z6P4Z-S4Z6a4Z684Z6cIEVTUCIsICJleWUiKQpFU1BUYWI6Q3JlYXRlVG9nZ2xlKHsgTmFt
-ZSA9ICLimKAgRVNQIOGen-Gej-GfkuGemuGevOGenCAo4Z6A4Z-S4Z6a4Z6g4Z6YKSIsIEN1cnJl
-bnRWYWx1ZSA9IGZhbHNlLCBDYWxsYmFjayA9IGZ1bmN0aW9uKHYpIEZlYXR1cmVTdGF0ZXMuRW5l
-bXlFU1AgPSB2OyBpZiB2IHRoZW4gQXBwbHlFbmVteUVTUCgpIGVsc2UgQ2xlYXJFbmVteUVTUCgp
-IGVuZCBlbmQgfSkKCi0tIE5vY2xpcCBUYWIKbG9jYWwgTm9jbGlwVGFiID0gV2luZG93OkNyZWF0
-ZVRhYigi4Z6K4Z6-4Z6a4Z6A4Z624Z6P4Z-LIiwgImRvb3Itb3BlbiIpCk5vY2xpcFRhYjpDcmVh
-dGVUb2dnbGUoeyBOYW1lID0gIk5vY2xpcCIsIEN1cnJlbnRWYWx1ZSA9IGZhbHNlLCBDYWxsYmFj
-ayA9IGZ1bmN0aW9uKHYpIEZlYXR1cmVTdGF0ZXMuTm9jbGlwID0gdjsgaWYgdiB0aGVuIFN0YXJ0
-Tm9jbGlwKCkgZWxzZSBTdG9wTm9jbGlwKCkgZW5kIGVuZCB9KQoKLS0gRmx5IFRhYgpsb2NhbCBG
-bHlUYWIgPSBXaW5kb3c6Q3JlYXRlVGFiKCLhnqDhn4Thn4ciLCAibmF2aWdhdGlvbiIpCkZseVRh
-YjpDcmVhdGVTbGlkZXIoeyBOYW1lID0gIuGem-GfkuGelOGev-Gek-GeoOGfhOGfhyIsIFJhbmdl
-ID0gezEwLDIwMH0sIEluY3JlbWVudCA9IDUsIEN1cnJlbnRWYWx1ZSA9IEZseVNwZWVkLCBDYWxs
-YmFjayA9IGZ1bmN0aW9uKHYpIEZseVNwZWVkID0gdiBlbmQgfSkKRmx5VGFiOkNyZWF0ZVRvZ2ds
-ZSh7IE5hbWUgPSAi4Z6g4Z-E4Z-HIiwgQ3VycmVudFZhbHVlID0gZmFsc2UsIENhbGxiYWNrID0g
-ZnVuY3Rpb24odikgaWYgdiB0aGVuIFN0YXJ0Rmx5KCkgZWxzZSBTdG9wRmx5KCkgZW5kIGVuZCB9
-KQpGbHlUYWI6Q3JlYXRlQnV0dG9uKHsgTmFtZSA9ICLirIYg4Z6h4Z6-4Z6E4Z6b4Z6-IiwgQ2Fs
-bGJhY2sgPSBmdW5jdGlvbigpIGlmIExpbmVhclZlbCBhbmQgRmVhdHVyZVN0YXRlcy5GbHkgdGhl
-biBMaW5lYXJWZWwuVmVjdG9yVmVsb2NpdHkgPSBWZWN0b3IzLm5ldygwLCBGbHlTcGVlZCwgMCkg
-dGFzay53YWl0KDAuNSkgaWYgTGluZWFyVmVsIHRoZW4gTGluZWFyVmVsLlZlY3RvclZlbG9jaXR5
-ID0gVmVjdG9yMy56ZXJvIGVuZCBlbmQgZW5kIH0pCkZseVRhYjpDcmVhdGVCdXR0b24oeyBOYW1l
-ID0gIuKshyDhnoXhnrvhn4fhnoDhn5Lhnprhn4ThnpgiLCBDYWxsYmFjayA9IGZ1bmN0aW9uKCkg
-aWYgTGluZWFyVmVsIGFuZCBGZWF0dXJlU3RhdGVzLkZseSB0aGVuIExpbmVhclZlbC5WZWN0b3JW
-ZWxvY2l0eSA9IFZlY3RvcjMubmV3KDAsIC1GbHlTcGVlZCwgMCkgdGFzay53YWl0KDAuNSkgaWYg
-TGluZWFyVmVsIHRoZW4gTGluZWFyVmVsLlZlY3RvclZlbG9jaXR5ID0gVmVjdG9yMy56ZXJvIGVu
-ZCBlbmQgZW5kIH0pCgotLSBWSVAgTWFnbmV0IFRhYgpsb2NhbCBWSVBUYWIgPSBXaW5kb3c6Q3Jl
-YXRlVGFiKCJWSVAg4Z6Y4Z-B4Z6K4Z-C4Z6AIiwgInN0YXIiKQpWSVBUYWI6Q3JlYXRlU2VjdGlv
-bigi4Z6H4Z-S4Z6a4Z6-4Z6f4Z6a4Z6-4Z6f4Z6S4Z6T4Z6S4Z624Z6TIOGek-Get-GehOGeouGf
-kuGek-GegOGem-GfgeGehCIpClZJUFRhYjpDcmVhdGVUb2dnbGUoeyBOYW1lID0gIvCfp7Ig4Z6R
-4Z624Z6J4Z6S4Z-S4Z6Z4Z684Z6EIiwgQ3VycmVudFZhbHVlID0gZmFsc2UsIENhbGxiYWNrID0g
-ZnVuY3Rpb24odikgRmVhdHVyZVN0YXRlcy5NYWduZXRDb2FsID0gdjsgUmVmcmVzaE1hZ25ldCgp
-IGVuZCB9KQpWSVBUYWI6Q3JlYXRlVG9nZ2xlKHsgTmFtZSA9ICLim70g4Z6R4Z624Z6J4Z6f4Z62
-4Z-G4Z6EIiwgQ3VycmVudFZhbHVlID0gZmFsc2UsIENhbGxiYWNrID0gZnVuY3Rpb24odikgRmVh
-dHVyZVN0YXRlcy5NYWduZXRGdWVsID0gdjsgUmVmcmVzaE1hZ25ldCgpIGVuZCB9KQpWSVBUYWI6
-Q3JlYXRlVG9nZ2xlKHsgTmFtZSA9ICLwn5KKIOGekeGetuGeieGeluGfkuGemeGetuGelOGetuGe
-myIsIEN1cnJlbnRWYWx1ZSA9IGZhbHNlLCBDYWxsYmFjayA9IGZ1bmN0aW9uKHYpIEZlYXR1cmVT
-dGF0ZXMuTWFnbmV0SGVhbGluZyA9IHY7IFJlZnJlc2hNYWduZXQoKSBlbmQgfSkKVklQVGFiOkNy
-ZWF0ZVRvZ2dsZSh7IE5hbWUgPSAi8J-UqSDhnpHhnrbhnonhnorhn4LhnoAv4Z6b4Z-E4Z6g4Z-I
-IiwgQ3VycmVudFZhbHVlID0gZmFsc2UsIENhbGxiYWNrID0gZnVuY3Rpb24odikgRmVhdHVyZVN0
-YXRlcy5NYWduZXRNZXRhbCA9IHY7IFJlZnJlc2hNYWduZXQoKSBlbmQgfSkKVklQVGFiOkNyZWF0
-ZVRvZ2dsZSh7IE5hbWUgPSAi8J-RpSDhnpHhnrbhnonhnqLhn5LhnpPhnoDhnpvhn4HhnoQiLCBD
-dXJyZW50VmFsdWUgPSBmYWxzZSwgQ2FsbGJhY2sgPSBmdW5jdGlvbih2KSBGZWF0dXJlU3RhdGVz
-Lk1hZ25ldFBsYXllcnMgPSB2OyBSZWZyZXNoTWFnbmV0KCkgZW5kIH0pCgpWSVBUYWI6Q3JlYXRl
-U2VjdGlvbigi4Z6A4Z624Z6a4Z6A4Z-G4Z6O4Z6P4Z-L4Z6Y4Z-B4Z6K4Z-C4Z6AIikKVklQVGFi
-OkNyZWF0ZVNsaWRlcih7IE5hbWUgPSAi4Z6F4Z6Y4Z-S4Z6E4Z624Z6Z4Z6R4Z624Z6JIiwgUmFu
-Z2UgPSB7NTAsIDEwMDAwMDB9LCBJbmNyZW1lbnQgPSAxMDAwLCBDdXJyZW50VmFsdWUgPSBNYWdu
-ZXRSYW5nZSwgQ2FsbGJhY2sgPSBmdW5jdGlvbih2KSBNYWduZXRSYW5nZSA9IHYgZW5kIH0pClZJ
-UFRhYjpDcmVhdGVTbGlkZXIoeyBOYW1lID0gIuGegOGemOGfkuGem-GetuGfhuGehOGekeGetuGe
-iSIsIFJhbmdlID0gezUwLCA1MDB9LCBJbmNyZW1lbnQgPSAxMCwgQ3VycmVudFZhbHVlID0gTWFn
-bmV0U3RyZW5ndGgsIENhbGxiYWNrID0gZnVuY3Rpb24odikgTWFnbmV0U3RyZW5ndGggPSB2IGVu
-ZCB9KQoKVklQVGFiOkNyZWF0ZVNlY3Rpb24oIuGemOGeu-GegeGehOGetuGemuGeleGfkuGen-Gf
-geGehOGekeGfgOGejyIpClZJUFRhYjpDcmVhdGVUb2dnbGUoeyBOYW1lID0gIuKcqCDhnpbhnpPh
-n5Lhnpvhnrrhnpjhnrbhnp_hnpvhnr7hnqDhnrfhnpQiLCBDdXJyZW50VmFsdWUgPSBmYWxzZSwg
-Q2FsbGJhY2sgPSBmdW5jdGlvbih2KSBGZWF0dXJlU3RhdGVzLkdvbGRDaGVzdEVTUCA9IHY7IGlm
-IHYgdGhlbiBBcHBseUdvbGRDaGVzdEVTUCgpIGVsc2UgQ2xlYXJDaGVzdEVTUCgpIGVuZCBlbmQg
-fSkKVklQVGFiOkNyZWF0ZVRvZ2dsZSh7IE5hbWUgPSAi4piA77iPIOGeluGek-GfkuGem-GeuuGe
-kOGfkuGehOGfg-GeluGfgeGem-GemeGelOGfiyIsIEN1cnJlbnRWYWx1ZSA9IGZhbHNlLCBDYWxs
-YmFjayA9IGZ1bmN0aW9uKHYpIEZlYXR1cmVTdGF0ZXMuRGF5TGlnaHQgPSB2OyBpZiB2IHRoZW4g
-RW5hYmxlRGF5TGlnaHQoKSBlbHNlIERpc2FibGVEYXlMaWdodCgpIGVuZCBlbmQgfSkKCi0tIFNw
-ZWVkIFRhYgpsb2NhbCBTcGVlZFRhYiA9IFdpbmRvdzpDcmVhdGVUYWIoIlZJUCDhnprhno_hn4vh
-npvhnr_hnpMiLCAiemFwIikKU3BlZWRUYWI6Q3JlYXRlU2VjdGlvbigi4Z6b4Z-S4Z6U4Z6_4Z6T
-IOGek-Get-GehOGem-GfhOGejyIpClNwZWVkVGFiOkNyZWF0ZVNsaWRlcih7IE5hbWUgPSAi4Z6b
-4Z-S4Z6U4Z6_4Z6T4Z6K4Z6-4Z6aIiwgUmFuZ2UgPSB7MTYsMzAwfSwgSW5jcmVtZW50ID0gMSwg
-Q3VycmVudFZhbHVlID0gQ3VycmVudFdhbGtTcGVlZCwgQ2FsbGJhY2sgPSBmdW5jdGlvbih2KSBD
-dXJyZW50V2Fsa1NwZWVkID0gdjsgVXBkYXRlU3BlZWRBbmRKdW1wKCkgZW5kIH0pClNwZWVkVGFi
-OkNyZWF0ZVNsaWRlcih7IE5hbWUgPSAi4Z6A4Z6Y4Z-S4Z6b4Z624Z-G4Z6E4Z6b4Z-E4Z6PIiwg
-UmFuZ2UgPSB7NTAsNTAwfSwgSW5jcmVtZW50ID0gNSwgQ3VycmVudFZhbHVlID0gQ3VycmVudEp1
-bXBQb3dlciwgQ2FsbGJhY2sgPSBmdW5jdGlvbih2KSBDdXJyZW50SnVtcFBvd2VyID0gdjsgVXBk
-YXRlU3BlZWRBbmRKdW1wKCkgZW5kIH0pClNwZWVkVGFiOkNyZWF0ZVRvZ2dsZSh7IE5hbWUgPSAi
-4Z6U4Z6E4Z-S4Z6A4Z6-4Z6T4Z6b4Z-S4Z6U4Z6_4Z6TIHgzIiwgQ3VycmVudFZhbHVlID0gZmFs
-c2UsIENhbGxiYWNrID0gZnVuY3Rpb24odikgRmVhdHVyZVN0YXRlcy5TcGVlZFgzID0gdjsgVXBk
-YXRlU3BlZWRBbmRKdW1wKCkgZW5kIH0pClNwZWVkVGFiOkNyZWF0ZUJ1dHRvbih7IE5hbWUgPSAi
-4Z6A4Z-G4Z6O4Z6P4Z-L4Z6h4Z6-4Z6E4Z6c4Z634Z6JIiwgQ2FsbGJhY2sgPSBmdW5jdGlvbigp
-IEN1cnJlbnRXYWxrU3BlZWQgPSAxNjsgQ3VycmVudEp1bXBQb3dlciA9IDUwOyBVcGRhdGVTcGVl
-ZEFuZEp1bXAoKSBlbmQgfSkKClJheWZpZWxkOk5vdGlmeSh7IFRpdGxlID0gIjk5IE5pZ2h0IFZJ
-UCBQcm8iLCBDb250ZW50ID0gIuGeouGetuGelOGfi-GeiuGfgeGej-GemuGeveGeheGemuGetuGe
-m-GfiyEg4Z6l4Z6h4Z684Z6c4Z6Y4Z624Z6T4Z6Y4Z-B4Z6K4Z-C4Z6A4Z6R4Z624Z6J4Z6i4Z-S
-4Z6T4Z6A4Z6b4Z-B4Z6E4Z6V4Z6E4Z6K4Z-C4Z6aIiwgRHVyYXRpb24gPSA2LCBJbWFnZSA9ICJj
-aGVjayIgfSk
+--[[
+    99 Night VIP Pro - Ultimate Magnet Edition (Updated)
+    បន្ថែមមុខងារ៖ ទាញអ្នកលេង (Player Magnet)
+--]]
+
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua'))()
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+
+-- State
+local FeatureStates = {
+    Noclip = false,
+    Fly = false,
+    EnemyESP = false,
+    MagnetCoal = false,
+    MagnetFuel = false,
+    MagnetHealing = false,
+    MagnetMetal = false,
+    MagnetPlayers = false,   -- បន្ថែមថ្មី
+    GoldChestESP = false,
+    DayLight = false,
+    SpeedX3 = false,
+}
+
+-- Config
+local FlySpeed = 50
+local MagnetRange = 500
+local MagnetStrength = 120
+local CurrentWalkSpeed = 16
+local CurrentJumpPower = 50
+
+-- Connections
+local FlyConnection, NoclipConnection, MagnetConnection
+local FlyAttachment, LinearVel, AlignOrient
+
+-- Cache
+local EnemyESP_Objects = {}
+local ChestESP_Objects = {}
+local MagnetTargets = {}
+local MagnetTargetSet = {}
+
+-- Keywords
+local CoalNames = {"coal", "charcoal", "carbon", "ore_coal", "coalore", "coal_ore", "rock_coal"}
+local FuelNames = {"fuel", "gas", "canister", "jerry", "petrol", "gasoline", "fuelcan", "gascan"}
+local HealingNames = {"medkit", "bandage", "health", "firstaid", "first aid", "potion", "stim", "heal", "aidkit", "healthpack", "medicine"}
+local MetalNames = {"iron", "metal", "steel", "copper", "bronze", "scrap", "ore_iron", "ironore", "iron_ore", "metalpiece", "ingot"}
+
+-- Helpers
+local function containsKeyword(name, keywords)
+    name = string.lower(name)
+    for _, kw in ipairs(keywords) do
+        if string.find(name, kw) then return true end
+    end
+    return false
+end
+
+local function getModelTargetPart(model)
+    return model.PrimaryPart or model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Handle") or model:FindFirstChildWhichIsA("BasePart")
+end
+
+-- ==================== Enemy ESP ====================
+local function ClearEnemyESP()
+    for _, obj in pairs(EnemyESP_Objects) do if obj and obj.Parent then obj:Destroy() end end
+    EnemyESP_Objects = {}
+end
+
+local function ApplyEnemyESP()
+    ClearEnemyESP()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
+            local isPlayer = false
+            for _, p in pairs(Players:GetPlayers()) do
+                if p.Character == obj then isPlayer = true break end
+            end
+            if not isPlayer then
+                local highlight = Instance.new("Highlight")
+                highlight.FillColor = Color3.fromRGB(255,0,0)
+                highlight.OutlineColor = Color3.fromRGB(255,0,0)
+                highlight.FillTransparency = 0.5
+                highlight.Parent = obj
+                table.insert(EnemyESP_Objects, highlight)
+
+                local primary = obj:FindFirstChild("HumanoidRootPart") or obj.PrimaryPart
+                if primary then
+                    local billboard = Instance.new("BillboardGui")
+                    billboard.Size = UDim2.new(0,100,0,30)
+                    billboard.StudsOffset = Vector3.new(0,3,0)
+                    billboard.AlwaysOnTop = true
+                    billboard.Parent = primary
+                    local text = Instance.new("TextLabel")
+                    text.Size = UDim2.new(1,0,1,0)
+                    text.BackgroundTransparency = 1
+                    text.TextColor3 = Color3.fromRGB(255,0,0)
+                    text.TextStrokeTransparency = 0
+                    text.TextScaled = true
+                    text.Text = "☠ " .. obj.Name
+                    text.Parent = billboard
+                    table.insert(EnemyESP_Objects, billboard)
+                end
+            end
+        end
+    end
+end
+
+-- ==================== Gold Chest ESP ====================
+local function ClearChestESP()
+    for _, obj in pairs(ChestESP_Objects) do if obj and obj.Parent then obj:Destroy() end end
+    ChestESP_Objects = {}
+end
+
+local function ApplyGoldChestESP()
+    ClearChestESP()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and (obj.Name:lower():find("chest") or obj.Name:lower():find("treasure") or obj.Name:lower():find("box") or obj.Name:lower():find("crate")) then
+            if not obj:FindFirstChild("Humanoid") then
+                local highlight = Instance.new("Highlight")
+                highlight.FillColor = Color3.fromRGB(255,215,0)
+                highlight.OutlineColor = Color3.fromRGB(255,255,255)
+                highlight.FillTransparency = 0.4
+                highlight.Parent = obj
+                table.insert(ChestESP_Objects, highlight)
+
+                local primary = obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart")
+                if primary then
+                    local billboard = Instance.new("BillboardGui")
+                    billboard.Size = UDim2.new(0,120,0,30)
+                    billboard.StudsOffset = Vector3.new(0,3,0)
+                    billboard.AlwaysOnTop = true
+                    billboard.Parent = primary
+                    local text = Instance.new("TextLabel")
+                    text.Size = UDim2.new(1,0,1,0)
+                    text.BackgroundTransparency = 1
+                    text.TextColor3 = Color3.fromRGB(255,215,0)
+                    text.TextStrokeTransparency = 0
+                    text.TextScaled = true
+                    text.Text = "✨ ហិបមាស ✨"
+                    text.Parent = billboard
+                    table.insert(ChestESP_Objects, billboard)
+                end
+            end
+        end
+    end
+end
+
+-- ==================== Day Light ====================
+local function EnableDayLight()
+    Lighting.ClockTime = 14
+    Lighting.Brightness = 5
+    Lighting.Ambient = Color3.fromRGB(200,200,220)
+    Lighting.OutdoorAmbient = Color3.fromRGB(180,180,200)
+    Lighting.FogEnd = 100000
+end
+
+local function DisableDayLight()
+    Lighting.Brightness = 1
+    Lighting.Ambient = Color3.fromRGB(0,0,0)
+    Lighting.OutdoorAmbient = Color3.fromRGB(0,0,0)
+end
+
+-- ==================== Speed & Jump ====================
+local function ApplySpeedAndJump(character)
+    local hum = character and character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.WalkSpeed = FeatureStates.SpeedX3 and (CurrentWalkSpeed * 3) or CurrentWalkSpeed
+        hum.JumpPower = CurrentJumpPower
+    end
+end
+
+local function UpdateSpeedAndJump()
+    if LocalPlayer.Character then ApplySpeedAndJump(LocalPlayer.Character) end
+end
+
+-- ==================== Fly ====================
+local function StopFly()
+    FeatureStates.Fly = false
+    if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
+    if LinearVel then LinearVel:Destroy() LinearVel = nil end
+    if AlignOrient then AlignOrient:Destroy() AlignOrient = nil end
+    if FlyAttachment then FlyAttachment:Destroy() FlyAttachment = nil end
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hum then hum.PlatformStand = false end
+        if hrp then hrp.AssemblyLinearVelocity = Vector3.zero end
+    end
+end
+
+local function StartFly()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+
+    hum.PlatformStand = true
+    hrp.AssemblyLinearVelocity = Vector3.zero
+
+    FlyAttachment = Instance.new("Attachment"); FlyAttachment.Parent = hrp
+    LinearVel = Instance.new("LinearVelocity")
+    LinearVel.Attachment0 = FlyAttachment
+    LinearVel.MaxForce = math.huge
+    LinearVel.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+    LinearVel.Parent = hrp
+    AlignOrient = Instance.new("AlignOrientation")
+    AlignOrient.Attachment0 = FlyAttachment
+    AlignOrient.MaxTorque = math.huge
+    AlignOrient.MaxAngularVelocity = math.huge
+    AlignOrient.Responsiveness = 200
+    AlignOrient.Parent = hrp
+
+    FeatureStates.Fly = true
+
+    if FlyConnection then FlyConnection:Disconnect() end
+    FlyConnection = RunService.RenderStepped:Connect(function()
+        if not FeatureStates.Fly or not LinearVel then return end
+        local camera = Workspace.CurrentCamera
+        local char2 = LocalPlayer.Character
+        if not char2 then return end
+        local hum2 = char2:FindFirstChildOfClass("Humanoid")
+        if not hum2 then return end
+
+        local moveDir = Vector3.zero
+        if hum2.MoveDirection.Magnitude > 0 then
+            moveDir = hum2.MoveDirection * FlySpeed
+        end
+        LinearVel.VectorVelocity = moveDir
+        AlignOrient.CFrame = CFrame.new(Vector3.zero, camera.CFrame.LookVector)
+    end)
+end
+
+-- ==================== Noclip ====================
+local function StartNoclip()
+    if NoclipConnection then return end
+    NoclipConnection = RunService.Stepped:Connect(function()
+        if not FeatureStates.Noclip then return end
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
+            end
+        end
+    end)
+end
+
+local function StopNoclip()
+    if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil end
+    local char = LocalPlayer.Character
+    if char then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = true end
+        end
+    end
+end
+
+-- ==================== Magnet System (Updated with Player Magnet) ====================
+local function isValidTarget(obj)
+    if not obj then return false end
+    local name = obj.Name
+    if FeatureStates.MagnetCoal and containsKeyword(name, CoalNames) then return true end
+    if FeatureStates.MagnetFuel and containsKeyword(name, FuelNames) then return true end
+    if FeatureStates.MagnetHealing and containsKeyword(name, HealingNames) then return true end
+    if FeatureStates.MagnetMetal and containsKeyword(name, MetalNames) then return true end
+    return false
+end
+
+-- ពិនិត្យថាជាតួអង្គអ្នកលេងផ្សេង
+local function isPlayerCharacter(obj)
+    if not FeatureStates.MagnetPlayers then return false end
+    if not obj:IsA("Model") then return false end
+    if not obj:FindFirstChildOfClass("Humanoid") then return false end
+    return obj ~= LocalPlayer.Character
+end
+
+local function tryAddTarget(obj)
+    local isAnyMagnetOn = FeatureStates.MagnetCoal or FeatureStates.MagnetFuel or FeatureStates.MagnetHealing or FeatureStates.MagnetMetal or FeatureStates.MagnetPlayers
+    if not isAnyMagnetOn then return end
+
+    -- ប្រសិនបើជាអ្នកលេង
+    if isPlayerCharacter(obj) then
+        local root = obj:FindFirstChild("HumanoidRootPart")
+        if root then
+            if not MagnetTargetSet[root] then
+                MagnetTargetSet[root] = true
+                table.insert(MagnetTargets, root)
+            end
+        end
+        return
+    end
+
+    -- ធនធានធម្មតា
+    if not isValidTarget(obj) then return end
+
+    local part = nil
+    if obj:IsA("BasePart") then part = obj
+    elseif obj:IsA("Model") then part = getModelTargetPart(obj)
+    elseif obj:IsA("Tool") then part = obj:FindFirstChild("Handle")
+    end
+    if not part then return end
+    if MagnetTargetSet[part] then return end
+
+    MagnetTargetSet[part] = true
+    table.insert(MagnetTargets, part)
+end
+
+local function scanForTargets()
+    table.clear(MagnetTargets)
+    table.clear(MagnetTargetSet)
+    -- បន្ថែមតួអង្គអ្នកលេងដែលមានស្រាប់
+    if FeatureStates.MagnetPlayers then
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character then
+                tryAddTarget(plr.Character)
+            end
+        end
+    end
+    -- ធនធាន
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        tryAddTarget(obj)
+    end
+end
+
+local function onDescendantAdded(descendant)
+    tryAddTarget(descendant)
+end
+
+-- នៅពេលអ្នកលេងថ្មីចូល
+local function onPlayerAdded(plr)
+    if not FeatureStates.MagnetPlayers then return end
+    plr.CharacterAdded:Connect(function(char)
+        if FeatureStates.MagnetPlayers then
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if root then
+                if not MagnetTargetSet[root] then
+                    MagnetTargetSet[root] = true
+                    table.insert(MagnetTargets, root)
+                end
+            end
+        end
+    end)
+    if plr.Character then
+        local root = plr.Character:FindFirstChild("HumanoidRootPart")
+        if root and not MagnetTargetSet[root] then
+            MagnetTargetSet[root] = true
+            table.insert(MagnetTargets, root)
+        end
+    end
+end
+
+-- ភ្ជាប់ event សម្រាប់អ្នកលេងថ្មី
+for _, plr in ipairs(Players:GetPlayers()) do
+    if plr ~= LocalPlayer then onPlayerAdded(plr) end
+end
+Players.PlayerAdded:Connect(onPlayerAdded)
+
+local function magnetUpdate()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local playerPos = root.Position
+
+    for i = #MagnetTargets, 1, -1 do
+        local part = MagnetTargets[i]
+        if not part or not part.Parent then
+            MagnetTargetSet[part] = nil
+            table.remove(MagnetTargets, i)
+            continue
+        end
+
+        local delta = playerPos - part.Position
+        local distance = delta.Magnitude
+        if distance > 0.5 and distance < MagnetRange then
+            local direction = delta.Unit
+            if part.Anchored then
+                part.CFrame = part.CFrame + direction * (MagnetStrength * 0.05)
+            else
+                part.AssemblyLinearVelocity = direction * MagnetStrength
+            end
+        end
+    end
+end
+
+local function StartMagnet()
+    if MagnetConnection then return end
+    scanForTargets()
+    MagnetConnection = RunService.Heartbeat:Connect(magnetUpdate)
+    Workspace.DescendantAdded:Connect(onDescendantAdded)
+end
+
+local function StopMagnet()
+    if MagnetConnection then MagnetConnection:Disconnect() MagnetConnection = nil end
+    table.clear(MagnetTargets)
+    table.clear(MagnetTargetSet)
+end
+
+local function RefreshMagnet()
+    StopMagnet()
+    if FeatureStates.MagnetCoal or FeatureStates.MagnetFuel or FeatureStates.MagnetHealing or FeatureStates.MagnetMetal or FeatureStates.MagnetPlayers then
+        StartMagnet()
+    end
+end
+
+-- ==================== Character Restore ====================
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    task.wait(0.5)
+    ApplySpeedAndJump(newChar)
+    if FeatureStates.EnemyESP then ApplyEnemyESP() end
+    if FeatureStates.GoldChestESP then ApplyGoldChestESP() end
+    if FeatureStates.Noclip then StopNoclip(); StartNoclip() end
+    if FeatureStates.Fly then StopFly(); StartFly() end
+    if FeatureStates.MagnetCoal or FeatureStates.MagnetFuel or FeatureStates.MagnetHealing or FeatureStates.MagnetMetal or FeatureStates.MagnetPlayers then
+        StopMagnet()
+        StartMagnet()
+    end
+end)
+
+-- ==================== GUI ====================
+local Window = Rayfield:CreateWindow({
+    Name = "99 Night VIP Pro",
+    LoadingTitle = "Ultimate + Player Magnet",
+    LoadingSubtitle = "ដោយ mkra & Ounka",
+    ConfigurationSaving = { Enabled = false },
+    Discord = { Enabled = false },
+    KeySystem = false
+})
+
+-- Enemy ESP Tab
+local ESPTab = Window:CreateTab("សត្រូវ ESP", "eye")
+ESPTab:CreateToggle({ Name = "☠ ESP សត្រូវ (ក្រហម)", CurrentValue = false, Callback = function(v) FeatureStates.EnemyESP = v; if v then ApplyEnemyESP() else ClearEnemyESP() end end })
+
+-- Noclip Tab
+local NoclipTab = Window:CreateTab("ដើរកាត់", "door-open")
+NoclipTab:CreateToggle({ Name = "Noclip", CurrentValue = false, Callback = function(v) FeatureStates.Noclip = v; if v then StartNoclip() else StopNoclip() end end })
+
+-- Fly Tab
+local FlyTab = Window:CreateTab("ហោះ", "navigation")
+FlyTab:CreateSlider({ Name = "ល្បឿនហោះ", Range = {10,200}, Increment = 5, CurrentValue = FlySpeed, Callback = function(v) FlySpeed = v end })
+FlyTab:CreateToggle({ Name = "ហោះ", CurrentValue = false, Callback = function(v) if v then StartFly() else StopFly() end end })
+FlyTab:CreateButton({ Name = "⬆ ឡើងលើ", Callback = function() if LinearVel and FeatureStates.Fly then LinearVel.VectorVelocity = Vector3.new(0, FlySpeed, 0) task.wait(0.5) if LinearVel then LinearVel.VectorVelocity = Vector3.zero end end end })
+FlyTab:CreateButton({ Name = "⬇ ចុះក្រោម", Callback = function() if LinearVel and FeatureStates.Fly then LinearVel.VectorVelocity = Vector3.new(0, -FlySpeed, 0) task.wait(0.5) if LinearVel then LinearVel.VectorVelocity = Vector3.zero end end end })
+
+-- VIP Magnet Tab
+local VIPTab = Window:CreateTab("VIP មេដែក", "star")
+VIPTab:CreateSection("ជ្រើសរើសធនធាន និងអ្នកលេង")
+VIPTab:CreateToggle({ Name = "🧲 ទាញធ្យូង", CurrentValue = false, Callback = function(v) FeatureStates.MagnetCoal = v; RefreshMagnet() end })
+VIPTab:CreateToggle({ Name = "⛽ ទាញសាំង", CurrentValue = false, Callback = function(v) FeatureStates.MagnetFuel = v; RefreshMagnet() end })
+VIPTab:CreateToggle({ Name = "💊 ទាញព្យាបាល", CurrentValue = false, Callback = function(v) FeatureStates.MagnetHealing = v; RefreshMagnet() end })
+VIPTab:CreateToggle({ Name = "🔩 ទាញដែក/លោហៈ", CurrentValue = false, Callback = function(v) FeatureStates.MagnetMetal = v; RefreshMagnet() end })
+VIPTab:CreateToggle({ Name = "👥 ទាញអ្នកលេង", CurrentValue = false, Callback = function(v) FeatureStates.MagnetPlayers = v; RefreshMagnet() end })
+
+VIPTab:CreateSection("ការកំណត់មេដែក")
+VIPTab:CreateSlider({ Name = "ចម្ងាយទាញ", Range = {50, 1000000}, Increment = 1000, CurrentValue = MagnetRange, Callback = function(v) MagnetRange = v end })
+VIPTab:CreateSlider({ Name = "កម្លាំងទាញ", Range = {50, 500}, Increment = 10, CurrentValue = MagnetStrength, Callback = function(v) MagnetStrength = v end })
+
+VIPTab:CreateSection("មុខងារផ្សេងទៀត")
+VIPTab:CreateToggle({ Name = "✨ ពន្លឺមាសលើហិប", CurrentValue = false, Callback = function(v) FeatureStates.GoldChestESP = v; if v then ApplyGoldChestESP() else ClearChestESP() end end })
+VIPTab:CreateToggle({ Name = "☀️ ពន្លឺថ្ងៃពេលយប់", CurrentValue = false, Callback = function(v) FeatureStates.DayLight = v; if v then EnableDayLight() else DisableDayLight() end end })
+
+-- Speed Tab
+local SpeedTab = Window:CreateTab("VIP រត់លឿន", "zap")
+SpeedTab:CreateSection("ល្បឿន និងលោត")
+SpeedTab:CreateSlider({ Name = "ល្បឿនដើរ", Range = {16,300}, Increment = 1, CurrentValue = CurrentWalkSpeed, Callback = function(v) CurrentWalkSpeed = v; UpdateSpeedAndJump() end })
+SpeedTab:CreateSlider({ Name = "កម្លាំងលោត", Range = {50,500}, Increment = 5, CurrentValue = CurrentJumpPower, Callback = function(v) CurrentJumpPower = v; UpdateSpeedAndJump() end })
+SpeedTab:CreateToggle({ Name = "បង្កើនល្បឿន x3", CurrentValue = false, Callback = function(v) FeatureStates.SpeedX3 = v; UpdateSpeedAndJump() end })
+SpeedTab:CreateButton({ Name = "កំណត់ឡើងវិញ", Callback = function() CurrentWalkSpeed = 16; CurrentJumpPower = 50; UpdateSpeedAndJump() end })
+
+Rayfield:Notify({ Title = "99 Night VIP Pro", Content = "អាប់ដេតរួចរាល់! ឥឡូវមានមេដែកទាញអ្នកលេងផងដែរ", Duration = 6, Image = "check" })
