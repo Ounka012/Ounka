@@ -1,9 +1,8 @@
-
-
- --[[
+--[[
     MKRA Ultimate Hub | VIP EDITION v4.0 (No External Library)
     UI ផ្ទាល់ គ្មាន Rayfield គ្មាន URL
     រចនាដោយ Oun ka - ស្អាត ឥន្ទធនូ ពន្លឺភ្លឺភ្លែត
+    [UPDATED] AutoClick support PC & Mobile
 ]]
 
 -- Services
@@ -14,6 +13,7 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 local VirtualUser = game:GetService("VirtualUser")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
@@ -307,11 +307,18 @@ local function updateForceField()
     end
 end
 
--- ===== AutoClick =====
+-- ===== AutoClick (Universal PC & Mobile) =====
 local acClickConn
 
 local function isMouseOverUI()
-    local mouse = LocalPlayer:GetMouse()
+    -- On mobile, there is no mouse cursor; skip check to avoid errors
+    if UserInputService.TouchEnabled then
+        return false
+    end
+    local success, mouse = pcall(function() return LocalPlayer:GetMouse() end)
+    if not success or not mouse then
+        return false
+    end
     local guis = CoreGui:GetGuiObjectsAtPosition(mouse.X, mouse.Y)
     for _, g in guis do
         if g:IsA("ScreenGui") and (g.Name == "MKRA_Hub" or g.Name == "FlyButton") then
@@ -324,10 +331,17 @@ end
 local function toggleAutoClick()
     if acClickConn then acClickConn:Disconnect() end
     if Settings.AutoClick then
-        acClickConn = RunService.RenderStepped:Connect(function()
-            if not isMouseOverUI() then
-                VirtualUser:ClickButton1(Vector2.new(0, 0))
+        acClickConn = RunService.Heartbeat:Connect(function()
+            -- Skip if mouse is over UI (PC only)
+            if not UserInputService.TouchEnabled and isMouseOverUI() then
+                return
             end
+            -- Simulate left click using VirtualInputManager (works on PC & Mobile)
+            pcall(function()
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                -- no need to wait; next call will release automatically? We can add a tiny delay if needed.
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+            end)
         end)
     end
 end
@@ -639,7 +653,7 @@ local function createUI()
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 300, 0, 450) -- slightly taller to accommodate credit
+    main.Size = UDim2.new(0, 300, 0, 450)
     main.Position = UDim2.new(0.5, -150, 0.5, -225)
     main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     main.BorderSizePixel = 0
@@ -647,18 +661,16 @@ local function createUI()
     main.Draggable = true
     main.Parent = gui
 
-    -- Rounded corners for main frame
     local mainCorner = Instance.new("UICorner")
     mainCorner.CornerRadius = UDim.new(0, 10)
     mainCorner.Parent = main
 
-    -- ===== Rainbow top bar (gradient) =====
+    -- Rainbow top bar
     local topRainbow = Instance.new("Frame")
     topRainbow.Size = UDim2.new(1, 0, 0, 5)
     topRainbow.Position = UDim2.new(0, 0, 0, 0)
     topRainbow.BackgroundTransparency = 1
     topRainbow.Parent = main
-
     for i = 0, 59 do
         local segment = Instance.new("Frame")
         segment.Size = UDim2.new(1/60, 0, 1, 0)
@@ -675,8 +687,6 @@ local function createUI()
     titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     titleBar.BorderSizePixel = 0
     titleBar.Parent = main
-
-    -- Rounded top corners only
     local tbCorner = Instance.new("UICorner")
     tbCorner.CornerRadius = UDim.new(0, 10)
     tbCorner.Parent = titleBar
@@ -691,7 +701,6 @@ local function createUI()
     title.TextSize = 16
     title.Parent = titleBar
 
-    -- Minimize button (-)
     local minimizeBtn = Instance.new("TextButton")
     minimizeBtn.Size = UDim2.new(0, 24, 0, 24)
     minimizeBtn.Position = UDim2.new(1, -27, 0, 3)
@@ -701,10 +710,7 @@ local function createUI()
     minimizeBtn.Font = Enum.Font.SourceSansBold
     minimizeBtn.TextSize = 18
     minimizeBtn.Parent = titleBar
-
-    local minBtnCorner = Instance.new("UICorner")
-    minBtnCorner.CornerRadius = UDim.new(0, 6)
-    minBtnCorner.Parent = minimizeBtn
+    Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 6)
 
     -- Tab frame
     local tabFrame = Instance.new("Frame")
@@ -713,23 +719,17 @@ local function createUI()
     tabFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     tabFrame.BorderSizePixel = 0
     tabFrame.Parent = main
-
-    local tabCorner = Instance.new("UICorner")
-    tabCorner.CornerRadius = UDim.new(0, 8)
-    tabCorner.Parent = tabFrame
+    Instance.new("UICorner", tabFrame).CornerRadius = UDim.new(0, 8)
 
     local tabs = {"Move", "Combat", "Farm", "VIP", "Visual", "Util"}
     local tabContainers = {}
     local contentFrame = Instance.new("Frame")
-    contentFrame.Size = UDim2.new(1, -10, 1, -95) -- adjusted to leave space for credit
+    contentFrame.Size = UDim2.new(1, -10, 1, -95)
     contentFrame.Position = UDim2.new(0, 5, 0, 70)
     contentFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     contentFrame.BorderSizePixel = 0
     contentFrame.Parent = main
-
-    local cfCorner = Instance.new("UICorner")
-    cfCorner.CornerRadius = UDim.new(0, 8)
-    cfCorner.Parent = contentFrame
+    Instance.new("UICorner", contentFrame).CornerRadius = UDim.new(0, 8)
 
     for i, tabName in tabs do
         local btn = Instance.new("TextButton")
@@ -741,10 +741,7 @@ local function createUI()
         btn.Font = Enum.Font.Gotham
         btn.TextSize = 12
         btn.Parent = tabFrame
-
-        local tabBtnCorner = Instance.new("UICorner")
-        tabBtnCorner.CornerRadius = UDim.new(0, 6)
-        tabBtnCorner.Parent = btn
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 
         local con = Instance.new("Frame")
         con.Size = UDim2.new(1, 0, 1, 0)
@@ -752,7 +749,6 @@ local function createUI()
         con.Visible = false
         con.Parent = contentFrame
         tabContainers[tabName] = con
-
         btn.MouseButton1Click:Connect(function()
             for _, c in pairs(tabContainers) do c.Visible = false end
             con.Visible = true
@@ -760,7 +756,7 @@ local function createUI()
     end
     tabContainers["Move"].Visible = true
 
-    -- ===== Helper functions =====
+    -- Helper functions
     local function addToggle(container, text, default, callback)
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, -10, 0, 28)
@@ -771,11 +767,7 @@ local function createUI()
         btn.Font = Enum.Font.Gotham
         btn.TextSize = 12
         btn.Parent = container
-
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 6)
-        btnCorner.Parent = btn
-
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
         local state = default
         btn.MouseButton1Click:Connect(function()
             state = not state
@@ -795,11 +787,7 @@ local function createUI()
         btn.Font = Enum.Font.Gotham
         btn.TextSize = 12
         btn.Parent = container
-
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 6)
-        btnCorner.Parent = btn
-
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
         btn.MouseButton1Click:Connect(callback)
     end
 
@@ -826,111 +814,55 @@ local function createUI()
         box.Font = Enum.Font.Gotham
         box.TextSize = 12
         box.Parent = frame
-
-        local boxCorner = Instance.new("UICorner")
-        boxCorner.CornerRadius = UDim.new(0, 4)
-        boxCorner.Parent = box
-
+        Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
         box.FocusLost:Connect(function()
             callback(box.Text)
         end)
     end
 
-    -- ===== Tabs content (same as before) =====
     -- Move Tab
-    addToggle(tabContainers["Move"], "Fly (Joystick)", false, function(v)
-        Settings.Fly = v
-        if v then startFly() else stopFly() end
-    end)
+    addToggle(tabContainers["Move"], "Fly (Joystick)", false, function(v) Settings.Fly = v; if v then startFly() else stopFly() end end)
     addTextBox(tabContainers["Move"], "Fly Speed", "120", function(v) Settings.FlySpeed = tonumber(v) or 120 end)
     addToggle(tabContainers["Move"], "Boost (x2.5)", false, function(v) Settings.BoostMode = v end)
-    addToggle(tabContainers["Move"], "Noclip", false, function(v)
-        Settings.Noclip = v
-        toggleNoclip()
-    end)
-    addTextBox(tabContainers["Move"], "WS Mult", "1", function(v)
-        Settings.SpeedBoostMultiplier = tonumber(v) or 1
-        updateWalkSpeed()
-    end)
+    addToggle(tabContainers["Move"], "Noclip", false, function(v) Settings.Noclip = v; toggleNoclip() end)
+    addTextBox(tabContainers["Move"], "WS Mult", "1", function(v) Settings.SpeedBoostMultiplier = tonumber(v) or 1; updateWalkSpeed() end)
     addToggle(tabContainers["Move"], "Inf Jump (Orig)", false, function(v) Settings.InfiniteJumpOrig = v end)
 
     -- Combat Tab
-    addToggle(tabContainers["Combat"], "Kill Aura", false, function(v)
-        Settings.KillAura = v
-        toggleKillAura()
-    end)
+    addToggle(tabContainers["Combat"], "Kill Aura", false, function(v) Settings.KillAura = v; toggleKillAura() end)
     addTextBox(tabContainers["Combat"], "KA Range", "30", function(v) Settings.KillAuraRange = tonumber(v) or 30 end)
     addTextBox(tabContainers["Combat"], "KA Damage", "30", function(v) Settings.KillAuraDamage = tonumber(v) or 30 end)
-    addToggle(tabContainers["Combat"], "KA NPCs", false, function(v)
-        Settings.KillAuraNPC = v
-        if Settings.KillAura then toggleKillAura() end
-    end)
+    addToggle(tabContainers["Combat"], "KA NPCs", false, function(v) Settings.KillAuraNPC = v; if Settings.KillAura then toggleKillAura() end end)
     addTextBox(tabContainers["Combat"], "Remote Name", "", function(v) Settings.KillAuraRemote = v end)
     addTextBox(tabContainers["Combat"], "Args", "target,damage", function(v) Settings.KillAuraRemoteArgs = v end)
-    addToggle(tabContainers["Combat"], "Kill Mobs (99)", false, function(v)
-        Settings.KillMobs = v
-        toggleKillMobs()
-    end)
+    addToggle(tabContainers["Combat"], "Kill Mobs (99)", false, function(v) Settings.KillMobs = v; toggleKillMobs() end)
     addToggle(tabContainers["Combat"], "Hitbox", false, function(v) Settings.HitboxSize = v and 10 or 2 end)
-    addToggle(tabContainers["Combat"], "AutoClick", false, function(v)
-        Settings.AutoClick = v
-        toggleAutoClick()
-    end)
-    addToggle(tabContainers["Combat"], "ForceField", false, function(v)
-        Settings.ForceField = v
-        updateForceField()
-    end)
+    addToggle(tabContainers["Combat"], "AutoClick (PC+Mobile)", false, function(v) Settings.AutoClick = v; toggleAutoClick() end)
+    addToggle(tabContainers["Combat"], "ForceField", false, function(v) Settings.ForceField = v; updateForceField() end)
 
     -- Farm Tab
-    addToggle(tabContainers["Farm"], "Auto Chop (99)", false, function(v)
-        Settings.AutoChop = v
-        toggleAutoChop()
-    end)
-    addTextBox(tabContainers["Farm"], "WalkSpeed (16-500)", "16", function(v)
-        Settings.WalkSpeedDirect = math.clamp(tonumber(v) or 16, 16, 500)
-        updateWalkSpeed()
-    end)
-    addToggle(tabContainers["Farm"], "Inf Jump (99)", false, function(v)
-        Settings.InfiniteJump99 = v
-        enableInfiniteJump99()
-    end)
+    addToggle(tabContainers["Farm"], "Auto Chop (99)", false, function(v) Settings.AutoChop = v; toggleAutoChop() end)
+    addTextBox(tabContainers["Farm"], "WalkSpeed (16-500)", "16", function(v) Settings.WalkSpeedDirect = math.clamp(tonumber(v) or 16, 16, 500); updateWalkSpeed() end)
+    addToggle(tabContainers["Farm"], "Inf Jump (99)", false, function(v) Settings.InfiniteJump99 = v; enableInfiniteJump99() end)
 
     -- VIP Tab
     addButton(tabContainers["VIP"], "Teleport to Mouse", teleportToMouse)
-    addToggle(tabContainers["VIP"], "ESP", false, function(v)
-        Settings.ESP = v
-        updateESP()
-    end)
+    addToggle(tabContainers["VIP"], "ESP", false, function(v) Settings.ESP = v; updateESP() end)
     addButton(tabContainers["VIP"], "Heal", function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             LocalPlayer.Character.Humanoid.Health = LocalPlayer.Character.Humanoid.MaxHealth
         end
     end)
-    addToggle(tabContainers["VIP"], "God Mode", false, function(v)
-        Settings.GodMode = v
-        toggleGodMode()
-    end)
-    addToggle(tabContainers["VIP"], "Instant Respawn", false, function(v)
-        Settings.InstantRespawn = v
-        toggleInstantRespawn()
-    end)
+    addToggle(tabContainers["VIP"], "God Mode", false, function(v) Settings.GodMode = v; toggleGodMode() end)
+    addToggle(tabContainers["VIP"], "Instant Respawn", false, function(v) Settings.InstantRespawn = v; toggleInstantRespawn() end)
     addButton(tabContainers["VIP"], "VIP Speed (100/2500)", function()
-        Settings.SpeedBoostMultiplier = 100 / 16
-        Settings.FlySpeed = 2500
-        updateWalkSpeed()
-        notify("Speed", "Walk 100, Fly 2500", 2)
+        Settings.SpeedBoostMultiplier = 100 / 16; Settings.FlySpeed = 2500; updateWalkSpeed(); notify("Speed", "Walk 100, Fly 2500", 2)
     end)
     addButton(tabContainers["VIP"], "Reset Speed", function()
-        Settings.SpeedBoostMultiplier = 1
-        Settings.FlySpeed = 120
-        updateWalkSpeed()
-        notify("Speed", "Reset to default", 2)
+        Settings.SpeedBoostMultiplier = 1; Settings.FlySpeed = 120; updateWalkSpeed(); notify("Speed", "Reset to default", 2)
     end)
     addButton(tabContainers["VIP"], "Spawn Cash", function()
-        if ReplicatedStorage:FindFirstChild("AddMoney") then
-            ReplicatedStorage.AddMoney:FireServer(999999)
-        end
-        notify("Cash", "សាកល្បង", 2)
+        if ReplicatedStorage:FindFirstChild("AddMoney") then ReplicatedStorage.AddMoney:FireServer(999999) end; notify("Cash", "សាកល្បង", 2)
     end)
 
     -- Kill Target Box
@@ -944,13 +876,8 @@ local function createUI()
     killBox.Font = Enum.Font.Gotham
     killBox.TextSize = 12
     killBox.Parent = tabContainers["VIP"]
-    local kbCorner = Instance.new("UICorner")
-    kbCorner.CornerRadius = UDim.new(0, 4)
-    kbCorner.Parent = killBox
-
-    addButton(tabContainers["VIP"], "KILL (FE)", function()
-        executeFEKill(killBox.Text)
-    end)
+    Instance.new("UICorner", killBox).CornerRadius = UDim.new(0, 4)
+    addButton(tabContainers["VIP"], "KILL (FE)", function() executeFEKill(killBox.Text) end)
 
     -- Fling Target Box
     local flingBox = Instance.new("TextBox")
@@ -963,58 +890,30 @@ local function createUI()
     flingBox.Font = Enum.Font.Gotham
     flingBox.TextSize = 12
     flingBox.Parent = tabContainers["VIP"]
-    local fbCorner = Instance.new("UICorner")
-    fbCorner.CornerRadius = UDim.new(0, 4)
-    fbCorner.Parent = flingBox
+    Instance.new("UICorner", flingBox).CornerRadius = UDim.new(0, 4)
+    addButton(tabContainers["VIP"], "FLING", function() executeFling(flingBox.Text) end)
 
-    addButton(tabContainers["VIP"], "FLING", function()
-        executeFling(flingBox.Text)
-    end)
-
-    addToggle(tabContainers["VIP"], "Fling All", false, function(v)
-        Settings.FlingAll = v
-        if v then flingAllPlayers() end
-    end)
+    addToggle(tabContainers["VIP"], "Fling All", false, function(v) Settings.FlingAll = v; if v then flingAllPlayers() end end)
 
     -- Visual Tab
-    addTextBox(tabContainers["Visual"], "FOV (70-120)", "70", function(v)
-        Workspace.CurrentCamera.FieldOfView = math.clamp(tonumber(v) or 70, 70, 120)
-    end)
+    addTextBox(tabContainers["Visual"], "FOV (70-120)", "70", function(v) Workspace.CurrentCamera.FieldOfView = math.clamp(tonumber(v) or 70, 70, 120) end)
     addToggle(tabContainers["Visual"], "FullBright", false, function(v)
         local lighting = game:GetService("Lighting")
-        if v then
-            lighting.Brightness = 2
-            lighting.ClockTime = 12
-            lighting.FogEnd = 100000
-        else
-            lighting.Brightness = 0.5
-            lighting.ClockTime = 0
-            lighting.FogEnd = 1000
-        end
+        if v then lighting.Brightness = 2; lighting.ClockTime = 12; lighting.FogEnd = 100000
+        else lighting.Brightness = 0.5; lighting.ClockTime = 0; lighting.FogEnd = 1000 end
     end)
 
     -- Util Tab
-    addButton(tabContainers["Util"], "Rejoin", function()
-        TeleportService:Teleport(game.PlaceId, LocalPlayer)
-    end)
+    addButton(tabContainers["Util"], "Rejoin", function() TeleportService:Teleport(game.PlaceId, LocalPlayer) end)
     addButton(tabContainers["Util"], "Server Hop", function()
-        local json = game:GetService("HttpService"):JSONDecode(
-            game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?limit=100")
-        )
+        local json = game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?limit=100"))
         local ids = {}
-        for _, v in json.data do
-            if v.playing and v.id ~= game.JobId then
-                table.insert(ids, v.id)
-            end
-        end
-        if #ids > 0 then
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, ids[math.random(#ids)], LocalPlayer)
-        else
-            notify("Hop", "រកមិនឃើញ", 3)
-        end
+        for _, v in json.data do if v.playing and v.id ~= game.JobId then table.insert(ids, v.id) end end
+        if #ids > 0 then TeleportService:TeleportToPlaceInstance(game.PlaceId, ids[math.random(#ids)], LocalPlayer)
+        else notify("Hop", "រកមិនឃើញ", 3) end
     end)
 
-    -- ===== Credit Label "ធ្វើដោយ Oun ka" =====
+    -- Credit Label
     local creditLabel = Instance.new("TextLabel")
     creditLabel.Size = UDim2.new(1, 0, 0, 20)
     creditLabel.Position = UDim2.new(0, 0, 1, -22)
@@ -1025,13 +924,12 @@ local function createUI()
     creditLabel.TextSize = 13
     creditLabel.Parent = main
 
-    -- ===== Bottom rainbow bar =====
+    -- Bottom rainbow bar
     local bottomRainbow = Instance.new("Frame")
     bottomRainbow.Size = UDim2.new(1, 0, 0, 5)
     bottomRainbow.Position = UDim2.new(0, 0, 1, -5)
     bottomRainbow.BackgroundTransparency = 1
     bottomRainbow.Parent = main
-
     for i = 0, 59 do
         local segment = Instance.new("Frame")
         segment.Size = UDim2.new(1/60, 0, 1, 0)
@@ -1041,7 +939,7 @@ local function createUI()
         segment.Parent = bottomRainbow
     end
 
-    -- ===== Sparkle Particles (twinkling stars) =====
+    -- Sparkles
     local sparkles = {}
     for _ = 1, 12 do
         local spark = Instance.new("Frame")
@@ -1051,47 +949,29 @@ local function createUI()
         spark.BorderSizePixel = 0
         spark.BackgroundTransparency = 0.7
         spark.Parent = main
-
-        local sparkCorner = Instance.new("UICorner")
-        sparkCorner.CornerRadius = UDim.new(1, 0)
-        sparkCorner.Parent = spark
-
+        Instance.new("UICorner", spark).CornerRadius = UDim.new(1, 0)
         table.insert(sparkles, spark)
     end
 
-    -- Coroutine for rainbow animation and sparkle twinkling
+    -- Rainbow animation + sparkle twinkle
     task.spawn(function()
         while wait() do
-            -- Update title, credit, minimize button colors
             local hue = (tick() * 0.5) % 1
             title.TextColor3 = Color3.fromHSV(hue, 1, 1)
             creditLabel.TextColor3 = Color3.fromHSV((hue + 0.3) % 1, 1, 1)
             minimizeBtn.BackgroundColor3 = Color3.fromHSV((hue + 0.6) % 1, 1, 0.8)
-
-            -- Update rainbow bars
-            for i, seg in ipairs(topRainbow:GetChildren()) do
-                local segHue = (tick() * 0.3 + i/60) % 1
-                seg.BackgroundColor3 = Color3.fromHSV(segHue, 1, 1)
-            end
-            for i, seg in ipairs(bottomRainbow:GetChildren()) do
-                local segHue = (tick() * 0.3 + i/60) % 1
-                seg.BackgroundColor3 = Color3.fromHSV(segHue, 1, 1)
-            end
-
-            -- Twinkle sparkles
+            for i, seg in ipairs(topRainbow:GetChildren()) do seg.BackgroundColor3 = Color3.fromHSV((tick() * 0.3 + i/60) % 1, 1, 1) end
+            for i, seg in ipairs(bottomRainbow:GetChildren()) do seg.BackgroundColor3 = Color3.fromHSV((tick() * 0.3 + i/60) % 1, 1, 1) end
             for _, spark in ipairs(sparkles) do
-                local twinkle = 0.4 + 0.6 * math.abs(math.sin(tick() * 5 + spark:GetAttribute("Offset") or 0))
+                local twinkle = 0.4 + 0.6 * math.abs(math.sin(tick() * 5 + (spark:GetAttribute("Offset") or 0)))
                 spark.BackgroundTransparency = 1 - twinkle
-                if spark:GetAttribute("Offset") == nil then
-                    spark:SetAttribute("Offset", math.random() * 10)
-                end
+                if not spark:GetAttribute("Offset") then spark:SetAttribute("Offset", math.random() * 10) end
             end
         end
     end)
 
-    -- ===== Minimize Functionality =====
+    -- Minimize
     local restoreButton = nil
-
     local function minimizeUI()
         main.Visible = false
         if not restoreButton then
@@ -1107,33 +987,23 @@ local function createUI()
             restoreButton.Active = true
             restoreButton.Draggable = true
             restoreButton.Parent = gui
-
-            local restCorner = Instance.new("UICorner")
-            restCorner.CornerRadius = UDim.new(0, 10)
-            restCorner.Parent = restoreButton
-
-            -- Rainbow background for restore button
+            Instance.new("UICorner", restoreButton).CornerRadius = UDim.new(0, 10)
             task.spawn(function()
                 while restoreButton and restoreButton.Parent do
-                    restoreButton.BackgroundColor3 = rainbowColor(1, 0)
-                    wait(0.05)
+                    restoreButton.BackgroundColor3 = rainbowColor(1, 0); wait(0.05)
                 end
             end)
-
             restoreButton.MouseButton1Click:Connect(function()
-                main.Visible = true
-                restoreButton:Destroy()
-                restoreButton = nil
+                main.Visible = true; restoreButton:Destroy(); restoreButton = nil
             end)
         else
             restoreButton.Visible = true
         end
     end
-
     minimizeBtn.MouseButton1Click:Connect(minimizeUI)
 end
 
--- ===== Character Added =====
+-- Character Added
 LocalPlayer.CharacterAdded:Connect(function()
     task.wait(0.5)
     if Settings.Fly then stopFly(); startFly() end
@@ -1146,6 +1016,6 @@ LocalPlayer.CharacterAdded:Connect(function()
     updateWalkSpeed()
 end)
 
--- ===== Start =====
+-- Start
 createUI()
 notify("MKRA Hub", "Loaded! ប្រើបានហើយ", 3)
