@@ -17,7 +17,7 @@ local Settings = {
 
     KillMobs = false,
 
-    KillBosses = false,
+    KillBosses = true,               -- ✅ បើកដោយខ្លួនឯង
     BossRemote = "",
     BossRemoteArgs = "target,damage",
     BossDamage = 9999,
@@ -245,7 +245,7 @@ local function toggleKillBosses()
     end
 end
 
--- ==================== GUI BUTTON (Mobile Global Touch) ====================
+-- ==================== GUI BUTTON (ស្រេចចិត្ត) ====================
 local function createToggleButton()
     local gui = Instance.new("ScreenGui")
     gui.Name = "MyScriptUI"
@@ -254,8 +254,8 @@ local function createToggleButton()
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 220, 0, 50)
     btn.Position = UDim2.new(0, 10, 0, 10)
-    btn.Text = "Kill Bosses: OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    btn.Text = "Kill Bosses: ON"   -- ចាប់ផ្ដើមជា ON
+    btn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 18
@@ -263,7 +263,6 @@ local function createToggleButton()
 
     local kbEnabled = Settings.KillBosses
 
-    -- អនុគមន៍ពិនិត្យថាតើទីតាំងប៉ះស្ថិតលើប៊ូតុងឬអត់
     local function isPositionOnButton(position)
         local minX = btn.AbsolutePosition.X
         local minY = btn.AbsolutePosition.Y
@@ -272,15 +271,11 @@ local function createToggleButton()
         return position.X >= minX and position.X <= maxX and position.Y >= minY and position.Y <= maxY
     end
 
-    -- ប្រើ UserInputService ដើម្បីស្ដាប់ការប៉ះ (ប៉ះដំបូង)
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end -- មិនយកទេបើវាត្រូវបានដំណើរការដោយហ្គេម
-        -- ទទួលយកទាំង MouseButton1 និង Touch
+        if gameProcessed then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            -- ទីតាំងនៃការប៉ះ
             local pos = Vector2.new(input.Position.X, input.Position.Y)
             if isPositionOnButton(pos) then
-                -- បើក/បិទ
                 kbEnabled = not kbEnabled
                 Settings.KillBosses = kbEnabled
                 toggleKillBosses()
@@ -297,9 +292,9 @@ local function createToggleButton()
 end
 
 -- ==================== INITIALIZATION ====================
-createToggleButton()
+createToggleButton()  -- បើមិនចង់បានប៊ូតុង អាចលុបបន្ទាត់នេះចេញ
 toggleKillAura()
 toggleKillMobs()
 toggleKillBosses()
 
-print("✅ ស្គ្រីបដំណើរការ! ប៉ះប៊ូតុងដើម្បីបើក Kill Bosses")
+print("✅ Kill Bosses បើកដោយស្វ័យប្រវត្តិ! វាយបិសាច់ភ្លាមៗ")
