@@ -6,6 +6,7 @@ local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
 -- ==================== SETTINGS ====================
+-- អ្នកអាចកែប្រែតម្លៃទាំងនេះតាមហ្គេមរបស់អ្នក
 local Settings = {
     KillAura = false,
     KillAuraRemote = "AttackRemote",
@@ -17,24 +18,23 @@ local Settings = {
     KillMobs = false,
 
     KillBosses = false,
-    BossRemote = "BossAttack",
+    BossRemote = "",               -- ទុក "" ដើម្បីឲ្យវាសាកល្បងច្រើនវិធីដោយស្វ័យប្រវត្តិ
     BossRemoteArgs = "target,damage",
-    BossDamage = 50,
-    BossRange = 100,
-    BossWhitelist = {}
+    BossDamage = 9999,              -- Damage ច្រើនបំផុត
+    BossRange = 500,                -- ចម្ងាយ
+    BossWhitelist = {}              -- ឧ. {"OrcKing", "BigBoss"}
 }
 
 -- ==================== UTILITY ====================
--- អនុគមន៍ split សាមញ្ញ (មិនប្រើ pattern)
 local function split(s, delimiter)
     local result = {}
     if s == "" then return result end
     local from = 1
-    local delim_from, delim_to = string.find(s, delimiter, from)
+    local delim_from, delim_to = string.find(s, delimiter, from, true)
     while delim_from do
         table.insert(result, string.sub(s, from, delim_from-1))
         from = delim_to + 1
-        delim_from, delim_to = string.find(s, delimiter, from)
+        delim_from, delim_to = string.find(s, delimiter, from, true)
     end
     table.insert(result, string.sub(s, from))
     return result
@@ -144,32 +144,23 @@ local function toggleKillMobs()
     end
 end
 
--- ==================== KILL BOSSES ====================
+-- ==================== KILL BOSSES (SMART VERSION) ====================
 local kbConn
-
-local function getBossRemote()
-    if Settings.BossRemote == "" then return nil end
-    local r = ReplicatedStorage:FindFirstChild(Settings.BossRemote)
-    if not r then r = LocalPlayer:FindFirstChild(Settings.BossRemote) end
-    if not r then
-        for _, v in Workspace:GetDescendants() do
-            if v.Name == Settings.BossRemote and v:IsA("RemoteEvent") then return v end
-        end
-    end
-    return r
-end
 
 local function isBoss(model)
     if not model:IsA("Model") then return false end
+    -- ពិនិត្យ Attribute
     if model:GetAttribute("IsBoss") == true then return true end
     local lower = model.Name:lower()
+    -- ពិនិត្យ Whitelist
     if #Settings.BossWhitelist > 0 then
         for _, name in ipairs(Settings.BossWhitelist) do
             if lower == name:lower() then return true end
         end
         return false
     end
-    return lower:find("boss") ~= nil
+    -- ស្វែងរកឈ្មោះដែលមាន "boss" ឬ "យក្ស" (អាចកែបន្ថែម)
+    return lower:find("boss") or lower:find("b%ss") or lower:find("monster") or lower:find("mega")
 end
 
 local function getBossTargets()
@@ -188,6 +179,64 @@ local function getBossTargets()
     return t
 end
 
+-- ស្វែងរក Remote ដែលអាចប្រើសម្រាប់វាយ Boss ដោយស្កេនឈ្មោះទូទៅ
+local function findAttackRemotes()
+    local remotes = {}
+    local function search(parent)
+        for _, v in parent:GetChildren() do
+            if v:IsA("RemoteEvent") then
+                local n = v.Name:lower()
+                if n:find("damage") or n:find("hit") or n:find("attack") or n:find("hurt") or n:find("deal") or n:find("fire") then
+                    table.insert(remotes, v)
+                end
+            end
+            search(v)
+        end
+    end
+    search(ReplicatedStorage)
+    search(LocalPlayer)
+    return remotes
+end
+
+-- សាកធ្វើ Damage លើ Boss មួយដោយប្រើគ្រប់វិធីដែលអាច
+local function attemptDamage(boss)
+    local hum = boss.Humanoid
+    local root = boss.RootPart
+    local model = boss.Model
+    local dmg = Settings.BossDamage
+
+    -- 1. បើមាន Remote ដែលអ្នកកំណត់ក្នុង Settings ប្រើវាជាមុន
+    if Settings.BossRemote ~= "" then
+        local remote = ReplicatedStorage:FindFirstChild(Settings.BossRemote) or LocalPlayer:FindFirstChild(Settings.BossRemote)
+        if remote then
+            local argStr = Settings.BossRemoteArgs:gsub("%s+", "")
+            local args = {}
+            for _, a in pairs(split(argStr, ",")) do
+                if a == "target" then table.insert(args, root)
+                elseif a == "damage" then table.insert(args, dmg)
+                elseif a == "humanoid" then table.insert(args, hum) end
+            end
+            if #args == 0 then args = {root, dmg} end
+            pcall(function() remote:FireServer(unpack(args)) end)
+        end
+    end
+
+    -- 2. សាក Remote ដែលរកឃើញដោយស្វ័យប្រវត្តិ (ផ្ញើជាច្រើនទម្រង់)
+    local autoRemotes = findAttackRemotes()
+    for _, remote in pairs(autoRemotes) do
+        -- ផ្ញើ root តែឯង
+        pcall(function() remote:FireServer(root) end)
+        -- ផ្ញើ root និង damage
+        pcall(function() remote:FireServer(root, dmg) end)
+        -- ផ្ញើ humanoid និង damage
+        pcall(function() remote:FireServer(hum, dmg) end)
+    end
+
+    -- 3. កាត់ Health ដោយផ្ទាល់ (អាចមិនដំណើរការលើ Server)
+    pcall(function() hum.Health = math.max(0, hum.Health - dmg) end)
+    pcall(function() hum:TakeDamage(dmg) end)
+end
+
 local function toggleKillBosses()
     if kbConn then kbConn:Disconnect() end
     if Settings.KillBosses then
@@ -197,23 +246,10 @@ local function toggleKillBosses()
             local myRoot = char:FindFirstChild("HumanoidRootPart")
             if not myRoot then return end
             local bosses = getBossTargets()
-            local remote = getBossRemote()
             for _, boss in pairs(bosses) do
                 local dist = (myRoot.Position - boss.RootPart.Position).Magnitude
                 if dist <= Settings.BossRange then
-                    if remote then
-                        local args = {}
-                        local argStr = Settings.BossRemoteArgs:gsub("%s+", "")
-                        for _, a in pairs(split(argStr, ",")) do
-                            if a == "target" then table.insert(args, boss.RootPart)
-                            elseif a == "damage" then table.insert(args, Settings.BossDamage)
-                            elseif a == "humanoid" then table.insert(args, boss.Humanoid) end
-                        end
-                        if #args == 0 then args = {boss.RootPart, Settings.BossDamage} end
-                        pcall(function() remote:FireServer(unpack(args)) end)
-                    else
-                        boss.Humanoid.Health = math.max(0, boss.Humanoid.Health - Settings.BossDamage)
-                    end
+                    attemptDamage(boss)
                 end
             end
         end)
@@ -227,7 +263,7 @@ local function createToggleButton()
     gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 200, 0, 40)
+    btn.Size = UDim2.new(0, 200, 0, 45)
     btn.Position = UDim2.new(0, 10, 0, 10)
     btn.Text = "Kill Bosses: OFF"
     btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
@@ -236,24 +272,25 @@ local function createToggleButton()
     btn.TextSize = 18
     btn.Parent = gui
 
+    -- អូសប៊ូតុង (Drag) មានប្រយោជន៍លើទូរស័ព្ទដើម្បីរំកិលបាន
     local dragging = false
     local dragStart = nil
     local startPos = nil
 
     btn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = btn.Position
         end
     end)
     btn.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
     end)
     btn.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
             btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
@@ -281,4 +318,17 @@ toggleKillAura()
 toggleKillMobs()
 toggleKillBosses()
 
-print("✅ ស្គ្រីបដំណើរការ! ចុចប៊ូតុងដើម្បីបើក Kill Bosses")
+-- បង្ហាញ Remote ដែលរកឃើញសម្រាប់ Boss នៅក្នុង Output
+print("✅ ស្គ្រីបដំណើរការ! ស្វែងរក Remote សម្រាប់ Boss...")
+local remotes = findAttackRemotes()
+if #remotes > 0 then
+    print("🔍 RemoteEvent ដែលអាចប្រើសម្រាប់វាយ Boss មាន៖")
+    for _, r in ipairs(remotes) do
+        print("   - " .. r:GetFullName())
+    end
+    print("💡 បើ Kill Bosses មិនដំណើរការ សាកយកឈ្មោះមួយខាងលើដាក់ក្នុង Settings.BossRemote")
+else
+    print("⚠️ រកមិនឃើញ RemoteEvent សម្រាប់វាយ Boss ទេ។ សូមវាយ Boss ដោយដៃមួយដងហើយមើល Remote ដែលបាញ់ (ប្រើស្គ្រីបផ្សេង)")
+end
+
+print("💡 ចុចប៊ូតុងក្រហម ដើម្បីបើក Kill Bosses (វានឹងសាកគ្រប់វិធី)")
