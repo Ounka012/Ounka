@@ -1,8 +1,6 @@
---[[
-    MKRA Ultimate Hub | VIP EDITION v4.0 (No External Library)
-    UI ផ្ទាល់ គ្មាន Rayfield គ្មាន URL
-    រចនាដោយ Oun ka - ស្អាត ឥន្ទធនូ ពន្លឺភ្លឺភ្លែត
+រៀបចំ GUI នឹង ប៊ូតុង ចុចបិទបើក ឲ្យស្អាត នឹងមាន របៀបរៀបរយ --[[
     [UPDATED] AutoClick support PC & Mobile
+    បានបន្ថែម៖ Fling NPC, ស្កេន NPC ដោយស្វ័យប្រវត្តិ
 ]]
 
 -- Services
@@ -311,14 +309,9 @@ end
 local acClickConn
 
 local function isMouseOverUI()
-    -- On mobile, there is no mouse cursor; skip check to avoid errors
-    if UserInputService.TouchEnabled then
-        return false
-    end
+    if UserInputService.TouchEnabled then return false end
     local success, mouse = pcall(function() return LocalPlayer:GetMouse() end)
-    if not success or not mouse then
-        return false
-    end
+    if not success or not mouse then return false end
     local guis = CoreGui:GetGuiObjectsAtPosition(mouse.X, mouse.Y)
     for _, g in guis do
         if g:IsA("ScreenGui") and (g.Name == "MKRA_Hub" or g.Name == "FlyButton") then
@@ -332,14 +325,9 @@ local function toggleAutoClick()
     if acClickConn then acClickConn:Disconnect() end
     if Settings.AutoClick then
         acClickConn = RunService.Heartbeat:Connect(function()
-            -- Skip if mouse is over UI (PC only)
-            if not UserInputService.TouchEnabled and isMouseOverUI() then
-                return
-            end
-            -- Simulate left click using VirtualInputManager (works on PC & Mobile)
+            if not UserInputService.TouchEnabled and isMouseOverUI() then return end
             pcall(function()
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                -- no need to wait; next call will release automatically? We can add a tiny delay if needed.
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
             end)
         end)
@@ -429,6 +417,23 @@ local function findPlayer(name)
     return nil
 end
 
+-- ===== Find NPC =====
+local function findNPC(name)
+    name = name:gsub("%s+", ""):lower()
+    for _, descendant in pairs(Workspace:GetDescendants()) do
+        if descendant:IsA("Model") and not Players:GetPlayerFromCharacter(descendant) then
+            local hum = descendant:FindFirstChildOfClass("Humanoid")
+            local root = descendant:FindFirstChild("HumanoidRootPart")
+            if hum and root and hum.Health > 0 then
+                if name == "" or descendant.Name:lower():match("^"..name) then
+                    return descendant
+                end
+            end
+        end
+    end
+    return nil
+end
+
 -- ===== FE Kill =====
 local function executeFEKill(targetName)
     local target = findPlayer(targetName)
@@ -488,7 +493,7 @@ local function executeFEKill(targetName)
     notify("Kill", "បានសម្លាប់ ".. targetName, 3)
 end
 
--- ===== Fling =====
+-- ===== Fling (សម្រាប់អ្នកលេង) =====
 local function SkidFling(targetPlayer)
     local Character = LocalPlayer.Character
     local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
@@ -613,6 +618,147 @@ local function flingAllPlayers()
     end
 end
 
+-- ===== Fling (សម្រាប់ NPC) =====
+local function SkidFlingCharacter(targetCharacter)
+    local Character = LocalPlayer.Character
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    local RootPart = Humanoid and Humanoid.RootPart
+    if not Character or not Humanoid or not RootPart then
+        notify("Fling NPC", "តួអង្គមិនរួចរាល់", 3)
+        return
+    end
+    local TCharacter = targetCharacter
+    if not TCharacter then return end
+    local THumanoid = TCharacter:FindFirstChildOfClass("Humanoid")
+    local TRootPart = THumanoid and THumanoid.RootPart
+    local THead = TCharacter:FindFirstChild("Head")
+    local Accessory = TCharacter:FindFirstChildOfClass("Accessory")
+    local Handle = Accessory and Accessory:FindFirstChild("Handle")
+    if RootPart.Velocity.Magnitude < 50 then
+        getgenv().OldPos = RootPart.CFrame
+    end
+    if THumanoid and THumanoid.Sit then
+        notify("Fling NPC", "NPC កំពុងអង្គុយ", 3)
+        return
+    end
+    if THead then
+        Workspace.CurrentCamera.CameraSubject = THead
+    elseif Handle then
+        Workspace.CurrentCamera.CameraSubject = Handle
+    elseif THumanoid then
+        Workspace.CurrentCamera.CameraSubject = THumanoid
+    end
+    if not TCharacter:FindFirstChildWhichIsA("BasePart") then return end
+    local FPos = function(BasePart, Pos, Ang)
+        RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
+        Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
+        RootPart.Velocity = Vector3.new(9e7, 9e8, 9e7)
+        RootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+    end
+    local SFBasePart = function(BasePart)
+        local TimeToWait = 2
+        local Time = tick()
+        local Angle = 0
+        repeat
+            if RootPart and THumanoid then
+                if BasePart.Velocity.Magnitude < 50 then
+                    Angle = Angle + 100
+                    FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(2.25, 1.5, -2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(-2.25, -1.5, 2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle), 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle), 0, 0)); task.wait()
+                else
+                    FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, -THumanoid.WalkSpeed), CFrame.Angles(0, 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, -TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(-90), 0, 0)); task.wait()
+                    FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0)); task.wait()
+                end
+            else
+                break
+            end
+        until BasePart.Velocity.Magnitude > 500 or BasePart.Parent ~= TCharacter or TCharacter ~= targetCharacter or THumanoid.Sit or Humanoid.Health <= 0 or tick() > Time + TimeToWait
+    end
+    workspace.FallenPartsDestroyHeight = 0 / 0
+    local BV = Instance.new("BodyVelocity")
+    BV.Name = "EpixVel"
+    BV.Parent = RootPart
+    BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
+    BV.MaxForce = Vector3.new(1 / 0, 1 / 0, 1 / 0)
+    Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+    if TRootPart and THead then
+        if (TRootPart.Position - THead.Position).Magnitude > 5 then SFBasePart(THead) else SFBasePart(TRootPart) end
+    elseif TRootPart then
+        SFBasePart(TRootPart)
+    elseif THead then
+        SFBasePart(THead)
+    elseif Handle then
+        SFBasePart(Handle)
+    else
+        notify("Fling NPC", "ខ្វះផ្នែក", 3)
+        return
+    end
+    BV:Destroy()
+    Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+    workspace.CurrentCamera.CameraSubject = Humanoid
+    repeat
+        RootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
+        Character:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
+        Humanoid:ChangeState("GettingUp")
+        for _, x in Character:GetChildren() do
+            if x:IsA("BasePart") then
+                x.Velocity, x.RotVelocity = Vector3.new(0, 0, 0), Vector3.new(0, 0, 0)
+            end
+        end
+        task.wait()
+    until (RootPart.Position - getgenv().OldPos.p).Magnitude < 25
+    workspace.FallenPartsDestroyHeight = getgenv().FPDH or 500
+end
+
+local function executeFlingNPC(name)
+    if name == "" then
+        notify("Fling NPC", "កំពុងស្វែងរក NPC ដែលនៅជិត...", 2)
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+        local nearest = nil
+        local nearestDist = math.huge
+        for _, descendant in pairs(Workspace:GetDescendants()) do
+            if descendant:IsA("Model") and not Players:GetPlayerFromCharacter(descendant) then
+                local hum = descendant:FindFirstChildOfClass("Humanoid")
+                local root = descendant:FindFirstChild("HumanoidRootPart")
+                if hum and root and hum.Health > 0 then
+                    local dist = (myRoot.Position - root.Position).Magnitude
+                    if dist < nearestDist then
+                        nearestDist = dist
+                        nearest = descendant
+                    end
+                end
+            end
+        end
+        if nearest then
+            SkidFlingCharacter(nearest)
+            notify("Fling NPC", "បាន Fling NPC "..nearest.Name, 3)
+        else
+            notify("Fling NPC", "រកមិនឃើញ NPC ណានៅជិត", 3)
+        end
+        return
+    end
+    local target = findNPC(name)
+    if not target then
+        notify("Fling NPC", "រកមិនឃើញ NPC", 3)
+        return
+    end
+    SkidFlingCharacter(target)
+    notify("Fling NPC", "បាន Fling NPC "..target.Name, 3)
+end
+
 -- ===== Infinite Jump =====
 UserInputService.JumpRequest:Connect(function()
     if Settings.InfiniteJumpOrig and LocalPlayer.Character then
@@ -656,10 +802,22 @@ local function createUI()
     main.Size = UDim2.new(0, 300, 0, 450)
     main.Position = UDim2.new(0.5, -150, 0.5, -225)
     main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    main.BackgroundTransparency = 1  -- ធ្វើឱ្យថ្លាដើម្បីបង្ហាញរូបភាពផ្ទៃខាងក្រោយ
     main.BorderSizePixel = 0
     main.Active = true
     main.Draggable = true
     main.Parent = gui
+
+    -- រូបភាពផ្ទៃខាងក្រោយ (ដាក់នៅពីក្រោយគ្រប់ធាតុ)
+    local bgImage = Instance.new("ImageLabel")
+    bgImage.Size = UDim2.new(1, 0, 1, 0)
+    bgImage.Position = UDim2.new(0, 0, 0, 0)
+    bgImage.Image = "rbxassetid://125870011858882"  -- Asset ID
+    bgImage.ScaleType = Enum.ScaleType.Stretch
+    bgImage.BackgroundTransparency = 1
+    bgImage.ZIndex = 0
+    bgImage.Visible = true
+    bgImage.Parent = main
 
     local mainCorner = Instance.new("UICorner")
     mainCorner.CornerRadius = UDim.new(0, 10)
@@ -691,15 +849,14 @@ local function createUI()
     tbCorner.CornerRadius = UDim.new(0, 10)
     tbCorner.Parent = titleBar
 
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -30, 1, 0)
-    title.Position = UDim2.new(0, 10, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text = "MKRA Hub VIP v4.0"
-    title.TextColor3 = Color3.new(1, 1, 1)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 16
-    title.Parent = titleBar
+    -- Logo
+    local logoImage = Instance.new("ImageLabel")
+    logoImage.Size = UDim2.new(1, -30, 1, 0)
+    logoImage.Position = UDim2.new(0, 10, 0, 0)
+    logoImage.BackgroundTransparency = 1
+    logoImage.Image = "rbxassetid://125870011858882"
+    logoImage.ScaleType = Enum.ScaleType.Fit
+    logoImage.Parent = titleBar
 
     local minimizeBtn = Instance.new("TextButton")
     minimizeBtn.Size = UDim2.new(0, 24, 0, 24)
@@ -865,33 +1022,153 @@ local function createUI()
         if ReplicatedStorage:FindFirstChild("AddMoney") then ReplicatedStorage.AddMoney:FireServer(999999) end; notify("Cash", "សាកល្បង", 2)
     end)
 
-    -- Kill Target Box
+    -- Kill Target Box + Scan Button
+    local killFrame = Instance.new("Frame")
+    killFrame.Size = UDim2.new(1, -10, 0, 30)
+    killFrame.Position = UDim2.new(0, 5, 0, #tabContainers["VIP"]:GetChildren() * 32 + 5)
+    killFrame.BackgroundTransparency = 1
+    killFrame.Parent = tabContainers["VIP"]
+
     local killBox = Instance.new("TextBox")
-    killBox.Size = UDim2.new(1, -10, 0, 28)
-    killBox.Position = UDim2.new(0, 5, 0, #tabContainers["VIP"]:GetChildren() * 32 + 5)
+    killBox.Size = UDim2.new(0, 180, 1, 0)
+    killBox.Position = UDim2.new(0, 0, 0, 0)
     killBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     killBox.TextColor3 = Color3.new(1, 1, 1)
     killBox.PlaceholderText = "ឈ្មោះគោលដៅ (Kill)"
     killBox.Text = ""
     killBox.Font = Enum.Font.Gotham
     killBox.TextSize = 12
-    killBox.Parent = tabContainers["VIP"]
+    killBox.Parent = killFrame
     Instance.new("UICorner", killBox).CornerRadius = UDim.new(0, 4)
+
+    local killScanBtn = Instance.new("TextButton")
+    killScanBtn.Size = UDim2.new(0, 90, 1, 0)
+    killScanBtn.Position = UDim2.new(1, -95, 0, 0)
+    killScanBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+    killScanBtn.Text = "ស្កេនឈ្មោះ"
+    killScanBtn.TextColor3 = Color3.new(1, 1, 1)
+    killScanBtn.Font = Enum.Font.Gotham
+    killScanBtn.TextSize = 11
+    killScanBtn.Parent = killFrame
+    Instance.new("UICorner", killScanBtn).CornerRadius = UDim.new(0, 4)
+    killScanBtn.MouseButton1Click:Connect(function()
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+        local nearest = nil
+        local nearestDist = math.huge
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local dist = (myRoot.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+                if dist < nearestDist then
+                    nearestDist = dist
+                    nearest = plr
+                end
+            end
+        end
+        if nearest then killBox.Text = nearest.Name end
+    end)
+
     addButton(tabContainers["VIP"], "KILL (FE)", function() executeFEKill(killBox.Text) end)
 
-    -- Fling Target Box
+    -- Fling Target Box + Scan Button
+    local flingFrame = Instance.new("Frame")
+    flingFrame.Size = UDim2.new(1, -10, 0, 30)
+    flingFrame.Position = UDim2.new(0, 5, 0, #tabContainers["VIP"]:GetChildren() * 32 + 5)
+    flingFrame.BackgroundTransparency = 1
+    flingFrame.Parent = tabContainers["VIP"]
+
     local flingBox = Instance.new("TextBox")
-    flingBox.Size = UDim2.new(1, -10, 0, 28)
-    flingBox.Position = UDim2.new(0, 5, 0, #tabContainers["VIP"]:GetChildren() * 32 + 5)
+    flingBox.Size = UDim2.new(0, 180, 1, 0)
+    flingBox.Position = UDim2.new(0, 0, 0, 0)
     flingBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     flingBox.TextColor3 = Color3.new(1, 1, 1)
     flingBox.PlaceholderText = "ឈ្មោះគោលដៅ (Fling)"
     flingBox.Text = ""
     flingBox.Font = Enum.Font.Gotham
     flingBox.TextSize = 12
-    flingBox.Parent = tabContainers["VIP"]
+    flingBox.Parent = flingFrame
     Instance.new("UICorner", flingBox).CornerRadius = UDim.new(0, 4)
+
+    local flingScanBtn = Instance.new("TextButton")
+    flingScanBtn.Size = UDim2.new(0, 90, 1, 0)
+    flingScanBtn.Position = UDim2.new(1, -95, 0, 0)
+    flingScanBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+    flingScanBtn.Text = "ស្កេនឈ្មោះ"
+    flingScanBtn.TextColor3 = Color3.new(1, 1, 1)
+    flingScanBtn.Font = Enum.Font.Gotham
+    flingScanBtn.TextSize = 11
+    flingScanBtn.Parent = flingFrame
+    Instance.new("UICorner", flingScanBtn).CornerRadius = UDim.new(0, 4)
+    flingScanBtn.MouseButton1Click:Connect(function()
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+        local nearest = nil
+        local nearestDist = math.huge
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local dist = (myRoot.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+                if dist < nearestDist then
+                    nearestDist = dist
+                    nearest = plr
+                end
+            end
+        end
+        if nearest then flingBox.Text = nearest.Name end
+    end)
+
     addButton(tabContainers["VIP"], "FLING", function() executeFling(flingBox.Text) end)
+
+    -- Fling NPC Box + Scan Button (ថ្មី!)
+    local flingNPCFrame = Instance.new("Frame")
+    flingNPCFrame.Size = UDim2.new(1, -10, 0, 30)
+    flingNPCFrame.Position = UDim2.new(0, 5, 0, #tabContainers["VIP"]:GetChildren() * 32 + 5)
+    flingNPCFrame.BackgroundTransparency = 1
+    flingNPCFrame.Parent = tabContainers["VIP"]
+
+    local flingNPCBox = Instance.new("TextBox")
+    flingNPCBox.Size = UDim2.new(0, 180, 1, 0)
+    flingNPCBox.Position = UDim2.new(0, 0, 0, 0)
+    flingNPCBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    flingNPCBox.TextColor3 = Color3.new(1, 1, 1)
+    flingNPCBox.PlaceholderText = "ឈ្មោះ NPC (Fling)"
+    flingNPCBox.Text = ""
+    flingNPCBox.Font = Enum.Font.Gotham
+    flingNPCBox.TextSize = 12
+    flingNPCBox.Parent = flingNPCFrame
+    Instance.new("UICorner", flingNPCBox).CornerRadius = UDim.new(0, 4)
+
+    local flingNPCScanBtn = Instance.new("TextButton")
+    flingNPCScanBtn.Size = UDim2.new(0, 90, 1, 0)
+    flingNPCScanBtn.Position = UDim2.new(1, -95, 0, 0)
+    flingNPCScanBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+    flingNPCScanBtn.Text = "ស្កេន NPC"
+    flingNPCScanBtn.TextColor3 = Color3.new(1, 1, 1)
+    flingNPCScanBtn.Font = Enum.Font.Gotham
+    flingNPCScanBtn.TextSize = 11
+    flingNPCScanBtn.Parent = flingNPCFrame
+    Instance.new("UICorner", flingNPCScanBtn).CornerRadius = UDim.new(0, 4)
+    flingNPCScanBtn.MouseButton1Click:Connect(function()
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+        local nearest = nil
+        local nearestDist = math.huge
+        for _, descendant in pairs(Workspace:GetDescendants()) do
+            if descendant:IsA("Model") and not Players:GetPlayerFromCharacter(descendant) then
+                local hum = descendant:FindFirstChildOfClass("Humanoid")
+                local root = descendant:FindFirstChild("HumanoidRootPart")
+                if hum and root and hum.Health > 0 then
+                    local dist = (myRoot.Position - root.Position).Magnitude
+                    if dist < nearestDist then
+                        nearestDist = dist
+                        nearest = descendant
+                    end
+                end
+            end
+        end
+        if nearest then flingNPCBox.Text = nearest.Name end
+    end)
+
+    addButton(tabContainers["VIP"], "FLING NPC", function() executeFlingNPC(flingNPCBox.Text) end)
 
     addToggle(tabContainers["VIP"], "Fling All", false, function(v) Settings.FlingAll = v; if v then flingAllPlayers() end end)
 
@@ -902,6 +1179,8 @@ local function createUI()
         if v then lighting.Brightness = 2; lighting.ClockTime = 12; lighting.FogEnd = 100000
         else lighting.Brightness = 0.5; lighting.ClockTime = 0; lighting.FogEnd = 1000 end
     end)
+    
+    addToggle(tabContainers["Visual"], "រូបភាពផ្ទៃខាងក្រោយ", true, function(v) bgImage.Visible = v end)
 
     -- Util Tab
     addButton(tabContainers["Util"], "Rejoin", function() TeleportService:Teleport(game.PlaceId, LocalPlayer) end)
@@ -957,7 +1236,6 @@ local function createUI()
     task.spawn(function()
         while wait() do
             local hue = (tick() * 0.5) % 1
-            title.TextColor3 = Color3.fromHSV(hue, 1, 1)
             creditLabel.TextColor3 = Color3.fromHSV((hue + 0.3) % 1, 1, 1)
             minimizeBtn.BackgroundColor3 = Color3.fromHSV((hue + 0.6) % 1, 1, 0.8)
             for i, seg in ipairs(topRainbow:GetChildren()) do seg.BackgroundColor3 = Color3.fromHSV((tick() * 0.3 + i/60) % 1, 1, 1) end
