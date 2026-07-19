@@ -1,6 +1,6 @@
 --[[
-    EVADE: Summer Event Auto Farm (20M Sky-Float Edition)
-    ហោះអណ្តែតជាប់លើអាកាសកម្ពស់ ២០ ម៉ែត្ររហូត + ស្រូបទាញ Bubble ពេញ Map មកស៊ីដោយស្វ័យប្រវត្តិ
+    EVADE: Summer Event Auto Farm (Accurate Hitbox Edition)
+    ហោះអណ្តែតលើអាកាស ២០ ម៉ែត្រ + ហោះទៅបុកស៊ីចំគោលដៅយ៉ាងច្បាស់លាស់ មិនរំលង
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -106,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "☁️ EVADE: 20M SKY-FLOAT AUTO"
+    title.Text = "🫧 EVADE: ACCURATE BUBBLE AUTO"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -125,7 +125,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🚀 បើកការអណ្តែត ២០ ម៉ែត្រ (ស្រូបស៊ីអូតូ)"
+    autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធបុកស៊ី (២០ម៉ែត្រអណ្តែត)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -156,28 +156,40 @@ local function createGUI(imageAsset)
 
     local isLooping = false
     local floatConnection
-    local skyHeight = 20 -- កំណត់កម្ពស់ ២០ ម៉ែត្រថេរ
+    local skyHeight = 20 
+    local isAttacking = false -- ពិនិត្យស្ថានភាពពេលកំពុងចុះទៅបុកស៊ី
 
-    -- មុខងាររក្សាតួអង្គឲ្យអណ្តែតជាប់លើអាកាសកម្ពស់ ២០ ម៉ែត្ររហូត មិនឲ្យធ្លាក់ និង Noclip
     local function startFloating(enable)
         if floatConnection then floatConnection:Disconnect() floatConnection = nil end
         if enable then
             floatConnection = RunService.Stepped:Connect(function()
                 local char = LocalPlayer.Character
                 local root = char and char:FindFirstChild("HumanoidRootPart")
-                if root then
-                    -- រក្សាទីតាំងកម្ពស់ ២០ ម៉ែត្រពីដីជានិច្ច
+                if root and not isAttacking then
                     root.Velocity = Vector3.new(0, 0, 0)
                     local currentPos = root.Position
                     root.CFrame = CFrame.new(currentPos.X, skyHeight, currentPos.Z)
-                    
-                    -- បិទ CanCollide កុំឲ្យបុកទង្គិចជញ្ជាំងលើមេឃ
+                end
+                if char then
                     for _, part in pairs(char:GetDescendants()) do
                         if part:IsA("BasePart") then part.CanCollide = false end
                     end
                 end
             end)
         end
+    end
+
+    -- មុខងារផ្លាស់ទីទៅបុកចំគោលដៅ និងធានាថា Server ចាប់ទាន់
+    local function hitTarget(targetPos)
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        
+        isAttacking = true
+        root.CFrame = CFrame.new(targetPos) -- ហោះទៅចំពីលើ Bubble ភ្លាមៗ
+        root.Velocity = Vector3.new(0,0,0)
+        task.wait(0.08) -- ឈប់ចាំបន្តិចឲ្យវាបុកស៊ីចូល Server ពេញលេញ
+        isAttacking = false
     end
 
     local function toggleAutoLoop()
@@ -197,30 +209,23 @@ local function createGUI(imageAsset)
                         local targets = scanFullMap()
                         
                         if #targets > 0 then
-                            hintLabel.Text = "Status: 🫧 រកឃើញ Bubble! កំពុងស្រូបយក..."
+                            hintLabel.Text = "ស្ថានភាព៖ 🔍 កំពុងតម្រង់ទៅបុកស៊ី Bubble..."
                             hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
                             
                             for _, choice in ipairs(targets) do
                                 if not isLooping then break end
                                 if choice.part and choice.part.Parent then
-                                    -- វិធីសាស្ត្រស្រូប (ប្តូរ CFrame ទៅបុកស៊ីមួយប៉ប្រិចភ្នែក រួចត្រឡប់មកលើមេឃវិញភ្លាមៗ)
-                                    local oldX, oldZ = root.Position.X, root.Position.Z
-                                    
-                                    root.CFrame = CFrame.new(choice.part.Position)
+                                    -- បុកស៊ីគោលដៅ
+                                    hitTarget(choice.part.Position)
                                     
                                     if choice.type == "revive" and choice.prompt then
                                         pcall(function() fireproximityprompt(choice.prompt, 1) end)
                                         task.wait(0.5)
-                                    else
-                                        task.wait(0.02) -- ល្បឿនលឿនបំផុត (Instant Capture)
                                     end
-                                    
-                                    -- រុញទៅកម្ពស់ ២០ ម៉ែត្រលើអាកាសវិញភ្លាមៗ
-                                    root.CFrame = CFrame.new(oldX, skyHeight, oldZ)
                                 end
                             end
                         else
-                            hintLabel.Text = "Status: ☁️ កំពុងអណ្តែតកម្ពស់ ២០ ម៉ែត្រ & ស្កេនរកអូតូ..."
+                            hintLabel.Text = "ស្ថានភាព៖ ☁️ អណ្តែត ២០ ម៉ែត្រ & ស្កេនរក Bubble ថ្មី..."
                             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                         end
                     end
@@ -230,7 +235,7 @@ local function createGUI(imageAsset)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🚀 បើកការអណ្តែត ២០ ម៉ែត្រ (ស្រូបស៊ីអូតូ)"
+            autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធបុកស៊ី (២០ម៉ែត្រអណ្តែត)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
