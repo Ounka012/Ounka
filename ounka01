@@ -1,6 +1,6 @@
 --[[
-    Evade Sequential Smooth Glide (Safe Version) 
-    ហោះទៅជួយអ្នកដួល (Auto-Revive) និងរើសសំបុត្រលុយដោយសុវត្ថិភាព
+    EVADE: Auto Farm Event Gold & Tokens (Safe Glide)
+    ហោះទៅស៊ីមាស និងវត្ថុ Event ដែលធ្លាក់លើដីដោយស្វ័យប្រវត្តិ
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -33,20 +33,12 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- [កែសម្រួលសម្រាប់ Evade] ស្វែងរក ProximityPrompt (ប៊ូតុងជួយអ្នកដួល) និង វត្ថុ (Tickets)
-local function isEvadeTarget(obj)
-    -- រកមើលអ្នកដែលដួល (មានប៊ូតុង Revive ឲ្យចុច)
-    if obj:IsA("ProximityPrompt") then
-        local action = obj.ActionText:lower()
+-- ស្វែងរកតែ "មាស", "កាក់", "សំបុត្រ" ឬ "វត្ថុ Event" ប៉ុណ្ណោះ
+local function isEventGoldItem(obj)
+    if obj:IsA("BasePart") or obj:IsA("MeshPart") then
         local name = obj.Name:lower()
-        if action:find("revive") or name:find("revive") or action:find("carry") then
-            return true
-        end
-    end
-    -- រកមើលសំបុត្រ ឬលុយ (Tickets/Tokens)
-    if obj:IsA("BasePart") then
-        local name = obj.Name:lower()
-        if name:find("ticket") or name:find("token") or name:find("cash") then
+        -- ឈ្មោះវត្ថុដែលអាចធ្លាក់ក្នុង Evade (មាស, Tokens, Tickets, Event Items)
+        if name:find("gold") or name:find("coin") or name:find("token") or name:find("ticket") or name:find("event") then
             return true
         end
     end
@@ -54,20 +46,20 @@ local function isEvadeTarget(obj)
 end
 
 local function getTargetPart(obj)
-    if obj:IsA("ProximityPrompt") then return obj.Parent end
-    if obj:IsA("BasePart") then return obj end
+    if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj end
     if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart end
     return nil
 end
 
-local function getAllEvadeTargets()
-    local targets = {}
+local function getAllEventItems()
+    local items = {}
+    -- ស្វែងរកវត្ថុទូទាំងផែនទី
     for _, obj in pairs(Workspace:GetDescendants()) do
-        if isEvadeTarget(obj) then
-            table.insert(targets, obj)
+        if isEventGoldItem(obj) then
+            table.insert(items, obj)
         end
     end
-    return targets
+    return items
 end
 
 local function toggleNoclip(enable)
@@ -81,10 +73,10 @@ local function toggleNoclip(enable)
 end
 
 local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeAutoFarm") then CoreGui:FindFirstChild("EvadeAutoFarm"):Destroy() end
+    if CoreGui:FindFirstChild("EvadeGoldFarmer") then CoreGui:FindFirstChild("EvadeGoldFarmer"):Destroy() end
 
     local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeAutoFarm"
+    gui.Name = "EvadeGoldFarmer"
     gui.IgnoreGuiInset = true
 
     local toggleBtn = Instance.new("ImageButton", gui)
@@ -120,7 +112,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🚑 EVADE: Auto Revive & Tickets"
+    title.Text = "✨ EVADE: Auto Farm Event Gold"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 16
     title.TextColor3 = Color3.new(1,1,1)
@@ -138,8 +130,8 @@ local function createGUI(imageAsset)
     local autoLoopBtn = Instance.new("TextButton", mainFrame)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
-    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
-    autoLoopBtn.Text = "🎯 ចាប់ផ្តើមហោះជួយអ្នកដួល (Safe Mode)"
+    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(220, 180, 40) -- ពណ៌មាស
+    autoLoopBtn.Text = "💰 ចាប់ផ្តើមហោះស៊ីមាស Event"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -149,7 +141,7 @@ local function createGUI(imageAsset)
     hintLabel.Size = UDim2.new(1, -40, 0, 30)
     hintLabel.Position = UDim2.new(0, 20, 0, 130)
     hintLabel.BackgroundTransparency = 1
-    hintLabel.Text = "ហោះទៅជួយអ្នកដួល និងចុច Revive ដោយស្វ័យប្រវត្តិ"
+    hintLabel.Text = "វានឹងហោះទៅរកមាស កាក់ និងវត្ថុ Event គ្រប់ទីកន្លែង"
     hintLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
     hintLabel.Font = Enum.Font.Gotham
     hintLabel.TextSize = 11
@@ -179,11 +171,11 @@ local function createGUI(imageAsset)
         if isLooping then
             toggleNoclip(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
-            autoLoopBtn.Text = "⏹️ បញ្ឈប់ការហោះ"
+            autoLoopBtn.Text = "⏹️ កំពុងហោះស៊ី... (ចុចដើម្បីឈប់)"
 
             task.spawn(function()
                 while isLooping do
-                    local items = getAllEvadeTargets()
+                    local items = getAllEventItems()
 
                     if #items > 0 then
                         for _, obj in ipairs(items) do
@@ -194,7 +186,8 @@ local function createGUI(imageAsset)
                                 local targetPos = targetPart.Position
                                 
                                 local distance = (root.Position - targetPos).Magnitude
-                                local speed = 55 -- ដាក់លឿនជាង MM2 បន្តិច ព្រោះផែនទី Evade ធំជាង
+                                -- ល្បឿនសុវត្ថិភាព ឲ្យវាហោះកាត់ផែនទីទៅស៊ីមាស
+                                local speed = 50 
                                 local duration = distance / speed
                                 
                                 if duration < 0.15 then duration = 0.15 end
@@ -206,19 +199,11 @@ local function createGUI(imageAsset)
                                 tween.Completed:Wait() 
                                 
                                 root.Velocity = Vector3.new(0, 0, 0)
-                                
-                                -- ប្រសិនបើវាជាប៊ូតុងជួយសង្គ្រោះ ឲ្យវាចុចដោយស្វ័យប្រវត្តិ
-                                if obj:IsA("ProximityPrompt") then
-                                    pcall(function()
-                                        fireproximityprompt(obj, 1) -- មុខងារនេះអាចប្រើបានបើ Executor អ្នកគាំទ្រ
-                                    end)
-                                    task.wait(1) -- រង់ចាំពេលកំពុងជួយសង្គ្រោះ
-                                else
-                                    task.wait(0.2)
-                                end
+                                task.wait(0.15) -- សម្រាកឲ្យបានស៊ីវត្ថុចូលតួអង្គ
                             end
                         end
                     else
+                        -- បើរកអត់ឃើញមាសទេ ឲ្យវាសម្រាកសិន
                         task.wait(1)
                     end
                     task.wait(0.5)
@@ -226,8 +211,8 @@ local function createGUI(imageAsset)
             end)
         else
             toggleNoclip(false)
-            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
-            autoLoopBtn.Text = "🎯 ចាប់ផ្តើមហោះជួយអ្នកដួល (Safe Mode)"
+            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(220, 180, 40)
+            autoLoopBtn.Text = "💰 ចាប់ផ្តើមហោះស៊ីមាស Event"
         end
     end
 
