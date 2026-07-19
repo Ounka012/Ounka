@@ -1,6 +1,6 @@
 --[[
-    EVADE: Advanced Auto Farm Event Items (Max Scan)
-    ប្រព័ន្ធស្កេនរកវត្ថុកម្រិតខ្ពស់ - បើកាយរកអត់ឃើញ វានឹងលោតប្រាប់
+    EVADE: Hybrid Auto Farm (Tickets + Auto Revive)
+    ស្កេនរឹតតែខ្លាំង! បើរករកលុយមិនឃើញ វានឹងហោះទៅជួយសង្គ្រោះអ្នកដួលជំនួសវិញ។
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -33,35 +33,55 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- [កែប្រែប្រព័ន្ធស្កេន] រកមើលគ្រប់វត្ថុទាំងអស់ ទោះជា Part ឬ Model ក៏ដោយ
-local function isEventGoldItem(obj)
-    local name = obj.Name:lower()
-    -- ពាក្យគន្លឹះដែល Evade តែងតែប្រើសម្រាប់វត្ថុ
-    if name:find("ticket") or name:find("token") or name:find("coin") or name:find("collect") or name:find("event") then
-        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return true end
-        if obj:IsA("Model") and obj.PrimaryPart then return true end
+-- [កែប្រែប្រព័ន្ធស្កេនកម្រិតខ្ពស់]
+local function isEvadeTarget(obj)
+    -- 1. រកមើលអ្នកដែលដួល (Revive) - ដើម្បីកុំឲ្យឈរស្ងៀម
+    if obj:IsA("ProximityPrompt") then
+        local action = obj.ActionText:lower()
+        local name = obj.Name:lower()
+        if action:find("revive") or name:find("revive") or action:find("carry") then
+            return true, "revive"
+        end
     end
-    return false
+
+    -- 2. រកមើលវត្ថុតាមឈ្មោះផ្ទាល់
+    local name = obj.Name:lower()
+    if name:find("ticket") or name:find("token") or name:find("coin") or name:find("event") or name:find("point") then
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") or (obj:IsA("Model") and obj.PrimaryPart) then 
+            return true, "item" 
+        end
+    end
+    
+    -- 3. រកមើលវត្ថុដែលលាក់ក្នុង Folder របស់ Evade (Pickups/Tickets)
+    if obj:IsA("BasePart") or obj:IsA("MeshPart") then
+        if obj.Parent then
+            local parentName = obj.Parent.Name:lower()
+            if parentName:find("ticket") or parentName:find("pickup") or parentName:find("token") or parentName:find("collect") then
+                return true, "item"
+            end
+        end
+    end
+
+    return false, nil
 end
 
 local function getTargetPart(obj)
+    if obj:IsA("ProximityPrompt") then return obj.Parent end
     if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj end
     if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart end
-    -- បើវាជា Model តែអត់មាន PrimaryPart ឲ្យវាយក Part ណាមួយខាងក្នុង
-    if obj:IsA("Model") then
-        return obj:FindFirstChildWhichIsA("BasePart")
-    end
+    if obj:IsA("Model") then return obj:FindFirstChildWhichIsA("BasePart") end
     return nil
 end
 
-local function getAllEventItems()
-    local items = {}
+local function getAllTargets()
+    local targets = {}
     for _, obj in pairs(Workspace:GetDescendants()) do
-        if isEventGoldItem(obj) then
-            table.insert(items, obj)
+        local isValid, targetType = isEvadeTarget(obj)
+        if isValid then
+            table.insert(targets, {object = obj, type = targetType})
         end
     end
-    return items
+    return targets
 end
 
 local function toggleNoclip(enable)
@@ -75,10 +95,10 @@ local function toggleNoclip(enable)
 end
 
 local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeGoldFarmer") then CoreGui:FindFirstChild("EvadeGoldFarmer"):Destroy() end
+    if CoreGui:FindFirstChild("EvadeHybridFarmer") then CoreGui:FindFirstChild("EvadeHybridFarmer"):Destroy() end
 
     local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeGoldFarmer"
+    gui.Name = "EvadeHybridFarmer"
     gui.IgnoreGuiInset = true
 
     local toggleBtn = Instance.new("ImageButton", gui)
@@ -114,7 +134,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "✨ EVADE: Auto Farm Pro Max"
+    title.Text = "✨ EVADE: HYBRID FARM"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 16
     title.TextColor3 = Color3.new(1,1,1)
@@ -132,8 +152,8 @@ local function createGUI(imageAsset)
     local autoLoopBtn = Instance.new("TextButton", mainFrame)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
-    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(220, 180, 40)
-    autoLoopBtn.Text = "💰 ចាប់ផ្តើមស្កេនរកវត្ថុ"
+    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(40, 150, 220)
+    autoLoopBtn.Text = "🚀 ចាប់ផ្តើមស្កេន (វត្ថុ & អ្នកដួល)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -173,24 +193,26 @@ local function createGUI(imageAsset)
         if isLooping then
             toggleNoclip(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
-            autoLoopBtn.Text = "⏹️ បញ្ឈប់ (កំពុងស្វែងរក...)"
+            autoLoopBtn.Text = "⏹️ កំពុងដំណើរការ..."
 
             task.spawn(function()
                 while isLooping do
-                    local items = getAllEventItems()
+                    local targets = getAllTargets()
 
-                    if #items > 0 then
-                        hintLabel.Text = "ស្ថានភាព៖ រកឃើញ " .. #items .. " វត្ថុ! កំពុងហោះទៅស៊ី..."
+                    if #targets > 0 then
+                        hintLabel.Text = "ស្ថានភាព៖ រកឃើញគោលដៅ " .. #targets .. " កំពុងហោះទៅ!"
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
 
-                        for _, obj in ipairs(items) do
+                        for _, targetData in ipairs(targets) do
                             if not isLooping then break end
+                            local obj = targetData.object
+                            local targetType = targetData.type
                             local targetPart = getTargetPart(obj)
                             
                             if targetPart and targetPart.Parent then
                                 local targetPos = targetPart.Position
                                 local distance = (root.Position - targetPos).Magnitude
-                                local speed = 50 
+                                local speed = 55 
                                 local duration = distance / speed
                                 
                                 if duration < 0.15 then duration = 0.15 end
@@ -202,12 +224,17 @@ local function createGUI(imageAsset)
                                 tween.Completed:Wait() 
                                 
                                 root.Velocity = Vector3.new(0, 0, 0)
-                                task.wait(0.15) 
+                                
+                                if targetType == "revive" and obj:IsA("ProximityPrompt") then
+                                    pcall(function() fireproximityprompt(obj, 1) end)
+                                    task.wait(1.5) -- រង់ចាំពេលសង្គ្រោះ
+                                else
+                                    task.wait(0.2) -- រង់ចាំឲ្យស៊ីវត្ថុ
+                                end
                             end
                         end
                     else
-                        -- បើវារកអត់ឃើញ វានឹងប្រាប់យើង
-                        hintLabel.Text = "ស្ថានភាព៖ ❌ រកមិនឃើញវត្ថុនៅលើផែនទីទេ វគ្គនេះអាចគ្មានវត្ថុធ្លាក់"
+                        hintLabel.Text = "ស្ថានភាព៖ ❌ រកមិនឃើញអ្វីសោះ វគ្គនេះអាចគ្មានវត្ថុ ឬអ្នកដួលទេ"
                         hintLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
                         task.wait(1.5)
                     end
@@ -216,8 +243,8 @@ local function createGUI(imageAsset)
             end)
         else
             toggleNoclip(false)
-            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(220, 180, 40)
-            autoLoopBtn.Text = "💰 ចាប់ផ្តើមស្កេនរកវត្ថុ"
+            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(40, 150, 220)
+            autoLoopBtn.Text = "🚀 ចាប់ផ្តើមស្កេន (វត្ថុ & អ្នកដួល)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
