@@ -1,6 +1,6 @@
 --[[
-    EVADE: Summer Event Auto Farm
-    ប្រព័ន្ធហោះស៊ី Bubble (ពពុះសាប៊ូ Event) និងជួយអ្នកដួលដោយស្វ័យប្រវត្តិ
+    EVADE: Summer Event Auto Farm (Up-Glide Edition)
+    ហោះស៊ី Bubble/ជួយអ្នកដួល រួចហោះឡើងលើមេឃ ១០ ម៉ែត្រ សឹមទៅយកបន្តទៀត
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -33,18 +33,15 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- [ប្រព័ន្ធស្កេនថ្មីសម្រាប់ Summer Event]
 local function isEvadeTarget(obj)
     local name = obj.Name:lower()
 
-    -- 1. ស្កេនរកមើល Bubble (វត្ថុ Event រដូវក្តៅ) 
     if name:find("bubble") or name:find("bubblepart") then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") or (obj:IsA("Model") and obj.PrimaryPart) then 
             return true, "item" 
         end
     end
 
-    -- 2. រកមើលក្នុង Folder ឬ Parent ដែលមានឈ្មោះ Bubble 
     if obj:IsA("BasePart") or obj:IsA("MeshPart") then
         if obj.Parent then
             local parentName = obj.Parent.Name:lower()
@@ -54,7 +51,6 @@ local function isEvadeTarget(obj)
         end
     end
 
-    -- 3. រកមើលអ្នកដួល (Revive) ទុកគ្រាន់ហោះជួយយក EXP ពេលអត់ទាន់មាន Bubble ធ្លាក់
     if obj:IsA("ProximityPrompt") then
         local action = obj.ActionText:lower()
         if action:find("revive") or name:find("revive") or action:find("carry") then
@@ -134,7 +130,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "☀️ EVADE: SUMMER AUTO BUBBLE"
+    title.Text = "☀️ EVADE: UP-GLIDE FARM"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 15
     title.TextColor3 = Color3.new(1,1,1)
@@ -152,8 +148,8 @@ local function createGUI(imageAsset)
     local autoLoopBtn = Instance.new("TextButton", mainFrame)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
-    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255) -- ពណ៌ខៀវទឹកសមុទ្រ Summer
-    autoLoopBtn.Text = "🧼 ចាប់ផ្តើមហោះប្រមូល Bubble"
+    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+    autoLoopBtn.Text = "🧼 ចាប់ផ្តើមហោះ (ស៊ីរួចឡើងលើ)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -200,7 +196,7 @@ local function createGUI(imageAsset)
                     local targets = getAllTargets()
 
                     if #targets > 0 then
-                        hintLabel.Text = "ស្ថានភាព៖ 🫧 រកឃើញ " .. #targets .. " គោលដៅ! កំពុងហោះទៅស៊ី..."
+                        hintLabel.Text = "ស្ថានភាព៖ 🫧 រកឃើញគោលដៅ! កំពុងហោះទៅ..."
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
 
                         for _, targetData in ipairs(targets) do
@@ -210,9 +206,10 @@ local function createGUI(imageAsset)
                             local targetPart = getTargetPart(obj)
                             
                             if targetPart and targetPart.Parent then
+                                -- 1. ហោះទៅរកគោលដៅ (Bubble ឬ អ្នកដួល)
                                 local targetPos = targetPart.Position
                                 local distance = (root.Position - targetPos).Magnitude
-                                local speed = 60 -- ល្បឿនសមរម្យសម្រាប់ Map Evade ធំៗ
+                                local speed = 60 
                                 local duration = distance / speed
                                 
                                 if duration < 0.15 then duration = 0.15 end
@@ -222,19 +219,27 @@ local function createGUI(imageAsset)
                                 
                                 tween:Play()
                                 tween.Completed:Wait() 
-                                
                                 root.Velocity = Vector3.new(0, 0, 0)
                                 
                                 if targetType == "revive" and obj:IsA("ProximityPrompt") then
                                     pcall(function() fireproximityprompt(obj, 1) end)
                                     task.wait(1.2)
                                 else
-                                    task.wait(0.15) -- ឈប់បន្តិចឲ្យប្រព័ន្ធហ្គេមគិតថាបានស៊ី Bubble រួចរាល់
+                                    task.wait(0.15) 
+                                end
+
+                                -- 2. [បន្ថែមមុខងារថ្មី] ហោះឡើងលើមេឃ ១០ ម៉ែត្រ (10 Units) ដើម្បីសុវត្ថិភាព
+                                if isLooping then
+                                    local upPos = root.Position + Vector3.new(0, 10, 0)
+                                    local upTween = TweenService:Create(root, TweenInfo.new(0.3, Enum.EasingStyle.QuadOut), {CFrame = CFrame.new(upPos)})
+                                    upTween:Play()
+                                    upTween.Completed:Wait()
+                                    task.wait(0.2) -- សម្រាកបន្តិចសឹមទៅយកអាផ្សេងទៀត
                                 end
                             end
                         end
                     else
-                        hintLabel.Text = "ស្ថានភាព៖ 🔍 កំពុងស្កេនរកមើល Bubble លើផែនទី..."
+                        hintLabel.Text = "ស្ថានភាព៖ 🔍 កំពុងស្កេនរកមើល Bubble..."
                         hintLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
                         task.wait(1)
                     end
@@ -244,7 +249,7 @@ local function createGUI(imageAsset)
         else
             toggleNoclip(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🧼 ចាប់ផ្តើមហោះប្រមូល Bubble"
+            autoLoopBtn.Text = "🧼 ចាប់ផ្តើមហោះ (ស៊ីរួចឡើងលើ)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
