@@ -1,6 +1,6 @@
 --[[
-    EVADE: Auto Farm Event Gold & Tokens (Safe Glide)
-    ហោះទៅស៊ីមាស និងវត្ថុ Event ដែលធ្លាក់លើដីដោយស្វ័យប្រវត្តិ
+    EVADE: Advanced Auto Farm Event Items (Max Scan)
+    ប្រព័ន្ធស្កេនរកវត្ថុកម្រិតខ្ពស់ - បើកាយរកអត់ឃើញ វានឹងលោតប្រាប់
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -33,14 +33,13 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- ស្វែងរកតែ "មាស", "កាក់", "សំបុត្រ" ឬ "វត្ថុ Event" ប៉ុណ្ណោះ
+-- [កែប្រែប្រព័ន្ធស្កេន] រកមើលគ្រប់វត្ថុទាំងអស់ ទោះជា Part ឬ Model ក៏ដោយ
 local function isEventGoldItem(obj)
-    if obj:IsA("BasePart") or obj:IsA("MeshPart") then
-        local name = obj.Name:lower()
-        -- ឈ្មោះវត្ថុដែលអាចធ្លាក់ក្នុង Evade (មាស, Tokens, Tickets, Event Items)
-        if name:find("gold") or name:find("coin") or name:find("token") or name:find("ticket") or name:find("event") then
-            return true
-        end
+    local name = obj.Name:lower()
+    -- ពាក្យគន្លឹះដែល Evade តែងតែប្រើសម្រាប់វត្ថុ
+    if name:find("ticket") or name:find("token") or name:find("coin") or name:find("collect") or name:find("event") then
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return true end
+        if obj:IsA("Model") and obj.PrimaryPart then return true end
     end
     return false
 end
@@ -48,12 +47,15 @@ end
 local function getTargetPart(obj)
     if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj end
     if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart end
+    -- បើវាជា Model តែអត់មាន PrimaryPart ឲ្យវាយក Part ណាមួយខាងក្នុង
+    if obj:IsA("Model") then
+        return obj:FindFirstChildWhichIsA("BasePart")
+    end
     return nil
 end
 
 local function getAllEventItems()
     local items = {}
-    -- ស្វែងរកវត្ថុទូទាំងផែនទី
     for _, obj in pairs(Workspace:GetDescendants()) do
         if isEventGoldItem(obj) then
             table.insert(items, obj)
@@ -112,7 +114,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "✨ EVADE: Auto Farm Event Gold"
+    title.Text = "✨ EVADE: Auto Farm Pro Max"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 16
     title.TextColor3 = Color3.new(1,1,1)
@@ -130,8 +132,8 @@ local function createGUI(imageAsset)
     local autoLoopBtn = Instance.new("TextButton", mainFrame)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
-    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(220, 180, 40) -- ពណ៌មាស
-    autoLoopBtn.Text = "💰 ចាប់ផ្តើមហោះស៊ីមាស Event"
+    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(220, 180, 40)
+    autoLoopBtn.Text = "💰 ចាប់ផ្តើមស្កេនរកវត្ថុ"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -141,10 +143,10 @@ local function createGUI(imageAsset)
     hintLabel.Size = UDim2.new(1, -40, 0, 30)
     hintLabel.Position = UDim2.new(0, 20, 0, 130)
     hintLabel.BackgroundTransparency = 1
-    hintLabel.Text = "វានឹងហោះទៅរកមាស កាក់ និងវត្ថុ Event គ្រប់ទីកន្លែង"
-    hintLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    hintLabel.Text = "ស្ថានភាព៖ ត្រៀមខ្លួន..."
+    hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     hintLabel.Font = Enum.Font.Gotham
-    hintLabel.TextSize = 11
+    hintLabel.TextSize = 12
 
     task.spawn(function()
         local hue = 0
@@ -171,22 +173,23 @@ local function createGUI(imageAsset)
         if isLooping then
             toggleNoclip(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
-            autoLoopBtn.Text = "⏹️ កំពុងហោះស៊ី... (ចុចដើម្បីឈប់)"
+            autoLoopBtn.Text = "⏹️ បញ្ឈប់ (កំពុងស្វែងរក...)"
 
             task.spawn(function()
                 while isLooping do
                     local items = getAllEventItems()
 
                     if #items > 0 then
+                        hintLabel.Text = "ស្ថានភាព៖ រកឃើញ " .. #items .. " វត្ថុ! កំពុងហោះទៅស៊ី..."
+                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+
                         for _, obj in ipairs(items) do
                             if not isLooping then break end
                             local targetPart = getTargetPart(obj)
                             
                             if targetPart and targetPart.Parent then
                                 local targetPos = targetPart.Position
-                                
                                 local distance = (root.Position - targetPos).Magnitude
-                                -- ល្បឿនសុវត្ថិភាព ឲ្យវាហោះកាត់ផែនទីទៅស៊ីមាស
                                 local speed = 50 
                                 local duration = distance / speed
                                 
@@ -199,12 +202,14 @@ local function createGUI(imageAsset)
                                 tween.Completed:Wait() 
                                 
                                 root.Velocity = Vector3.new(0, 0, 0)
-                                task.wait(0.15) -- សម្រាកឲ្យបានស៊ីវត្ថុចូលតួអង្គ
+                                task.wait(0.15) 
                             end
                         end
                     else
-                        -- បើរកអត់ឃើញមាសទេ ឲ្យវាសម្រាកសិន
-                        task.wait(1)
+                        -- បើវារកអត់ឃើញ វានឹងប្រាប់យើង
+                        hintLabel.Text = "ស្ថានភាព៖ ❌ រកមិនឃើញវត្ថុនៅលើផែនទីទេ វគ្គនេះអាចគ្មានវត្ថុធ្លាក់"
+                        hintLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+                        task.wait(1.5)
                     end
                     task.wait(0.5)
                 end
@@ -212,7 +217,9 @@ local function createGUI(imageAsset)
         else
             toggleNoclip(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(220, 180, 40)
-            autoLoopBtn.Text = "💰 ចាប់ផ្តើមហោះស៊ីមាស Event"
+            autoLoopBtn.Text = "💰 ចាប់ផ្តើមស្កេនរកវត្ថុ"
+            hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
+            hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
     end
 
