@@ -1,6 +1,6 @@
 --[[
-    EVADE: Summer Event Auto Farm (Full-Map Aggressive Mode)
-    ស្កេនរកពេញ Map មិនរើសមុខ + ហោះស៊ីរួច លោតឡើងលើ ១០ ម៉ែត្រភ្លាមៗ រួចចុះមកស៊ីបន្តដោយស្វ័យប្រវត្តិ
+    EVADE: Summer Event Auto Farm (20M Sky-Float Edition)
+    ហោះអណ្តែតជាប់លើអាកាសកម្ពស់ ២០ ម៉ែត្ររហូត + ស្រូបទាញ Bubble ពេញ Map មកស៊ីដោយស្វ័យប្រវត្តិ
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -33,7 +33,6 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- ប្រព័ន្ធស្កេនគ្រប់ច្រកល្ហកពេញ Map ឲ្យតែពាក់ព័ន្ធនឹង Bubble ឬជួយមនុស្ស
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
@@ -107,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ EVADE: AGGRESSIVE BUBBLE FARM"
+    title.Text = "☁️ EVADE: 20M SKY-FLOAT AUTO"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -126,7 +125,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🚀 បើក Auto Farm ពេញ Map (លោតចុះឡើង)"
+    autoLoopBtn.Text = "🚀 បើកការអណ្តែត ២០ ម៉ែត្រ (ស្រូបស៊ីអូតូ)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -156,14 +155,23 @@ local function createGUI(imageAsset)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
     local isLooping = false
-    local noclipConn
+    local floatConnection
+    local skyHeight = 20 -- កំណត់កម្ពស់ ២០ ម៉ែត្រថេរ
 
-    local function toggleNoclip(enable)
-        if noclipConn then noclipConn:Disconnect() noclipConn = nil end
+    -- មុខងាររក្សាតួអង្គឲ្យអណ្តែតជាប់លើអាកាសកម្ពស់ ២០ ម៉ែត្ររហូត មិនឲ្យធ្លាក់ និង Noclip
+    local function startFloating(enable)
+        if floatConnection then floatConnection:Disconnect() floatConnection = nil end
         if enable then
-            noclipConn = RunService.Stepped:Connect(function()
+            floatConnection = RunService.Stepped:Connect(function()
                 local char = LocalPlayer.Character
-                if char then
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    -- រក្សាទីតាំងកម្ពស់ ២០ ម៉ែត្រពីដីជានិច្ច
+                    root.Velocity = Vector3.new(0, 0, 0)
+                    local currentPos = root.Position
+                    root.CFrame = CFrame.new(currentPos.X, skyHeight, currentPos.Z)
+                    
+                    -- បិទ CanCollide កុំឲ្យបុកទង្គិចជញ្ជាំងលើមេឃ
                     for _, part in pairs(char:GetDescendants()) do
                         if part:IsA("BasePart") then part.CanCollide = false end
                     end
@@ -172,28 +180,13 @@ local function createGUI(imageAsset)
         end
     end
 
-    -- ប្រព័ន្ធហោះល្បឿនលឿន និងទន់ភ្លន់
-    local function teleTo(targetPos)
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        
-        local speed = 80 -- បង្កើនល្បឿនហោះឲ្យលឿនជាងមុន
-        while (root.Position - targetPos).Magnitude > 1.5 and isLooping do
-            local dir = (targetPos - root.Position).Unit
-            root.CFrame = CFrame.new(root.Position + dir * (speed * RunService.Heartbeat:Wait()))
-        end
-        if isLooping then root.CFrame = CFrame.new(targetPos) end
-        root.Velocity = Vector3.new(0,0,0)
-    end
-
     local function toggleAutoLoop()
         isLooping = not isLooping
 
         if isLooping then
-            toggleNoclip(true)
+            startFloating(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
-            autoLoopBtn.Text = "⏹️ ឈប់ហោះ"
+            autoLoopBtn.Text = "⏹️ ឈប់ហោះអណ្តែត"
 
             task.spawn(function()
                 while isLooping do
@@ -204,50 +197,40 @@ local function createGUI(imageAsset)
                         local targets = scanFullMap()
                         
                         if #targets > 0 then
-                            -- តម្រៀបរករបស់ណាដែលនៅជិតបំផុត
-                            table.sort(targets, function(a, b)
-                                return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
-                            end)
+                            hintLabel.Text = "Status: 🫧 រកឃើញ Bubble! កំពុងស្រូបយក..."
+                            hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
                             
-                            local choice = targets[1]
-                            if choice.part and choice.part.Parent then
-                                hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងបុកទៅស៊ី Bubble រកពេញ Map..."
-                                hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
-                                
-                                -- ហោះទៅបុកយក
-                                teleTo(choice.part.Position)
-                                
-                                if choice.type == "revive" and choice.prompt then
-                                    pcall(function() fireproximityprompt(choice.prompt, 1) end)
-                                    task.wait(0.8)
-                                else
-                                    task.wait(0.05) -- ឈប់ភ្លែតឲ្យវាទាន់ស៊ីចូល Account
-                                end
-                                
-                                -- [កែសម្រួលថ្មី] លោតឡើងលើ ១០ ម៉ែត្រភ្លាមៗ រួចបន្ត Loop ភ្លែត
-                                if isLooping then
-                                    local skyPos = root.Position + Vector3.new(0, 10, 0)
-                                    teleTo(skyPos)
+                            for _, choice in ipairs(targets) do
+                                if not isLooping then break end
+                                if choice.part and choice.part.Parent then
+                                    -- វិធីសាស្ត្រស្រូប (ប្តូរ CFrame ទៅបុកស៊ីមួយប៉ប្រិចភ្នែក រួចត្រឡប់មកលើមេឃវិញភ្លាមៗ)
+                                    local oldX, oldZ = root.Position.X, root.Position.Z
+                                    
+                                    root.CFrame = CFrame.new(choice.part.Position)
+                                    
+                                    if choice.type == "revive" and choice.prompt then
+                                        pcall(function() fireproximityprompt(choice.prompt, 1) end)
+                                        task.wait(0.5)
+                                    else
+                                        task.wait(0.02) -- ល្បឿនលឿនបំផុត (Instant Capture)
+                                    end
+                                    
+                                    -- រុញទៅកម្ពស់ ២០ ម៉ែត្រលើអាកាសវិញភ្លាមៗ
+                                    root.CFrame = CFrame.new(oldX, skyHeight, oldZ)
                                 end
                             end
                         else
-                            -- បើគ្មាន Bubble ទេ ឲ្យវានៅអណ្តែតលើអាកាសកម្ពស់ ១៥ ម៉ែត្រ រួចចុះឡើងៗស្កេន
-                            local currentPos = root.Position
-                            if currentPos.Y < 15 then
-                                root.CFrame = CFrame.new(currentPos.X, 15, currentPos.Z)
-                            end
-                            root.Velocity = Vector3.new(0,0,0)
-                            hintLabel.Text = "ស្ថានភាព៖ 🔍 កំពុងរាវរកគ្រប់ច្រកល្ហកពេញ Map..."
-                            hintLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+                            hintLabel.Text = "Status: ☁️ កំពុងអណ្តែតកម្ពស់ ២០ ម៉ែត្រ & ស្កេនរកអូតូ..."
+                            hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                         end
                     end
-                    task.wait(0.1) -- បន្ថយពេលសម្រាក ដើម្បីឲ្យវាលោតទៅយកអាថ្មីភ្លាមៗ
+                    task.wait(0.2)
                 end
             end)
         else
-            toggleNoclip(false)
+            startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🚀 បើក Auto Farm ពេញ Map (លោតចុះឡើង)"
+            autoLoopBtn.Text = "🚀 បើកការអណ្តែត ២០ ម៉ែត្រ (ស្រូបស៊ីអូតូ)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
