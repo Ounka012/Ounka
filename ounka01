@@ -1,5 +1,6 @@
 --[[
-    MM2 Sequential Smooth Glide (Safe Version) – ហោះលឿនល្មម និងមានសុវត្ថិភាព មិនងាយឆ្កួត Anti-Cheat
+    Evade Sequential Smooth Glide (Safe Version) 
+    ហោះទៅជួយអ្នកដួល (Auto-Revive) និងរើសសំបុត្រលុយដោយសុវត្ថិភាព
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -32,26 +33,41 @@ local function makeDraggable(guiObject)
     end)
 end
 
-local function isGoldItem(obj)
-    local name = obj.Name:lower()
-    return name:find("gold") or name:find("key") or name:find("card") or name:find("coin") or name:find("crate") or name:find("box") or name:find("gift")
+-- [កែសម្រួលសម្រាប់ Evade] ស្វែងរក ProximityPrompt (ប៊ូតុងជួយអ្នកដួល) និង វត្ថុ (Tickets)
+local function isEvadeTarget(obj)
+    -- រកមើលអ្នកដែលដួល (មានប៊ូតុង Revive ឲ្យចុច)
+    if obj:IsA("ProximityPrompt") then
+        local action = obj.ActionText:lower()
+        local name = obj.Name:lower()
+        if action:find("revive") or name:find("revive") or action:find("carry") then
+            return true
+        end
+    end
+    -- រកមើលសំបុត្រ ឬលុយ (Tickets/Tokens)
+    if obj:IsA("BasePart") then
+        local name = obj.Name:lower()
+        if name:find("ticket") or name:find("token") or name:find("cash") then
+            return true
+        end
+    end
+    return false
 end
 
 local function getTargetPart(obj)
+    if obj:IsA("ProximityPrompt") then return obj.Parent end
     if obj:IsA("BasePart") then return obj end
     if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart end
-    if obj:IsA("Tool") and obj:FindFirstChild("Handle") then return obj.Handle end
     return nil
 end
 
-local function getAllGoldItems()
-    local items = {}
+local function getAllEvadeTargets()
+    local targets = {}
     for _, obj in pairs(Workspace:GetDescendants()) do
-        if isGoldItem(obj) then
-            table.insert(items, obj)
+        if isEvadeTarget(obj) then
+            table.insert(targets, obj)
         end
     end
-    return items
+    return targets
 end
 
 local function toggleNoclip(enable)
@@ -65,10 +81,10 @@ local function toggleNoclip(enable)
 end
 
 local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("MM2GoldFinder") then CoreGui:FindFirstChild("MM2GoldFinder"):Destroy() end
+    if CoreGui:FindFirstChild("EvadeAutoFarm") then CoreGui:FindFirstChild("EvadeAutoFarm"):Destroy() end
 
     local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "MM2GoldFinder"
+    gui.Name = "EvadeAutoFarm"
     gui.IgnoreGuiInset = true
 
     local toggleBtn = Instance.new("ImageButton", gui)
@@ -104,7 +120,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "➡️ Sequential Glide (Safe)"
+    title.Text = "🚑 EVADE: Auto Revive & Tickets"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 16
     title.TextColor3 = Color3.new(1,1,1)
@@ -123,7 +139,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
-    autoLoopBtn.Text = "🎯 ចាប់ផ្តើមហោះ (Safe Mode)"
+    autoLoopBtn.Text = "🎯 ចាប់ផ្តើមហោះជួយអ្នកដួល (Safe Mode)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -133,7 +149,7 @@ local function createGUI(imageAsset)
     hintLabel.Size = UDim2.new(1, -40, 0, 30)
     hintLabel.Position = UDim2.new(0, 20, 0, 130)
     hintLabel.BackgroundTransparency = 1
-    hintLabel.Text = "ល្បឿនហោះត្រូវបានគណនាតាមចម្ងាយ ដើម្បីកុំឲ្យ Anti-Cheat ចាប់បាន"
+    hintLabel.Text = "ហោះទៅជួយអ្នកដួល និងចុច Revive ដោយស្វ័យប្រវត្តិ"
     hintLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
     hintLabel.Font = Enum.Font.Gotham
     hintLabel.TextSize = 11
@@ -163,11 +179,11 @@ local function createGUI(imageAsset)
         if isLooping then
             toggleNoclip(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
-            autoLoopBtn.Text = "⏹️ បញ្ឈប់"
+            autoLoopBtn.Text = "⏹️ បញ្ឈប់ការហោះ"
 
             task.spawn(function()
                 while isLooping do
-                    local items = getAllGoldItems()
+                    local items = getAllEvadeTargets()
 
                     if #items > 0 then
                         for _, obj in ipairs(items) do
@@ -177,38 +193,41 @@ local function createGUI(imageAsset)
                             if targetPart and targetPart.Parent then
                                 local targetPos = targetPart.Position
                                 
-                                -- គណនាចម្ងាយពិតប្រាកដរវាងតួអង្គ និងវត្ថុគោលដៅ
                                 local distance = (root.Position - targetPos).Magnitude
-                                
-                                -- កំណត់ល្បឿនហោះសុវត្ថិភាព (៤៥ studs ក្នុង១វិនាទី គឺសមរម្យសម្រាប់ MM2)
-                                local speed = 45 
+                                local speed = 55 -- ដាក់លឿនជាង MM2 បន្តិច ព្រោះផែនទី Evade ធំជាង
                                 local duration = distance / speed
                                 
-                                -- ការពារកុំឲ្យពេលវេលាខ្លីពេក នាំឲ្យឆ្កួត Tween
                                 if duration < 0.15 then duration = 0.15 end
                                 
-                                -- ហោះទៅចំគោលដៅដោយផ្ទាល់ (រួមទាំងកម្ពស់ Y ផងដែរ ដើម្បីកុំឲ្យកប់ការ៉ូ)
                                 local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
                                 local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
                                 
                                 tween:Play()
-                                tween.Completed:Wait() -- រង់ចាំរហូតដល់ហោះទៅដល់ ទើបទៅវត្ថុបន្ទាប់
+                                tween.Completed:Wait() 
                                 
-                                root.Velocity = Vector3.new(0, 0, 0) -- បន្ថយល្បឿនភ្លាមៗកុំឲ្យរអិលហួស
-                                task.wait(0.25) -- សម្រាកបន្តិចដើម្បីឲ្យ Server ស្គាល់ថាអ្នករើសបានវត្ថុ និងកាត់បន្ថយការ Kick
+                                root.Velocity = Vector3.new(0, 0, 0)
+                                
+                                -- ប្រសិនបើវាជាប៊ូតុងជួយសង្គ្រោះ ឲ្យវាចុចដោយស្វ័យប្រវត្តិ
+                                if obj:IsA("ProximityPrompt") then
+                                    pcall(function()
+                                        fireproximityprompt(obj, 1) -- មុខងារនេះអាចប្រើបានបើ Executor អ្នកគាំទ្រ
+                                    end)
+                                    task.wait(1) -- រង់ចាំពេលកំពុងជួយសង្គ្រោះ
+                                else
+                                    task.wait(0.2)
+                                end
                             end
                         end
                     else
-                        -- បើគ្មានវត្ថុទេ ឲ្យវានៅស្ងៀមមួយកន្លែងសិន
                         task.wait(1)
                     end
-                    task.wait(0.5) -- សម្រាកកុំឲ្យទូរស័ព្ទ ឬកុំព្យូទ័រឡើងកម្តៅខ្លាំង
+                    task.wait(0.5)
                 end
             end)
         else
             toggleNoclip(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
-            autoLoopBtn.Text = "🎯 ចាប់ផ្តើមហោះ (Safe Mode)"
+            autoLoopBtn.Text = "🎯 ចាប់ផ្តើមហោះជួយអ្នកដួល (Safe Mode)"
         end
     end
 
