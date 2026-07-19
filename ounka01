@@ -1,263 +1,1323 @@
---[[
-    EVADE: Hybrid Auto Farm (Tickets + Auto Revive)
-    ស្កេនរឹតតែខ្លាំង! បើរករកលុយមិនឃើញ វានឹងហោះទៅជួយសង្គ្រោះអ្នកដួលជំនួសវិញ។
---]]
+-- ============================================
+-- Evade Roblox - Advanced GUI Helper
+-- សម្រាប់ការសិក្សា និងការយល់ដឹង
+-- ============================================
 
-local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local PathfindingService = game:GetService("PathfindingService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local HttpService = game:GetService("HttpService")
+
 local LocalPlayer = Players.LocalPlayer
-local TweenService = game:GetService("TweenService")
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
-local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
-local FILE_NAME = "bg.jpg"
+-- ============================================
+-- ការកំណត់រចនាសម្ព័ន្ធ (Configuration)
+-- ============================================
 
-local function makeDraggable(guiObject)
-    local dragging, startPos, objPos
-    guiObject.InputBegan:Connect(function(input)
+local Config = {
+    Enabled = false,
+    AutoDodge = true,
+    AutoRevive = true,
+    ESP = true,
+    Fullbright = true,
+    NoClip = false,
+    SpeedHack = false,
+    SpeedValue = 50,
+    DodgeDistance = 50,
+    DodgeSpeed = 80,
+    ESPColor = Color3.fromRGB(255, 0, 0),
+    AntiAFK = true,
+}
+
+-- ============================================
+-- ស្ថានភាព (State)
+-- ============================================
+
+local State = {
+    IsRunning = false,
+    NearestMonster = nil,
+    MonsterDistance = math.huge,
+    IsDowned = false,
+    SurviveTime = 0,
+    MinedCount = 0,
+    LastDodgeTime = 0,
+    ESPObjects = {},
+}
+
+-- ============================================
+-- មុខងារជំនួយ (Utility Functions)
+-- ============================================
+
+local function Log(message, type)
+    local prefix = type == "error" and "❌" or type == "success" and "✅" or type == "warning" and "⚠️" or "ℹ️"
+    print(string.format("[%s] [Evade] %s", prefix, message))
+end
+
+local function GetDistance(pos1, pos2)
+    return (pos1 - pos2).Magnitude
+end
+
+local function UpdateCharacter()
+    Character = LocalPlayer.Character
+    if Character then
+        Humanoid = Character:FindFirstChildOfClass("Humanoid")
+        HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+    end
+end
+
+-- ============================================
+-- GUI Creation - បង្កើតផ្ទាំង GUI
+-- ============================================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "EvadeAdvancedGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- ផ្ទាំងចម្បង (Main Frame)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 350, 0, 500)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+-- មុំរង្វង់ (Rounded Corners)
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+-- ស្រមោល (Shadow)
+local Shadow = Instance.new("ImageLabel")
+Shadow.Name = "Shadow"
+Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+Shadow.BackgroundTransparency = 1
+Shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+Shadow.Size = UDim2.new(1, 30, 1, 30)
+Shadow.ZIndex = -1
+Shadow.Image = "rbxassetid://6014261993"
+Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+Shadow.ImageTransparency = 0.5
+Shadow.ScaleType = Enum.ScaleType.Slice
+Shadow.SliceCenter = Rect.new(49, 49, 450, 450)
+Shadow.Parent = MainFrame
+
+-- ============================================
+-- Title Bar (របារចំណងជើង)
+-- ============================================
+
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 45)
+TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 12)
+TitleCorner.Parent = TitleBar
+
+-- រូបតំណាង (Icon)
+local Icon = Instance.new("ImageLabel")
+Icon.Name = "Icon"
+Icon.Size = UDim2.new(0, 28, 0, 28)
+Icon.Position = UDim2.new(0, 12, 0.5, -14)
+Icon.BackgroundTransparency = 1
+Icon.Image = "rbxassetid://7733965241" -- រូបតំណាង ghost
+Icon.ImageColor3 = Color3.fromRGB(255, 100, 100)
+Icon.Parent = TitleBar
+
+-- ចំណងជើង (Title)
+local TitleText = Instance.new("TextLabel")
+TitleText.Name = "Title"
+TitleText.Size = UDim2.new(0, 200, 0, 30)
+TitleText.Position = UDim2.new(0, 48, 0.5, -15)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "Evade Helper"
+TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleText.TextSize = 20
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.Parent = TitleBar
+
+-- ប៊ូតុងបិទ (Close Button)
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 32, 0, 32)
+CloseButton.Position = UDim2.new(1, -40, 0.5, -16)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+CloseButton.BorderSizePixel = 0
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 16
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Parent = TitleBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = CloseButton
+
+-- ប៊ូតុងបង្រួម (Minimize Button)
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Name = "MinimizeButton"
+MinimizeButton.Size = UDim2.new(0, 32, 0, 32)
+MinimizeButton.Position = UDim2.new(1, -78, 0.5, -16)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 80)
+MinimizeButton.BorderSizePixel = 0
+MinimizeButton.Text = "-"
+MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.TextSize = 20
+MinimizeButton.Font = Enum.Font.GothamBold
+MinimizeButton.Parent = TitleBar
+
+local MinimizeCorner = Instance.new("UICorner")
+MinimizeCorner.CornerRadius = UDim.new(0, 8)
+MinimizeCorner.Parent = MinimizeButton
+
+-- ============================================
+-- Tab System (ប្រព័ន្ធ Tab)
+-- ============================================
+
+local TabFrame = Instance.new("Frame")
+TabFrame.Name = "TabFrame"
+TabFrame.Size = UDim2.new(1, 0, 0, 40)
+TabFrame.Position = UDim2.new(0, 0, 0, 45)
+TabFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+TabFrame.BorderSizePixel = 0
+TabFrame.Parent = MainFrame
+
+-- Tab បន្ទះ (Main)
+local MainTab = Instance.new("TextButton")
+MainTab.Name = "MainTab"
+MainTab.Size = UDim2.new(0, 80, 0, 35)
+MainTab.Position = UDim2.new(0, 10, 0.5, -17.5)
+MainTab.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+MainTab.BorderSizePixel = 0
+MainTab.Text = "Main"
+MainTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+MainTab.TextSize = 14
+MainTab.Font = Enum.Font.GothamBold
+MainTab.Parent = TabFrame
+
+local MainTabCorner = Instance.new("UICorner")
+MainTabCorner.CornerRadius = UDim.new(0, 8)
+MainTabCorner.Parent = MainTab
+
+-- Tab បន្ទះ (Visual)
+local VisualTab = Instance.new("TextButton")
+VisualTab.Name = "VisualTab"
+VisualTab.Size = UDim2.new(0, 80, 0, 35)
+VisualTab.Position = UDim2.new(0, 100, 0.5, -17.5)
+VisualTab.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+VisualTab.BorderSizePixel = 0
+VisualTab.Text = "Visual"
+VisualTab.TextColor3 = Color3.fromRGB(200, 200, 200)
+VisualTab.TextSize = 14
+VisualTab.Font = Enum.Font.GothamBold
+VisualTab.Parent = TabFrame
+
+local VisualTabCorner = Instance.new("UICorner")
+VisualTabCorner.CornerRadius = UDim.new(0, 8)
+VisualTabCorner.Parent = VisualTab
+
+-- Tab បន្ទះ (Settings)
+local SettingsTab = Instance.new("TextButton")
+SettingsTab.Name = "SettingsTab"
+SettingsTab.Size = UDim2.new(0, 80, 0, 35)
+SettingsTab.Position = UDim2.new(0, 190, 0.5, -17.5)
+SettingsTab.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+SettingsTab.BorderSizePixel = 0
+SettingsTab.Text = "Settings"
+SettingsTab.TextColor3 = Color3.fromRGB(200, 200, 200)
+SettingsTab.TextSize = 14
+SettingsTab.Font = Enum.Font.GothamBold
+SettingsTab.Parent = TabFrame
+
+local SettingsTabCorner = Instance.new("UICorner")
+SettingsTabCorner.CornerRadius = UDim.new(0, 8)
+SettingsTabCorner.Parent = SettingsTab
+
+-- ============================================
+-- Content Frames (ផ្ទាំងខ្លឹមសារ)
+-- ============================================
+
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "ContentFrame"
+ContentFrame.Size = UDim2.new(1, -20, 0, 400)
+ContentFrame.Position = UDim2.new(0, 10, 0, 90)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Parent = MainFrame
+
+-- Main Content
+local MainContent = Instance.new("ScrollingFrame")
+MainContent.Name = "MainContent"
+MainContent.Size = UDim2.new(1, 0, 1, 0)
+MainContent.BackgroundTransparency = 1
+MainContent.ScrollBarThickness = 4
+MainContent.ScrollBarImageColor3 = Color3.fromRGB(255, 100, 100)
+MainContent.CanvasSize = UDim2.new(0, 0, 0, 350)
+MainContent.Parent = ContentFrame
+
+-- Visual Content
+local VisualContent = Instance.new("ScrollingFrame")
+VisualContent.Name = "VisualContent"
+VisualContent.Size = UDim2.new(1, 0, 1, 0)
+VisualContent.BackgroundTransparency = 1
+VisualContent.ScrollBarThickness = 4
+VisualContent.ScrollBarImageColor3 = Color3.fromRGB(255, 100, 100)
+VisualContent.CanvasSize = UDim2.new(0, 0, 0, 300)
+VisualContent.Visible = false
+VisualContent.Parent = ContentFrame
+
+-- Settings Content
+local SettingsContent = Instance.new("ScrollingFrame")
+SettingsContent.Name = "SettingsContent"
+SettingsContent.Size = UDim2.new(1, 0, 1, 0)
+SettingsContent.BackgroundTransparency = 1
+SettingsContent.ScrollBarThickness = 4
+SettingsContent.ScrollBarImageColor3 = Color3.fromRGB(255, 100, 100)
+SettingsContent.CanvasSize = UDim2.new(0, 0, 0, 400)
+SettingsContent.Visible = false
+SettingsContent.Parent = ContentFrame
+
+-- ============================================
+-- Toggle Button Function (បង្កើតប៊ូតុង Toggle)
+-- ============================================
+
+local function CreateToggle(parent, name, defaultValue, callback, yPosition)
+    local ToggleFrame = Instance.new("Frame")
+    ToggleFrame.Name = name .. "Toggle"
+    ToggleFrame.Size = UDim2.new(1, -10, 0, 40)
+    ToggleFrame.Position = UDim2.new(0, 5, 0, yPosition)
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    ToggleFrame.BorderSizePixel = 0
+    ToggleFrame.Parent = parent
+    
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(0, 8)
+    ToggleCorner.Parent = ToggleFrame
+    
+    -- ឈ្មោះ
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(0, 200, 0, 30)
+    Label.Position = UDim2.new(0, 12, 0.5, -15)
+    Label.BackgroundTransparency = 1
+    Label.Text = name
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.TextSize = 14
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = ToggleFrame
+    
+    -- ប៊ូតុង Toggle
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Name = "ToggleButton"
+    ToggleButton.Size = UDim2.new(0, 50, 0, 26)
+    ToggleButton.Position = UDim2.new(1, -60, 0.5, -13)
+    ToggleButton.BackgroundColor3 = defaultValue and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 70, 70)
+    ToggleButton.BorderSizePixel = 0
+    ToggleButton.Text = defaultValue and "ON" or "OFF"
+    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleButton.TextSize = 12
+    ToggleButton.Font = Enum.Font.GothamBold
+    ToggleButton.Parent = ToggleFrame
+    
+    local ToggleBtnCorner = Instance.new("UICorner")
+    ToggleBtnCorner.CornerRadius = UDim.new(0, 13)
+    ToggleBtnCorner.Parent = ToggleButton
+    
+    -- ស្ថានភាព
+    local isEnabled = defaultValue
+    
+    ToggleButton.MouseButton1Click:Connect(function()
+        isEnabled = not isEnabled
+        
+        -- Animation
+        local targetColor = isEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 70, 70)
+        local tween = TweenService:Create(ToggleButton, TweenInfo.new(0.3), {
+            BackgroundColor3 = targetColor
+        })
+        tween:Play()
+        
+        ToggleButton.Text = isEnabled and "ON" or "OFF"
+        
+        if callback then
+            callback(isEnabled)
+        end
+    end)
+    
+    return ToggleFrame, isEnabled
+end
+
+-- ============================================
+-- Slider Function (បង្កើត Slider)
+-- ============================================
+
+local function CreateSlider(parent, name, min, max, default, callback, yPosition)
+    local SliderFrame = Instance.new("Frame")
+    SliderFrame.Name = name .. "Slider"
+    SliderFrame.Size = UDim2.new(1, -10, 0, 55)
+    SliderFrame.Position = UDim2.new(0, 5, 0, yPosition)
+    SliderFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    SliderFrame.BorderSizePixel = 0
+    SliderFrame.Parent = parent
+    
+    local SliderCorner = Instance.new("UICorner")
+    SliderCorner.CornerRadius = UDim.new(0, 8)
+    SliderCorner.Parent = SliderFrame
+    
+    -- ឈ្មោះ
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(0, 150, 0, 20)
+    Label.Position = UDim2.new(0, 12, 0, 5)
+    Label.BackgroundTransparency = 1
+    Label.Text = name
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.TextSize = 13
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = SliderFrame
+    
+    -- តម្លៃ
+    local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Size = UDim2.new(0, 50, 0, 20)
+    ValueLabel.Position = UDim2.new(1, -62, 0, 5)
+    ValueLabel.BackgroundTransparency = 1
+    ValueLabel.Text = tostring(default)
+    ValueLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    ValueLabel.TextSize = 13
+    ValueLabel.Font = Enum.Font.GothamBold
+    ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    ValueLabel.Parent = SliderFrame
+    
+    -- ផ្ទាំង Slider
+    local SliderBar = Instance.new("Frame")
+    SliderBar.Name = "SliderBar"
+    SliderBar.Size = UDim2.new(1, -24, 0, 8)
+    SliderBar.Position = UDim2.new(0, 12, 0, 32)
+    SliderBar.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    SliderBar.BorderSizePixel = 0
+    SliderBar.Parent = SliderFrame
+    
+    local SliderBarCorner = Instance.new("UICorner")
+    SliderBarCorner.CornerRadius = UDim.new(0, 4)
+    SliderBarCorner.Parent = SliderBar
+    
+    -- ផ្ទាំងពណ៌ (Fill)
+    local Fill = Instance.new("Frame")
+    Fill.Name = "Fill"
+    Fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    Fill.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+    Fill.BorderSizePixel = 0
+    Fill.Parent = SliderBar
+    
+    local FillCorner = Instance.new("UICorner")
+    FillCorner.CornerRadius = UDim.new(0, 4)
+    FillCorner.Parent = Fill
+    
+    -- ប៊ូតុងចាប់ (Knob)
+    local Knob = Instance.new("Frame")
+    Knob.Name = "Knob"
+    Knob.Size = UDim2.new(0, 16, 0, 16)
+    Knob.Position = UDim2.new((default - min) / (max - min), -8, 0.5, -8)
+    Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Knob.BorderSizePixel = 0
+    Knob.Parent = SliderBar
+    
+    local KnobCorner = Instance.new("UICorner")
+    KnobCorner.CornerRadius = UDim.new(0.5, 0)
+    KnobCorner.Parent = Knob
+    
+    -- ការចាប់ (Dragging)
+    local dragging = false
+    
+    SliderBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; startPos = input.Position; objPos = guiObject.Position
+            dragging = true
         end
     end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - startPos
-            guiObject.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
-        end
-    end)
-    guiObject.InputEnded:Connect(function(input)
+    
+    UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
     end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local pos = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+            local value = math.floor(min + (max - min) * pos)
+            
+            Fill.Size = UDim2.new(pos, 0, 1, 0)
+            Knob.Position = UDim2.new(pos, -8, 0.5, -8)
+            ValueLabel.Text = tostring(value)
+            
+            if callback then
+                callback(value)
+            end
+        end
+    end)
+    
+    return SliderFrame
 end
 
--- [កែប្រែប្រព័ន្ធស្កេនកម្រិតខ្ពស់]
-local function isEvadeTarget(obj)
-    -- 1. រកមើលអ្នកដែលដួល (Revive) - ដើម្បីកុំឲ្យឈរស្ងៀម
-    if obj:IsA("ProximityPrompt") then
-        local action = obj.ActionText:lower()
-        local name = obj.Name:lower()
-        if action:find("revive") or name:find("revive") or action:find("carry") then
-            return true, "revive"
-        end
-    end
+-- ============================================
+-- Status Card (ប័ណ្ណស្ថានភាព)
+-- ============================================
 
-    -- 2. រកមើលវត្ថុតាមឈ្មោះផ្ទាល់
-    local name = obj.Name:lower()
-    if name:find("ticket") or name:find("token") or name:find("coin") or name:find("event") or name:find("point") then
-        if obj:IsA("BasePart") or obj:IsA("MeshPart") or (obj:IsA("Model") and obj.PrimaryPart) then 
-            return true, "item" 
-        end
+local function CreateStatusCard(parent, title, value, color, yPosition)
+    local Card = Instance.new("Frame")
+    Card.Name = title .. "Card"
+    Card.Size = UDim2.new(0.48, 0, 0, 50)
+    Card.Position = yPosition
+    Card.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    Card.BorderSizePixel = 0
+    Card.Parent = parent
+    
+    local CardCorner = Instance.new("UICorner")
+    CardCorner.CornerRadius = UDim.new(0, 8)
+    CardCorner.Parent = Card
+    
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Size = UDim2.new(1, 0, 0, 18)
+    TitleLabel.Position = UDim2.new(0, 0, 0, 5)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Text = title
+    TitleLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    TitleLabel.TextSize = 11
+    TitleLabel.Font = Enum.Font.Gotham
+    TitleLabel.Parent = Card
+    
+    local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Name = "ValueLabel"
+    ValueLabel.Size = UDim2.new(1, 0, 0, 22)
+    ValueLabel.Position = UDim2.new(0, 0, 0, 23)
+    ValueLabel.BackgroundTransparency = 1
+    ValueLabel.Text = value
+    ValueLabel.TextColor3 = color
+    ValueLabel.TextSize = 16
+    ValueLabel.Font = Enum.Font.GothamBold
+    ValueLabel.Parent = Card
+    
+    return Card, ValueLabel
+end
+
+-- ============================================
+-- បង្កើត Main Content
+-- ============================================
+
+-- ប័ណ្ណស្ថានភាព (Status Cards)
+local StatusCard1, StatusValue1 = CreateStatusCard(MainContent, "STATUS", "OFF", Color3.fromRGB(255, 70, 70), UDim2.new(0, 0, 0, 0))
+local StatusCard2, StatusValue2 = CreateStatusCard(MainContent, "MONSTER", "None", Color3.fromRGB(100, 255, 100), UDim2.new(0.52, 0, 0, 0))
+
+local StatusCard3, StatusValue3 = CreateStatusCard(MainContent, "DISTANCE", "--", Color3.fromRGB(255, 255, 255), UDim2.new(0, 0, 0, 60))
+local StatusCard4, StatusValue4 = CreateStatusCard(MainContent, "SURVIVED", "0s", Color3.fromRGB(255, 200, 100), UDim2.new(0.52, 0, 0, 60))
+
+-- Toggle Buttons
+CreateToggle(MainContent, "Auto Survive", false, function(value)
+    if value then
+        Start()
+    else
+        Stop()
+    end
+end, 130)
+
+CreateToggle(MainContent, "Auto Dodge", Config.AutoDodge, function(value)
+    Config.AutoDodge = value
+end, 180)
+
+CreateToggle(MainContent, "Auto Revive", Config.AutoRevive, function(value)
+    Config.AutoRevive = value
+end, 230)
+
+CreateToggle(MainContent, "Anti-AFK", Config.AntiAFK, function(value)
+    Config.AntiAFK = value
+    if value then
+        SetupAntiAFK()
+    end
+end, 280)
+
+-- ============================================
+-- បង្កើត Visual Content
+-- ============================================
+
+CreateToggle(VisualContent, "ESP (Monsters)", Config.ESP, function(value)
+    Config.ESP = value
+    if not value then
+        ClearESP()
+    end
+end, 0)
+
+CreateToggle(VisualContent, "Fullbright", Config.Fullbright, function(value)
+    Config.Fullbright = value
+    if value then
+        EnableFullbright()
+    else
+        DisableFullbright()
+    end
+end, 50)
+
+CreateToggle(VisualContent, "No-Clip", Config.NoClip, function(value)
+    Config.NoClip = value
+    if value then
+        EnableNoClip()
+    else
+        DisableNoClip()
+    end
+end, 100)
+
+CreateToggle(VisualContent, "Speed Hack", Config.SpeedHack, function(value)
+    Config.SpeedHack = value
+    if Humanoid then
+        Humanoid.WalkSpeed = value and Config.SpeedValue or 16
+    end
+end, 150)
+
+-- Sliders
+CreateSlider(VisualContent, "ESP Distance", 50, 500, Config.DodgeDistance, function(value)
+    Config.DodgeDistance = value
+end, 210)
+
+CreateSlider(VisualContent, "Dodge Speed", 50, 200, Config.DodgeSpeed, function(value)
+    Config.DodgeSpeed = value
+end, 280)
+
+-- ============================================
+-- បង្កើត Settings Content
+-- ============================================
+
+CreateSlider(SettingsContent, "Speed Value", 50, 200, Config.SpeedValue, function(value)
+    Config.SpeedValue = value
+    if Config.SpeedHack and Humanoid then
+        Humanoid.WalkSpeed = value
+    end
+end, 0)
+
+CreateSlider(SettingsContent, "Dodge Distance", 30, 100, 50, function(value)
+    Config.DodgeDistance = value
+end, 70)
+
+CreateSlider(SettingsContent, "Dodge Cooldown", 0, 2, 0.5, function(value)
+    -- កំណត់ cooldown
+end, 140)
+
+-- ប៊ូតុងព័ត៌មាន (Info Button)
+local InfoFrame = Instance.new("Frame")
+InfoFrame.Size = UDim2.new(1, -10, 0, 100)
+InfoFrame.Position = UDim2.new(0, 5, 0, 220)
+InfoFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+InfoFrame.BorderSizePixel = 0
+InfoFrame.Parent = SettingsContent
+
+local InfoCorner = Instance.new("UICorner")
+InfoCorner.CornerRadius = UDim.new(0, 8)
+InfoCorner.Parent = InfoFrame
+
+local InfoTitle = Instance.new("TextLabel")
+InfoTitle.Size = UDim2.new(1, 0, 0, 25)
+InfoTitle.Position = UDim2.new(0, 0, 0, 5)
+InfoTitle.BackgroundTransparency = 1
+InfoTitle.Text = "⚠️ Warning"
+InfoTitle.TextColor3 = Color3.fromRGB(255, 200, 100)
+InfoTitle.TextSize = 14
+InfoTitle.Font = Enum.Font.GothamBold
+InfoTitle.Parent = InfoFrame
+
+local InfoText = Instance.new("TextLabel")
+InfoText.Size = UDim2.new(1, -20, 0, 60)
+InfoText.Position = UDim2.new(0, 10, 0, 30)
+InfoText.BackgroundTransparency = 1
+InfoText.Text = "This script is for educational purposes only. Using this may result in a ban. Use at your own risk on alt accounts."
+InfoText.TextColor3 = Color3.fromRGB(200, 200, 200)
+InfoText.TextSize = 12
+InfoText.Font = Enum.Font.Gotham
+InfoText.TextWrapped = true
+InfoText.TextYAlignment = Enum.TextYAlignment.Top
+InfoText.Parent = InfoFrame
+
+-- ============================================
+-- Tab Switching Logic (របៀបប្តូរ Tab)
+-- ============================================
+
+local function SwitchTab(tabName)
+    MainContent.Visible = false
+    VisualContent.Visible = false
+    SettingsContent.Visible = false
+    
+    MainTab.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    MainTab.TextColor3 = Color3.fromRGB(200, 200, 200)
+    VisualTab.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    VisualTab.TextColor3 = Color3.fromRGB(200, 200, 200)
+    SettingsTab.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    SettingsTab.TextColor3 = Color3.fromRGB(200, 200, 200)
+    
+    if tabName == "Main" then
+        MainContent.Visible = true
+        MainTab.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        MainTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+    elseif tabName == "Visual" then
+        VisualContent.Visible = true
+        VisualTab.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        VisualTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+    elseif tabName == "Settings" then
+        SettingsContent.Visible = true
+        SettingsTab.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        SettingsTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+end
+
+MainTab.MouseButton1Click:Connect(function()
+    SwitchTab("Main")
+end)
+
+VisualTab.MouseButton1Click:Connect(function()
+    SwitchTab("Visual")
+end)
+
+SettingsTab.MouseButton1Click:Connect(function()
+    SwitchTab("Settings")
+end)
+
+-- ============================================
+-- ការគ្រប់គ្រងផ្ទាំង (Frame Controls)
+-- ============================================
+
+-- បង្រួម (Minimize)
+local isMinimized = false
+
+MinimizeButton.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    
+    local targetSize = isMinimized and UDim2.new(0, 350, 0, 45) or UDim2.new(0, 350, 0, 500)
+    local targetPos = isMinimized and UDim2.new(0.5, -175, 0, 10) or UDim2.new(0.5, -175, 0.5, -250)
+    
+    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+        Size = targetSize,
+        Position = targetPos
+    })
+    tween:Play()
+    
+    MinimizeButton.Text = isMinimized and "+" or "-"
+end)
+
+-- បិទ (Close)
+CloseButton.MouseButton1Click:Connect(function()
+    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.2), {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0.5, 0, 0.5, 0)
+    })
+    tween:Play()
+    tween.Completed:Wait()
+    ScreenGui:Destroy()
+    Stop()
+end)
+
+-- អាចចាប់ផ្ទាំងហោះ (Draggable)
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+-- ============================================
+-- ការបច្ចុប្បន្នភាព GUI (GUI Update)
+-- ============================================
+
+RunService.RenderStepped:Connect(function()
+    if Config.Enabled then
+        StatusValue1.Text = "ON"
+        StatusValue1.TextColor3 = Color3.fromRGB(100, 255, 100)
+    else
+        StatusValue1.Text = "OFF"
+        StatusValue1.TextColor3 = Color3.fromRGB(255, 70, 70)
     end
     
-    -- 3. រកមើលវត្ថុដែលលាក់ក្នុង Folder របស់ Evade (Pickups/Tickets)
-    if obj:IsA("BasePart") or obj:IsA("MeshPart") then
-        if obj.Parent then
-            local parentName = obj.Parent.Name:lower()
-            if parentName:find("ticket") or parentName:find("pickup") or parentName:find("token") or parentName:find("collect") then
-                return true, "item"
+    if State.NearestMonster then
+        StatusValue2.Text = State.NearestMonster.Name
+        StatusValue2.TextColor3 = Color3.fromRGB(255, 100, 100)
+        
+        StatusValue3.Text = math.floor(State.MonsterDistance) .. " studs"
+        if State.MonsterDistance < 30 then
+            StatusValue3.TextColor3 = Color3.fromRGB(255, 0, 0)
+        else
+            StatusValue3.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    else
+        StatusValue2.Text = "None"
+        StatusValue2.TextColor3 = Color3.fromRGB(100, 255, 100)
+        StatusValue3.Text = "Safe"
+        StatusValue3.TextColor3 = Color3.fromRGB(100, 255, 100)
+    end
+    
+    StatusValue4.Text = math.floor(State.SurviveTime) .. "s"
+end)
+
+-- ============================================
+-- ESP Functions
+-- ============================================
+
+local function CreateESP(obj, color, name)
+    if not obj:IsA("BasePart") and not obj:IsA("Model") then return end
+    
+    local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+    if not part then return end
+    
+    if State.ESPObjects[obj] then
+        State.ESPObjects[obj]:Destroy()
+    end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "EvadeESP"
+    highlight.Adornee = obj
+    highlight.FillColor = color
+    highlight.OutlineColor = color
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Parent = part
+    
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 100, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = part
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = color
+    label.TextSize = 14
+    label.Font = Enum.Font.GothamBold
+    label.Parent = billboard
+    
+    State.ESPObjects[obj] = highlight
+    
+    obj.AncestryChanged:Connect(function()
+        if not obj:IsDescendantOf(Workspace) then
+            if State.ESPObjects[obj] then
+                State.ESPObjects[obj]:Destroy()
+                State.ESPObjects[obj] = nil
+            end
+            if billboard then
+                billboard:Destroy()
+            end
+        end
+    end)
+end
+
+local function ClearESP()
+    for obj, highlight in pairs(State.ESPObjects) do
+        if highlight then
+            highlight:Destroy()
+        end
+    end
+    State.ESPObjects = {}
+end
+
+-- ============================================
+-- Monster Finding
+-- ============================================
+
+local function FindMonsters()
+    local monsters = {}
+    
+    local monsterFolders = {
+        Workspace:FindFirstChild("Monsters"),
+        Workspace:FindFirstChild("Bots"),
+        Workspace:FindFirstChild("NPCs"),
+        Workspace:FindFirstChild("Enemies"),
+        Workspace:FindFirstChild("Nextbots"),
+    }
+    
+    for _, folder in ipairs(monsterFolders) do
+        if folder then
+            for _, obj in ipairs(folder:GetDescendants()) do
+                if obj:IsA("Model") or obj:IsA("BasePart") then
+                    local name = obj.Name:lower()
+                    if name:find("monster") or name:find("bot") or name:find("nextbot") 
+                       or name:find("enemy") or name:find("killer") or name:find("slender")
+                       or name:find("sonic") or name:find("obama") or name:find("npc") then
+                        
+                        local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+                        if part then
+                            table.insert(monsters, {
+                                Object = obj,
+                                Part = part,
+                                Position = part.Position,
+                                Name = obj.Name
+                            })
+                            
+                            if Config.ESP then
+                                CreateESP(obj, Config.ESPColor, obj.Name)
+                            end
+                        end
+                    end
+                end
             end
         end
     end
-
-    return false, nil
-end
-
-local function getTargetPart(obj)
-    if obj:IsA("ProximityPrompt") then return obj.Parent end
-    if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj end
-    if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart end
-    if obj:IsA("Model") then return obj:FindFirstChildWhichIsA("BasePart") end
-    return nil
-end
-
-local function getAllTargets()
-    local targets = {}
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        local isValid, targetType = isEvadeTarget(obj)
-        if isValid then
-            table.insert(targets, {object = obj, type = targetType})
+    
+    -- Search entire workspace
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and not State.ESPObjects[obj] then
+            local name = obj.Name:lower()
+            if name:find("nextbot") or name:find("slender") or name:find("sonic") 
+               or name:find("obama") or name:find("mario") or name:find("luigi")
+               or name:find("spongebob") or name:find("patrick") or name:find("squidward")
+               or name:find("doom") or name:find("creep") or name:find("scary") then
+                
+                local part = obj:FindFirstChildWhichIsA("BasePart")
+                if part then
+                    table.insert(monsters, {
+                        Object = obj,
+                        Part = part,
+                        Position = part.Position,
+                        Name = obj.Name
+                    })
+                    
+                    if Config.ESP then
+                        CreateESP(obj, Config.ESPColor, obj.Name)
+                    end
+                end
+            end
         end
     end
-    return targets
+    
+    return monsters
 end
 
-local function toggleNoclip(enable)
-    local char = LocalPlayer.Character
-    if not char then return end
-    for _, part in pairs(char:GetDescendants()) do
+local function GetNearestMonster()
+    if not HumanoidRootPart then
+        UpdateCharacter()
+        return nil
+    end
+    
+    local monsters = FindMonsters()
+    local nearest = nil
+    local minDistance = Config.DodgeDistance
+    
+    local myPos = HumanoidRootPart.Position
+    
+    for _, monster in ipairs(monsters) do
+        local distance = GetDistance(myPos, monster.Position)
+        if distance < minDistance then
+            minDistance = distance
+            nearest = monster
+        end
+    end
+    
+    State.NearestMonster = nearest
+    State.MonsterDistance = nearest and minDistance or math.huge
+    
+    return nearest
+end
+
+-- ============================================
+-- Dodge Functions
+-- ============================================
+
+local function GetSafeDirection(monsterPos)
+    if not HumanoidRootPart then return nil end
+    
+    local myPos = HumanoidRootPart.Position
+    local awayVector = (myPos - monsterPos).Unit
+    
+    local rayParams = RaycastParams.new()
+    rayParams.FilterDescendantsInstances = {Character}
+    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+    
+    local safeDirections = {}
+    
+    for angle = 0, 360, 45 do
+        local rad = math.rad(angle)
+        local direction = Vector3.new(
+            awayVector.X * math.cos(rad) - awayVector.Z * math.sin(rad),
+            0,
+            awayVector.X * math.sin(rad) + awayVector.Z * math.cos(rad)
+        ).Unit
+        
+        local ray = Workspace:Raycast(myPos, direction * Config.DodgeDistance, rayParams)
+        if not ray then
+            table.insert(safeDirections, direction)
+        else
+            local dist = ray.Distance
+            if dist > 20 then
+                table.insert(safeDirections, direction)
+            end
+        end
+    end
+    
+    local bestDirection = awayVector
+    local bestDist = 0
+    
+    for _, dir in ipairs(safeDirections) do
+        local endPos = myPos + dir * Config.DodgeDistance
+        local dist = GetDistance(endPos, monsterPos)
+        if dist > bestDist then
+            bestDist = dist
+            bestDirection = dir
+        end
+    end
+    
+    return bestDirection
+end
+
+local function DodgeMonster(monster)
+    if not HumanoidRootPart then return false end
+    
+    local currentTime = tick()
+    if currentTime - State.LastDodgeTime < 0.5 then
+        return false
+    end
+    
+    State.LastDodgeTime = currentTime
+    
+    local monsterPos = monster.Position
+    local safeDir = GetSafeDirection(monsterPos)
+    
+    if not safeDir then
+        Log("No safe direction found!", "warning")
+        return false
+    end
+    
+    local targetPos = HumanoidRootPart.Position + safeDir * Config.DodgeDistance
+    
+    Log("Dodging " .. monster.Name .. "! Distance: " .. math.floor(State.MonsterDistance) .. " studs")
+    
+    local distance = Config.DodgeDistance
+    local duration = distance / Config.DodgeSpeed
+    
+    local tween = TweenService:Create(
+        HumanoidRootPart,
+        TweenInfo.new(
+            duration,
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.Out
+        ),
+        {CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))}
+    )
+    
+    tween:Play()
+    
+    local originalCanCollide = {}
+    for _, part in ipairs(Character:GetDescendants()) do
         if part:IsA("BasePart") then
-            pcall(function() part.CanCollide = not enable end)
+            originalCanCollide[part] = part.CanCollide
+            part.CanCollide = false
         end
     end
+    
+    tween.Completed:Wait()
+    
+    for part, canCollide in pairs(originalCanCollide) do
+        if part and part.Parent then
+            part.CanCollide = canCollide
+        end
+    end
+    
+    Log("Dodge completed!", "success")
+    return true
 end
 
-local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeHybridFarmer") then CoreGui:FindFirstChild("EvadeHybridFarmer"):Destroy() end
+-- ============================================
+-- Revive Functions
+-- ============================================
 
-    local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeHybridFarmer"
-    gui.IgnoreGuiInset = true
+local function CheckDowned()
+    if not Humanoid then return false end
+    
+    if Humanoid.Health <= 0 or Humanoid.Health < 10 then
+        State.IsDowned = true
+        return true
+    end
+    
+    local downedFolder = Workspace:FindFirstChild("Downed")
+    if downedFolder then
+        for _, obj in ipairs(downedFolder:GetChildren()) do
+            if obj.Name == LocalPlayer.Name or obj:FindFirstChild(LocalPlayer.Name) then
+                State.IsDowned = true
+                return true
+            end
+        end
+    end
+    
+    State.IsDowned = false
+    return false
+end
 
-    local toggleBtn = Instance.new("ImageButton", gui)
-    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
-    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    toggleBtn.Image = imageAsset or ""
-    toggleBtn.ScaleType = Enum.ScaleType.Crop
-    toggleBtn.Draggable = true
-    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
-    local toggleStroke = Instance.new("UIStroke", toggleBtn)
-    toggleStroke.Thickness = 3
+local function AutoRevive()
+    if not Config.AutoRevive then return end
+    if not State.IsDowned then return end
+    
+    Log("Trying to revive...", "warning")
+    
+    local reviveEvents = {
+        "Revive", "ReviveEvent", "Respawn", "RespawnEvent",
+        "RevivePlayer", "SelfRevive", "ReviveRemote"
+    }
+    
+    for _, eventName in ipairs(reviveEvents) do
+        local remote = ReplicatedStorage:FindFirstChild(eventName, true)
+        if remote and remote:IsA("RemoteEvent") then
+            pcall(function()
+                remote:FireServer()
+                Log("Fired revive event: " .. eventName, "success")
+            end)
+        end
+    end
+    
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+    for _, gui in ipairs(playerGui:GetDescendants()) do
+        if gui:IsA("TextButton") or gui:IsA("ImageButton") then
+            local text = gui.Text:lower()
+            if text:find("revive") or text:find("respawn") or text:find("retry") then
+                pcall(function()
+                    gui.MouseButton1Click:Fire()
+                    Log("Clicked revive button", "success")
+                end)
+            end
+        end
+    end
+    
+    wait(2)
+end
 
-    local mainFrame = Instance.new("Frame", gui)
-    mainFrame.Size = UDim2.new(0, 420, 0, 250)
-    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
-    mainFrame.BackgroundTransparency = 1
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Visible = true
-    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
-    local mainStroke = Instance.new("UIStroke", mainFrame)
-    mainStroke.Thickness = 3
+-- ============================================
+-- Fullbright
+-- ============================================
 
-    local bg = Instance.new("ImageLabel", mainFrame)
-    bg.Size = UDim2.new(1,0,1,0)
-    bg.BackgroundTransparency = 1
-    bg.Image = imageAsset or ""
-    bg.ScaleType = Enum.ScaleType.Stretch
-    bg.ImageTransparency = 0.3
-    bg.ZIndex = -1
-    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
+local OriginalLighting = nil
 
-    local title = Instance.new("TextLabel", mainFrame)
-    title.Size = UDim2.new(1,0,0,45)
-    title.BackgroundTransparency = 1
-    title.Text = "✨ EVADE: HYBRID FARM"
-    title.Font = Enum.Font.GothamBlack
-    title.TextSize = 16
-    title.TextColor3 = Color3.new(1,1,1)
+local function EnableFullbright()
+    if not Config.Fullbright then return end
+    
+    if not OriginalLighting then
+        OriginalLighting = {
+            Brightness = Lighting.Brightness,
+            ClockTime = Lighting.ClockTime,
+            FogEnd = Lighting.FogEnd,
+            GlobalShadows = Lighting.GlobalShadows,
+            Ambient = Lighting.Ambient,
+        }
+    end
+    
+    Lighting.Brightness = 2
+    Lighting.ClockTime = 14
+    Lighting.FogEnd = 100000
+    Lighting.GlobalShadows = false
+    Lighting.Ambient = Color3.fromRGB(178, 178, 178)
+    
+    Log("Fullbright enabled", "success")
+end
 
-    local closeBtn = Instance.new("TextButton", mainFrame)
-    closeBtn.Size = UDim2.new(0,35,0,35)
-    closeBtn.Position = UDim2.new(1,-45,0,10)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(200,40,40)
-    closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.new(1,1,1)
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 14
-    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
+local function DisableFullbright()
+    if not OriginalLighting then return end
+    
+    Lighting.Brightness = OriginalLighting.Brightness
+    Lighting.ClockTime = OriginalLighting.ClockTime
+    Lighting.FogEnd = OriginalLighting.FogEnd
+    Lighting.GlobalShadows = OriginalLighting.GlobalShadows
+    Lighting.Ambient = OriginalLighting.Ambient
+    
+    Log("Fullbright disabled", "success")
+end
 
-    local autoLoopBtn = Instance.new("TextButton", mainFrame)
-    autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
-    autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
-    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(40, 150, 220)
-    autoLoopBtn.Text = "🚀 ចាប់ផ្តើមស្កេន (វត្ថុ & អ្នកដួល)"
-    autoLoopBtn.TextColor3 = Color3.new(1,1,1)
-    autoLoopBtn.Font = Enum.Font.GothamBold
-    autoLoopBtn.TextSize = 13
-    Instance.new("UICorner", autoLoopBtn).CornerRadius = UDim.new(0, 10)
+-- ============================================
+-- No-Clip
+-- ============================================
 
-    local hintLabel = Instance.new("TextLabel", mainFrame)
-    hintLabel.Size = UDim2.new(1, -40, 0, 30)
-    hintLabel.Position = UDim2.new(0, 20, 0, 130)
-    hintLabel.BackgroundTransparency = 1
-    hintLabel.Text = "ស្ថានភាព៖ ត្រៀមខ្លួន..."
-    hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    hintLabel.Font = Enum.Font.Gotham
-    hintLabel.TextSize = 12
+local NoClipConnection = nil
 
-    task.spawn(function()
-        local hue = 0
-        while gui.Parent do
-            hue = (hue + 0.03) % 1
-            title.TextColor3 = Color3.fromHSV(hue, 1, 1)
-            mainStroke.Color = Color3.fromHSV(hue, 1, 1)
-            toggleStroke.Color = Color3.fromHSV((hue+0.3)%1, 1, 1)
-            task.wait(0.04)
+local function EnableNoClip()
+    if not Config.NoClip then return end
+    
+    if NoClipConnection then
+        NoClipConnection:Disconnect()
+    end
+    
+    NoClipConnection = RunService.Stepped:Connect(function()
+        if not Config.Enabled or not Config.NoClip then return end
+        if not Character then return end
+        
+        for _, part in ipairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
         end
     end)
+    
+    Log("No-Clip enabled", "success")
+end
 
-    toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
-    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
-
-    local isLooping = false
-    local function toggleAutoLoop()
-        local char = LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-        local root = char.HumanoidRootPart
-
-        isLooping = not isLooping
-
-        if isLooping then
-            toggleNoclip(true)
-            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
-            autoLoopBtn.Text = "⏹️ កំពុងដំណើរការ..."
-
-            task.spawn(function()
-                while isLooping do
-                    local targets = getAllTargets()
-
-                    if #targets > 0 then
-                        hintLabel.Text = "ស្ថានភាព៖ រកឃើញគោលដៅ " .. #targets .. " កំពុងហោះទៅ!"
-                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-
-                        for _, targetData in ipairs(targets) do
-                            if not isLooping then break end
-                            local obj = targetData.object
-                            local targetType = targetData.type
-                            local targetPart = getTargetPart(obj)
-                            
-                            if targetPart and targetPart.Parent then
-                                local targetPos = targetPart.Position
-                                local distance = (root.Position - targetPos).Magnitude
-                                local speed = 55 
-                                local duration = distance / speed
-                                
-                                if duration < 0.15 then duration = 0.15 end
-                                
-                                local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-                                local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
-                                
-                                tween:Play()
-                                tween.Completed:Wait() 
-                                
-                                root.Velocity = Vector3.new(0, 0, 0)
-                                
-                                if targetType == "revive" and obj:IsA("ProximityPrompt") then
-                                    pcall(function() fireproximityprompt(obj, 1) end)
-                                    task.wait(1.5) -- រង់ចាំពេលសង្គ្រោះ
-                                else
-                                    task.wait(0.2) -- រង់ចាំឲ្យស៊ីវត្ថុ
-                                end
-                            end
-                        end
-                    else
-                        hintLabel.Text = "ស្ថានភាព៖ ❌ រកមិនឃើញអ្វីសោះ វគ្គនេះអាចគ្មានវត្ថុ ឬអ្នកដួលទេ"
-                        hintLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-                        task.wait(1.5)
-                    end
-                    task.wait(0.5)
-                end
-            end)
-        else
-            toggleNoclip(false)
-            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(40, 150, 220)
-            autoLoopBtn.Text = "🚀 ចាប់ផ្តើមស្កេន (វត្ថុ & អ្នកដួល)"
-            hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
-            hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+local function DisableNoClip()
+    if NoClipConnection then
+        NoClipConnection:Disconnect()
+        NoClipConnection = nil
+    end
+    
+    if not Character then return end
+    
+    for _, part in ipairs(Character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = true
         end
     end
-
-    autoLoopBtn.MouseButton1Down:Connect(toggleAutoLoop)
-    makeDraggable(mainFrame)
+    
+    Log("No-Clip disabled", "success")
 end
 
-local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
-if ok and response and response.StatusCode == 200 then
-    writefile(FILE_NAME, response.Body)
-    createGUI(getcustomasset(FILE_NAME))
-else
-    createGUI("")
+-- ============================================
+-- Anti-AFK
+-- ============================================
+
+local function SetupAntiAFK()
+    if not Config.AntiAFK then return end
+    
+    local VirtualUser = game:GetService("VirtualUser")
+    
+    LocalPlayer.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+        Log("Anti-AFK triggered", "warning")
+    end)
+    
+    Log("Anti-AFK enabled", "success")
 end
+
+-- ============================================
+-- Main Loop
+-- ============================================
+
+local function SurviveLoop()
+    while Config.Enabled do
+        if not Config.Enabled then break end
+        
+        UpdateCharacter()
+        
+        if not Humanoid or not HumanoidRootPart then
+            Log("Character not found, waiting...", "warning")
+            wait(2)
+            continue
+        end
+        
+        if CheckDowned() then
+            AutoRevive()
+            wait(1)
+            continue
+        end
+        
+        local nearestMonster = GetNearestMonster()
+        
+        if nearestMonster and Config.AutoDodge then
+            Log("Monster nearby: " .. nearestMonster.Name .. " (" .. math.floor(State.MonsterDistance) .. " studs)")
+            
+            local dodged = DodgeMonster(nearestMonster)
+            
+            if not dodged then
+                Log("Dodge failed, running away!", "error")
+                if Humanoid then
+                    local awayDir = (HumanoidRootPart.Position - nearestMonster.Position).Unit
+                    Humanoid:MoveTo(HumanoidRootPart.Position + awayDir * 100)
+                end
+            end
+        end
+        
+        State.SurviveTime = State.SurviveTime + 0.5
+        
+        wait(0.5)
+    end
+    
+    State.IsRunning = false
+    Log("Auto-Survive stopped")
+    Log("Survived for: " .. math.floor(State.SurviveTime) .. " seconds")
+end
+
+-- ============================================
+-- Controls
+-- ============================================
+
+function Start()
+    if Config.Enabled then
+        Log("Already running!", "warning")
+        return
+    end
+    
+    Config.Enabled = true
+    State.IsRunning = true
+    State.SurviveTime = 0
+    
+    Log("🟢 Auto-Survive STARTED!")
+    
+    EnableFullbright()
+    EnableNoClip()
+    SetupAntiAFK()
+    
+    spawn(SurviveLoop)
+end
+
+function Stop()
+    Config.Enabled = false
+    State.IsRunning = false
+    
+    Log("🔴 Auto-Survive STOPPED!")
+    Log("Survived for: " .. math.floor(State.SurviveTime) .. " seconds")
+    
+    DisableFullbright()
+    DisableNoClip()
+    ClearESP()
+end
+
+-- ============================================
+-- Keybinds (Hidden)
+-- ============================================
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end)
+
+-- ============================================
+-- Initialize
+-- ============================================
+
+Log("Evade Advanced GUI loaded!", "success")
+Log("Press RightShift to toggle GUI", "success")
+Log("Features: Auto-Dodge, ESP, Fullbright, No-Clip, Speed Hack, Anti-AFK", "success")
