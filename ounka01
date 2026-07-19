@@ -1,1088 +1,263 @@
--- ============================================
--- Evade Summer Event - Bubble Collector
--- ប្រមូលពពុះសាប៊ូ (Bubbles) ដោយស្វ័យប្រវត្តិ
--- ============================================
+--[[
+    EVADE: Summer Event Auto Farm
+    ប្រព័ន្ធហោះស៊ី Bubble (ពពុះសាប៊ូ Event) និងជួយអ្នកដួលដោយស្វ័យប្រវត្តិ
+--]]
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local PathfindingService = game:GetService("PathfindingService")
+local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
+local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local TweenService = game:GetService("TweenService")
 
--- ============================================
--- Config
--- ============================================
+local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
+local FILE_NAME = "bg.jpg"
 
-local Config = {
-    Enabled = false,
-    AutoCollect = true,
-    ESP = true,
-    BubbleColor = Color3.fromRGB(0, 191, 255), -- ពណ៌ពពុះសាប៊ូ (Deep Sky Blue)
-    SearchRadius = 300,
-    CollectDistance = 5,
-    MoveSpeed = 60,
-    CollectDelay = 0.5,
-}
-
-local State = {
-    IsRunning = false,
-    NearestBubble = nil,
-    BubbleDistance = math.huge,
-    BubblesCollected = 0,
-    ESPObjects = {},
-    IsDragging = false,
-    DragStart = nil,
-    FrameStart = nil,
-    IsMinimized = false,
-}
-
--- ============================================
--- Utility
--- ============================================
-
-local function Log(message, type)
-    local prefix = type == "error" and "❌" or type == "success" and "✅" or type == "warning" and "⚠️" or "ℹ️"
-    print(string.format("[%s] [BubbleCollector] %s", prefix, message))
-end
-
-local function GetDistance(pos1, pos2)
-    return (pos1 - pos2).Magnitude
-end
-
-local function UpdateCharacter()
-    Character = LocalPlayer.Character
-    if Character then
-        Humanoid = Character:FindFirstChildOfClass("Humanoid")
-        HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-    end
-    return Humanoid and HumanoidRootPart
-end
-
--- ============================================
--- GUI - តូច + ចុចអូស
--- ============================================
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "BubbleCollectorGUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
--- Main Frame
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 260, 0, 340)
-MainFrame.Position = UDim2.new(0.5, -130, 0.5, -170)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-MainFrame.BorderSizePixel = 0
-MainFrame.ClipsDescendants = true
-MainFrame.Parent = ScreenGui
-
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
-MainCorner.Parent = MainFrame
-
--- Shadow
-local Shadow = Instance.new("ImageLabel")
-Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-Shadow.BackgroundTransparency = 1
-Shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-Shadow.Size = UDim2.new(1, 30, 1, 30)
-Shadow.ZIndex = -1
-Shadow.Image = "rbxassetid://6014261993"
-Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-Shadow.ImageTransparency = 0.6
-Shadow.ScaleType = Enum.ScaleType.Slice
-Shadow.SliceCenter = Rect.new(49, 49, 450, 450)
-Shadow.Parent = MainFrame
-
--- ============================================
--- Drag Handles
--- ============================================
-
-local TopDrag = Instance.new("Frame")
-TopDrag.Size = UDim2.new(1, 0, 0, 30)
-TopDrag.BackgroundTransparency = 1
-TopDrag.Active = true
-TopDrag.Parent = MainFrame
-
-local DragIndicator = Instance.new("TextLabel")
-DragIndicator.Size = UDim2.new(0, 50, 0, 18)
-DragIndicator.Position = UDim2.new(0.5, -25, 0, 2)
-DragIndicator.BackgroundTransparency = 1
-DragIndicator.Text = "━━━"
-DragIndicator.TextColor3 = Color3.fromRGB(0, 191, 255)
-DragIndicator.TextSize = 12
-DragIndicator.Font = Enum.Font.Gotham
-DragIndicator.Parent = TopDrag
-
-local BottomDrag = Instance.new("Frame")
-BottomDrag.Size = UDim2.new(1, 0, 0, 25)
-BottomDrag.Position = UDim2.new(0, 0, 1, -25)
-BottomDrag.BackgroundTransparency = 1
-BottomDrag.Active = true
-BottomDrag.Parent = MainFrame
-
-local BottomIndicator = Instance.new("TextLabel")
-BottomIndicator.Size = UDim2.new(0, 50, 0, 18)
-BottomIndicator.Position = UDim2.new(0.5, -25, 0, 2)
-BottomIndicator.BackgroundTransparency = 1
-BottomIndicator.Text = "━━━"
-BottomIndicator.TextColor3 = Color3.fromRGB(0, 191, 255)
-BottomIndicator.TextSize = 12
-BottomIndicator.Font = Enum.Font.Gotham
-BottomIndicator.Parent = BottomDrag
-
--- ============================================
--- Title Bar
--- ============================================
-
-local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 32)
-TitleBar.Position = UDim2.new(0, 0, 0, 18)
-TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-TitleBar.BorderSizePixel = 0
-TitleBar.Parent = MainFrame
-
-local TitleLine = Instance.new("Frame")
-TitleLine.Size = UDim2.new(1, 0, 0, 2)
-TitleLine.Position = UDim2.new(0, 0, 1, -2)
-TitleLine.BackgroundColor3 = Color3.fromRGB(0, 191, 255)
-TitleLine.BorderSizePixel = 0
-TitleLine.Parent = TitleBar
-
-local TitleText = Instance.new("TextLabel")
-TitleText.Size = UDim2.new(0, 180, 0, 20)
-TitleText.Position = UDim2.new(0, 10, 0.5, -10)
-TitleText.BackgroundTransparency = 1
-TitleText.Text = "🫧 Bubble Collector"
-TitleText.TextColor3 = Color3.fromRGB(0, 191, 255)
-TitleText.TextSize = 14
-TitleText.Font = Enum.Font.GothamBold
-TitleText.TextXAlignment = Enum.TextXAlignment.Left
-TitleText.Parent = TitleBar
-
--- Minimize
-local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 24, 0, 24)
-MinBtn.Position = UDim2.new(1, -52, 0.5, -12)
-MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
-MinBtn.BorderSizePixel = 0
-MinBtn.Text = "−"
-MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinBtn.TextSize = 14
-MinBtn.Font = Enum.Font.GothamBold
-MinBtn.Parent = TitleBar
-
-local MinCorner = Instance.new("UICorner")
-MinCorner.CornerRadius = UDim.new(0, 6)
-MinCorner.Parent = MinBtn
-
--- Close
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 24, 0, 24)
-CloseBtn.Position = UDim2.new(1, -26, 0.5, -12)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-CloseBtn.BorderSizePixel = 0
-CloseBtn.Text = "✕"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.TextSize = 12
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.Parent = TitleBar
-
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 6)
-CloseCorner.Parent = CloseBtn
-
--- ============================================
--- Drag System
--- ============================================
-
-local IsDragging = false
-local DragStart = nil
-local FrameStart = nil
-
-local function SetupDrag(element)
-    element.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-           input.UserInputType == Enum.UserInputType.Touch then
-            IsDragging = true
-            DragStart = input.Position
-            FrameStart = MainFrame.Position
-            DragIndicator.TextColor3 = Color3.fromRGB(255, 100, 100)
-            BottomIndicator.TextColor3 = Color3.fromRGB(255, 100, 100)
+local function makeDraggable(guiObject)
+    local dragging, startPos, objPos
+    guiObject.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; startPos = input.Position; objPos = guiObject.Position
         end
     end)
-end
-
-SetupDrag(TopDrag)
-SetupDrag(BottomDrag)
-SetupDrag(TitleBar)
-
-UserInputService.InputChanged:Connect(function(input)
-    if IsDragging and 
-       (input.UserInputType == Enum.UserInputType.MouseMovement or 
-        input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - DragStart
-        MainFrame.Position = UDim2.new(
-            FrameStart.X.Scale,
-            FrameStart.X.Offset + delta.X,
-            FrameStart.Y.Scale,
-            FrameStart.Y.Offset + delta.Y
-        )
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-       input.UserInputType == Enum.UserInputType.Touch then
-        IsDragging = false
-        DragIndicator.TextColor3 = Color3.fromRGB(0, 191, 255)
-        BottomIndicator.TextColor3 = Color3.fromRGB(0, 191, 255)
-    end
-end)
-
--- ============================================
--- Content
--- ============================================
-
-local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, -12, 0, 260)
-Content.Position = UDim2.new(0, 6, 0, 55)
-Content.BackgroundTransparency = 1
-Content.Parent = MainFrame
-
--- Status Cards
-local function CreateStatusCard(title, value, color, position)
-    local Card = Instance.new("Frame")
-    Card.Size = UDim2.new(0.48, 0, 0, 40)
-    Card.Position = position
-    Card.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    Card.BorderSizePixel = 0
-    Card.Parent = Content
-    
-    local CardCorner = Instance.new("UICorner")
-    CardCorner.CornerRadius = UDim.new(0, 8)
-    CardCorner.Parent = Card
-    
-    local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Size = UDim2.new(1, 0, 0, 12)
-    TitleLabel.Position = UDim2.new(0, 0, 0, 3)
-    TitleLabel.BackgroundTransparency = 1
-    TitleLabel.Text = title
-    TitleLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
-    TitleLabel.TextSize = 8
-    TitleLabel.Font = Enum.Font.Gotham
-    TitleLabel.Parent = Card
-    
-    local ValueLabel = Instance.new("TextLabel")
-    ValueLabel.Name = "ValueLabel"
-    ValueLabel.Size = UDim2.new(1, 0, 0, 18)
-    ValueLabel.Position = UDim2.new(0, 0, 0, 16)
-    ValueLabel.BackgroundTransparency = 1
-    ValueLabel.Text = value
-    ValueLabel.TextColor3 = color
-    ValueLabel.TextSize = 13
-    ValueLabel.Font = Enum.Font.GothamBold
-    ValueLabel.Parent = Card
-    
-    return ValueLabel
-end
-
-local StatusValue1 = CreateStatusCard("STATUS", "OFF", Color3.fromRGB(255, 60, 60), UDim2.new(0, 0, 0, 0))
-local StatusValue2 = CreateStatusCard("BUBBLE", "None", Color3.fromRGB(0, 191, 255), UDim2.new(0.52, 0, 0, 0))
-
-local StatusValue3 = CreateStatusCard("DIST", "--", Color3.fromRGB(255, 255, 255), UDim2.new(0, 0, 0, 46))
-local StatusValue4 = CreateStatusCard("COLLECTED", "0", Color3.fromRGB(255, 200, 80), UDim2.new(0.52, 0, 0, 46))
-
--- Start/Stop Buttons
-local StartBtn = Instance.new("TextButton")
-StartBtn.Size = UDim2.new(1, -6, 0, 28)
-StartBtn.Position = UDim2.new(0, 3, 0, 94)
-StartBtn.BackgroundColor3 = Color3.fromRGB(0, 191, 255)
-StartBtn.BorderSizePixel = 0
-StartBtn.Text = "🟢 START COLLECT"
-StartBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-StartBtn.TextSize = 11
-StartBtn.Font = Enum.Font.GothamBold
-StartBtn.Parent = Content
-
-local StartCorner = Instance.new("UICorner")
-StartCorner.CornerRadius = UDim.new(0, 8)
-StartCorner.Parent = StartBtn
-
-StartBtn.MouseButton1Click:Connect(function()
-    if not Config.Enabled then
-        Start()
-    end
-end)
-
-local StopBtn = Instance.new("TextButton")
-StopBtn.Size = UDim2.new(1, -6, 0, 28)
-StopBtn.Position = UDim2.new(0, 3, 0, 128)
-StopBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-StopBtn.BorderSizePixel = 0
-StopBtn.Text = "🔴 STOP"
-StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-StopBtn.TextSize = 11
-StopBtn.Font = Enum.Font.GothamBold
-StopBtn.Parent = Content
-
-local StopCorner = Instance.new("UICorner")
-StopCorner.CornerRadius = UDim.new(0, 8)
-StopCorner.Parent = StopBtn
-
-StopBtn.MouseButton1Click:Connect(function()
-    if Config.Enabled then
-        Stop()
-    end
-end)
-
--- Toggles
-local function CreateToggle(name, defaultValue, callback, yPosition)
-    local ToggleFrame = Instance.new("Frame")
-    ToggleFrame.Size = UDim2.new(1, -6, 0, 32)
-    ToggleFrame.Position = UDim2.new(0, 3, 0, yPosition)
-    ToggleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    ToggleFrame.BorderSizePixel = 0
-    ToggleFrame.Parent = Content
-    
-    local ToggleCorner = Instance.new("UICorner")
-    ToggleCorner.CornerRadius = UDim.new(0, 8)
-    ToggleCorner.Parent = ToggleFrame
-    
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(0, 130, 0, 22)
-    Label.Position = UDim2.new(0, 8, 0.5, -11)
-    Label.BackgroundTransparency = 1
-    Label.Text = name
-    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Label.TextSize = 11
-    Label.Font = Enum.Font.Gotham
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = ToggleFrame
-    
-    local ToggleBtn = Instance.new("TextButton")
-    ToggleBtn.Size = UDim2.new(0, 40, 0, 22)
-    ToggleBtn.Position = UDim2.new(1, -48, 0.5, -11)
-    ToggleBtn.BackgroundColor3 = defaultValue and Color3.fromRGB(0, 191, 255) or Color3.fromRGB(255, 60, 60)
-    ToggleBtn.BorderSizePixel = 0
-    ToggleBtn.Text = defaultValue and "ON" or "OFF"
-    ToggleBtn.TextColor3 = defaultValue and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
-    ToggleBtn.TextSize = 10
-    ToggleBtn.Font = Enum.Font.GothamBold
-    ToggleBtn.Parent = ToggleFrame
-    
-    local ToggleBtnCorner = Instance.new("UICorner")
-    ToggleBtnCorner.CornerRadius = UDim.new(0, 11)
-    ToggleBtnCorner.Parent = ToggleBtn
-    
-    local isEnabled = defaultValue
-    
-    ToggleBtn.MouseButton1Click:Connect(function()
-        isEnabled = not isEnabled
-        local targetColor = isEnabled and Color3.fromRGB(0, 191, 255) or Color3.fromRGB(255, 60, 60)
-        local textColor = isEnabled and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
-        local tween = TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {
-            BackgroundColor3 = targetColor
-        })
-        tween:Play()
-        ToggleBtn.TextColor3 = textColor
-        ToggleBtn.Text = isEnabled and "ON" or "OFF"
-        if callback then
-            callback(isEnabled)
-        end
-    end)
-    
-    return ToggleFrame
-end
-
-CreateToggle("Auto Collect", Config.AutoCollect, function(v)
-    Config.AutoCollect = v
-end, 166)
-
-CreateToggle("ESP Bubbles", Config.ESP, function(v)
-    Config.ESP = v
-    if not v then ClearESP() end
-end, 204)
-
--- Sliders
-local function CreateSlider(name, min, max, default, callback, yPosition)
-    local SliderFrame = Instance.new("Frame")
-    SliderFrame.Size = UDim2.new(1, -6, 0, 45)
-    SliderFrame.Position = UDim2.new(0, 3, 0, yPosition)
-    SliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    SliderFrame.BorderSizePixel = 0
-    SliderFrame.Parent = Content
-    
-    local SliderCorner = Instance.new("UICorner")
-    SliderCorner.CornerRadius = UDim.new(0, 8)
-    SliderCorner.Parent = SliderFrame
-    
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(0, 100, 0, 16)
-    Label.Position = UDim2.new(0, 8, 0, 3)
-    Label.BackgroundTransparency = 1
-    Label.Text = name
-    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Label.TextSize = 10
-    Label.Font = Enum.Font.Gotham
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = SliderFrame
-    
-    local ValueLabel = Instance.new("TextLabel")
-    ValueLabel.Size = UDim2.new(0, 35, 0, 16)
-    ValueLabel.Position = UDim2.new(1, -43, 0, 3)
-    ValueLabel.BackgroundTransparency = 1
-    ValueLabel.Text = tostring(default)
-    ValueLabel.TextColor3 = Color3.fromRGB(0, 191, 255)
-    ValueLabel.TextSize = 10
-    ValueLabel.Font = Enum.Font.GothamBold
-    ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
-    ValueLabel.Parent = SliderFrame
-    
-    local SliderBar = Instance.new("Frame")
-    SliderBar.Size = UDim2.new(1, -14, 0, 5)
-    SliderBar.Position = UDim2.new(0, 7, 0, 24)
-    SliderBar.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
-    SliderBar.BorderSizePixel = 0
-    SliderBar.Parent = SliderFrame
-    
-    local SliderBarCorner = Instance.new("UICorner")
-    SliderBarCorner.CornerRadius = UDim.new(0, 3)
-    SliderBarCorner.Parent = SliderBar
-    
-    local Fill = Instance.new("Frame")
-    Fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    Fill.BackgroundColor3 = Color3.fromRGB(0, 191, 255)
-    Fill.BorderSizePixel = 0
-    Fill.Parent = SliderBar
-    
-    local FillCorner = Instance.new("UICorner")
-    FillCorner.CornerRadius = UDim.new(0, 3)
-    FillCorner.Parent = Fill
-    
-    local Knob = Instance.new("Frame")
-    Knob.Size = UDim2.new(0, 12, 0, 12)
-    Knob.Position = UDim2.new((default - min) / (max - min), -6, 0.5, -6)
-    Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Knob.BorderSizePixel = 0
-    Knob.ZIndex = 2
-    Knob.Parent = SliderBar
-    
-    local KnobCorner = Instance.new("UICorner")
-    KnobCorner.CornerRadius = UDim.new(0.5, 0)
-    KnobCorner.Parent = Knob
-    
-    local dragging = false
-    
-    local function UpdateSlider(input)
-        local sliderPos = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
-        local value = math.floor(min + (max - min) * sliderPos)
-        Fill.Size = UDim2.new(sliderPos, 0, 1, 0)
-        Knob.Position = UDim2.new(sliderPos, -6, 0.5, -6)
-        ValueLabel.Text = tostring(value)
-        if callback then
-            callback(value)
-        end
-        return value
-    end
-    
-    SliderBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-           input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            UpdateSlider(input)
-        end
-    end)
-    
     UserInputService.InputChanged:Connect(function(input)
-        if dragging and 
-           (input.UserInputType == Enum.UserInputType.MouseMovement or 
-            input.UserInputType == Enum.UserInputType.Touch) then
-            UpdateSlider(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - startPos
+            guiObject.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
         end
     end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-           input.UserInputType == Enum.UserInputType.Touch then
+    guiObject.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
     end)
-    
-    return SliderFrame
 end
 
-CreateSlider("Speed", 20, 200, 60, function(v)
-    Config.MoveSpeed = v
-end, 242)
+-- [ប្រព័ន្ធស្កេនថ្មីសម្រាប់ Summer Event]
+local function isEvadeTarget(obj)
+    local name = obj.Name:lower()
 
--- ============================================
--- Frame Controls
--- ============================================
-
-local IsMinimized = false
-
-MinBtn.MouseButton1Click:Connect(function()
-    IsMinimized = not IsMinimized
-    local targetSize = IsMinimized and UDim2.new(0, 260, 0, 35) or UDim2.new(0, 260, 0, 340)
-    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = targetSize})
-    tween:Play()
-    MinBtn.Text = IsMinimized and "+" or "−"
-    Content.Visible = not IsMinimized
-    TopDrag.Visible = not IsMinimized
-    BottomDrag.Visible = not IsMinimized
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.2), {
-        Size = UDim2.new(0, 0, 0, 0),
-        Position = UDim2.new(0.5, 0, 0.5, 0)
-    })
-    tween:Play()
-    tween.Completed:Wait()
-    ScreenGui:Destroy()
-    Stop()
-end)
-
--- ============================================
--- Toggle Button
--- ============================================
-
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(0, 40, 0, 40)
-ToggleBtn.Position = UDim2.new(0, 10, 0, 10)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 191, 255)
-ToggleBtn.BorderSizePixel = 0
-ToggleBtn.Text = "🫧"
-ToggleBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-ToggleBtn.TextSize = 20
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.Visible = false
-ToggleBtn.Parent = ScreenGui
-
-local ToggleCorner = Instance.new("UICorner")
-ToggleCorner.CornerRadius = UDim.new(0.5, 0)
-ToggleCorner.Parent = ToggleBtn
-
-ToggleBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-
--- Drag Toggle Button
-local toggleDragStart = nil
-local toggleFrameStart = nil
-local isToggleDragging = false
-
-ToggleBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-       input.UserInputType == Enum.UserInputType.Touch then
-        isToggleDragging = true
-        toggleDragStart = input.Position
-        toggleFrameStart = ToggleBtn.Position
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if isToggleDragging and 
-       (input.UserInputType == Enum.UserInputType.MouseMovement or 
-        input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - toggleDragStart
-        ToggleBtn.Position = UDim2.new(
-            toggleFrameStart.X.Scale,
-            toggleFrameStart.X.Offset + delta.X,
-            toggleFrameStart.Y.Scale,
-            toggleFrameStart.Y.Offset + delta.Y
-        )
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-       input.UserInputType == Enum.UserInputType.Touch then
-        isToggleDragging = false
-    end
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    ToggleBtn.Visible = true
-end)
-
--- ============================================
--- GUI Update
--- ============================================
-
-RunService.RenderStepped:Connect(function()
-    if Config.Enabled then
-        StatusValue1.Text = "ON"
-        StatusValue1.TextColor3 = Color3.fromRGB(0, 191, 255)
-    else
-        StatusValue1.Text = "OFF"
-        StatusValue1.TextColor3 = Color3.fromRGB(255, 60, 60)
-    end
-    
-    if State.NearestBubble then
-        StatusValue2.Text = State.NearestBubble.Name:sub(1, 8)
-        StatusValue2.TextColor3 = Color3.fromRGB(0, 191, 255)
-        StatusValue3.Text = math.floor(State.BubbleDistance) .. "m"
-        StatusValue3.TextColor3 = State.BubbleDistance < 10 and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(255, 255, 255)
-    else
-        StatusValue2.Text = "None"
-        StatusValue2.TextColor3 = Color3.fromRGB(180, 180, 200)
-        StatusValue3.Text = "--"
-        StatusValue3.TextColor3 = Color3.fromRGB(180, 180, 200)
-    end
-    
-    StatusValue4.Text = tostring(State.BubblesCollected)
-end)
-
--- ============================================
--- ESP Functions
--- ============================================
-
-local function CreateESP(obj, color, name)
-    if not obj:IsA("BasePart") and not obj:IsA("Model") then return end
-    
-    local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
-    if not part then return end
-    
-    if State.ESPObjects[obj] then
-        State.ESPObjects[obj].Highlight:Destroy()
-        if State.ESPObjects[obj].Billboard then
-            State.ESPObjects[obj].Billboard:Destroy()
+    -- 1. ស្កេនរកមើល Bubble (វត្ថុ Event រដូវក្តៅ) 
+    if name:find("bubble") or name:find("bubblepart") then
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") or (obj:IsA("Model") and obj.PrimaryPart) then 
+            return true, "item" 
         end
     end
-    
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "BubbleESP"
-    highlight.Adornee = obj
-    highlight.FillColor = color
-    highlight.OutlineColor = color
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0.2
-    highlight.Parent = part
-    
-    local billboard = Instance.new("BillboardGui")
-    billboard.Size = UDim2.new(0, 80, 0, 40)
-    billboard.StudsOffset = Vector3.new(0, 2, 0)
-    billboard.AlwaysOnTop = true
-    billboard.Parent = part
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0.5, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name:sub(1, 10)
-    label.TextColor3 = color
-    label.TextSize = 10
-    label.Font = Enum.Font.GothamBold
-    label.Parent = billboard
-    
-    local distLabel = Instance.new("TextLabel")
-    distLabel.Size = UDim2.new(1, 0, 0.5, 0)
-    distLabel.Position = UDim2.new(0, 0, 0.5, 0)
-    distLabel.BackgroundTransparency = 1
-    distLabel.Text = "0m"
-    distLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    distLabel.TextSize = 9
-    distLabel.Font = Enum.Font.Gotham
-    distLabel.Parent = billboard
-    
-    State.ESPObjects[obj] = {
-        Highlight = highlight,
-        Billboard = billboard,
-        DistanceLabel = distLabel
-    }
-    
-    obj.AncestryChanged:Connect(function()
-        if not obj:IsDescendantOf(Workspace) then
-            if State.ESPObjects[obj] then
-                if State.ESPObjects[obj].Highlight then
-                    State.ESPObjects[obj].Highlight:Destroy()
-                end
-                if State.ESPObjects[obj].Billboard then
-                    State.ESPObjects[obj].Billboard:Destroy()
-                end
-                State.ESPObjects[obj] = nil
+
+    -- 2. រកមើលក្នុង Folder ឬ Parent ដែលមានឈ្មោះ Bubble 
+    if obj:IsA("BasePart") or obj:IsA("MeshPart") then
+        if obj.Parent then
+            local parentName = obj.Parent.Name:lower()
+            if parentName:find("bubble") or parentName:find("pickup") or parentName:find("event") then
+                return true, "item"
             end
         end
-    end)
-end
+    end
 
-local function ClearESP()
-    for obj, espData in pairs(State.ESPObjects) do
-        if espData.Highlight then
-            espData.Highlight:Destroy()
-        end
-        if espData.Billboard then
-            espData.Billboard:Destroy()
+    -- 3. រកមើលអ្នកដួល (Revive) ទុកគ្រាន់ហោះជួយយក EXP ពេលអត់ទាន់មាន Bubble ធ្លាក់
+    if obj:IsA("ProximityPrompt") then
+        local action = obj.ActionText:lower()
+        if action:find("revive") or name:find("revive") or action:find("carry") then
+            return true, "revive"
         end
     end
-    State.ESPObjects = {}
+
+    return false, nil
 end
 
--- ============================================
--- Bubble Finding - រកពពុះសាប៊ូ
--- ============================================
+local function getTargetPart(obj)
+    if obj:IsA("ProximityPrompt") then return obj.Parent end
+    if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj end
+    if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart end
+    if obj:IsA("Model") then return obj:FindFirstChildWhichIsA("BasePart") end
+    return nil
+end
 
-local function FindBubbles()
-    local bubbles = {}
-    
-    -- រកនៅក្នុង folders ស្តង់ដារ
-    local bubbleFolders = {
-        Workspace:FindFirstChild("Bubbles"),
-        Workspace:FindFirstChild("Summer"),
-        Workspace:FindFirstChild("Event"),
-        Workspace:FindFirstChild("Collectibles"),
-        Workspace:FindFirstChild("Items"),
-        Workspace:FindFirstChild("Spawns"),
-    }
-    
-    for _, folder in ipairs(bubbleFolders) do
-        if folder then
-            for _, obj in ipairs(folder:GetDescendants()) do
-                if obj:IsA("Model") or obj:IsA("BasePart") then
-                    local name = obj.Name:lower()
-                    -- ឈ្មោះពពុះសាប៊ូ
-                    if name:find("bubble") or name:find("soap") or name:find("foam") 
-                       or name:find("summer") or name:find("event") or name:find("collectible")
-                       or name:find("prize") or name:find("reward") or name:find("gift") then
-                        
-                        local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
-                        if part then
-                            table.insert(bubbles, {
-                                Object = obj,
-                                Part = part,
-                                Position = part.Position,
-                                Name = obj.Name
-                            })
+local function getAllTargets()
+    local targets = {}
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        local isValid, targetType = isEvadeTarget(obj)
+        if isValid then
+            table.insert(targets, {object = obj, type = targetType})
+        end
+    end
+    return targets
+end
+
+local function toggleNoclip(enable)
+    local char = LocalPlayer.Character
+    if not char then return end
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            pcall(function() part.CanCollide = not enable end)
+        end
+    end
+end
+
+local function createGUI(imageAsset)
+    if CoreGui:FindFirstChild("EvadeSummerFarm") then CoreGui:FindFirstChild("EvadeSummerFarm"):Destroy() end
+
+    local gui = Instance.new("ScreenGui", CoreGui)
+    gui.Name = "EvadeSummerFarm"
+    gui.IgnoreGuiInset = true
+
+    local toggleBtn = Instance.new("ImageButton", gui)
+    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
+    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    toggleBtn.Image = imageAsset or ""
+    toggleBtn.ScaleType = Enum.ScaleType.Crop
+    toggleBtn.Draggable = true
+    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
+    local toggleStroke = Instance.new("UIStroke", toggleBtn)
+    toggleStroke.Thickness = 3
+
+    local mainFrame = Instance.new("Frame", gui)
+    mainFrame.Size = UDim2.new(0, 420, 0, 250)
+    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
+    mainFrame.BackgroundTransparency = 1
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Visible = true
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
+    local mainStroke = Instance.new("UIStroke", mainFrame)
+    mainStroke.Thickness = 3
+
+    local bg = Instance.new("ImageLabel", mainFrame)
+    bg.Size = UDim2.new(1,0,1,0)
+    bg.BackgroundTransparency = 1
+    bg.Image = imageAsset or ""
+    bg.ScaleType = Enum.ScaleType.Stretch
+    bg.ImageTransparency = 0.3
+    bg.ZIndex = -1
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
+
+    local title = Instance.new("TextLabel", mainFrame)
+    title.Size = UDim2.new(1,0,0,45)
+    title.BackgroundTransparency = 1
+    title.Text = "☀️ EVADE: SUMMER AUTO BUBBLE"
+    title.Font = Enum.Font.GothamBlack
+    title.TextSize = 15
+    title.TextColor3 = Color3.new(1,1,1)
+
+    local closeBtn = Instance.new("TextButton", mainFrame)
+    closeBtn.Size = UDim2.new(0,35,0,35)
+    closeBtn.Position = UDim2.new(1,-45,0,10)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200,40,40)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.new(1,1,1)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 14
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
+
+    local autoLoopBtn = Instance.new("TextButton", mainFrame)
+    autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
+    autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
+    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255) -- ពណ៌ខៀវទឹកសមុទ្រ Summer
+    autoLoopBtn.Text = "🧼 ចាប់ផ្តើមហោះប្រមូល Bubble"
+    autoLoopBtn.TextColor3 = Color3.new(1,1,1)
+    autoLoopBtn.Font = Enum.Font.GothamBold
+    autoLoopBtn.TextSize = 13
+    Instance.new("UICorner", autoLoopBtn).CornerRadius = UDim.new(0, 10)
+
+    local hintLabel = Instance.new("TextLabel", mainFrame)
+    hintLabel.Size = UDim2.new(1, -40, 0, 30)
+    hintLabel.Position = UDim2.new(0, 20, 0, 130)
+    hintLabel.BackgroundTransparency = 1
+    hintLabel.Text = "ស្ថានភាព៖ រង់ចាំការបញ្ជា..."
+    hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    hintLabel.Font = Enum.Font.Gotham
+    hintLabel.TextSize = 12
+
+    task.spawn(function()
+        local hue = 0
+        while gui.Parent do
+            hue = (hue + 0.03) % 1
+            title.TextColor3 = Color3.fromHSV(hue, 1, 1)
+            mainStroke.Color = Color3.fromHSV(hue, 1, 1)
+            toggleStroke.Color = Color3.fromHSV((hue+0.3)%1, 1, 1)
+            task.wait(0.04)
+        end
+    end)
+
+    toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
+    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
+
+    local isLooping = false
+    local function toggleAutoLoop()
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local root = char.HumanoidRootPart
+
+        isLooping = not isLooping
+
+        if isLooping then
+            toggleNoclip(true)
+            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
+            autoLoopBtn.Text = "⏹️ ឈប់ហោះ"
+
+            task.spawn(function()
+                while isLooping do
+                    local targets = getAllTargets()
+
+                    if #targets > 0 then
+                        hintLabel.Text = "ស្ថានភាព៖ 🫧 រកឃើញ " .. #targets .. " គោលដៅ! កំពុងហោះទៅស៊ី..."
+                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+
+                        for _, targetData in ipairs(targets) do
+                            if not isLooping then break end
+                            local obj = targetData.object
+                            local targetType = targetData.type
+                            local targetPart = getTargetPart(obj)
                             
-                            if Config.ESP then
-                                CreateESP(obj, Config.BubbleColor, obj.Name)
+                            if targetPart and targetPart.Parent then
+                                local targetPos = targetPart.Position
+                                local distance = (root.Position - targetPos).Magnitude
+                                local speed = 60 -- ល្បឿនសមរម្យសម្រាប់ Map Evade ធំៗ
+                                local duration = distance / speed
+                                
+                                if duration < 0.15 then duration = 0.15 end
+                                
+                                local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+                                local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
+                                
+                                tween:Play()
+                                tween.Completed:Wait() 
+                                
+                                root.Velocity = Vector3.new(0, 0, 0)
+                                
+                                if targetType == "revive" and obj:IsA("ProximityPrompt") then
+                                    pcall(function() fireproximityprompt(obj, 1) end)
+                                    task.wait(1.2)
+                                else
+                                    task.wait(0.15) -- ឈប់បន្តិចឲ្យប្រព័ន្ធហ្គេមគិតថាបានស៊ី Bubble រួចរាល់
+                                end
                             end
                         end
+                    else
+                        hintLabel.Text = "ស្ថានភាព៖ 🔍 កំពុងស្កេនរកមើល Bubble លើផែនទី..."
+                        hintLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+                        task.wait(1)
                     end
+                    task.wait(0.5)
                 end
-            end
-        end
-    end
-    
-    -- Search entire workspace
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and not State.ESPObjects[obj] then
-            local name = obj.Name:lower()
-            if name:find("bubble") or name:find("soap") or name:find("foam") 
-               or name:find("summer") or name:find("event") or name:find("collectible")
-               or name:find("prize") or name:find("reward") or name:find("gift") then
-                
-                local part = obj:FindFirstChildWhichIsA("BasePart")
-                if part then
-                    table.insert(bubbles, {
-                        Object = obj,
-                        Part = part,
-                        Position = part.Position,
-                        Name = obj.Name
-                    })
-                    
-                    if Config.ESP then
-                        CreateESP(obj, Config.BubbleColor, obj.Name)
-                    end
-                end
-            end
-        end
-    end
-    
-    return bubbles
-end
-
-local function GetNearestBubble()
-    if not UpdateCharacter() then
-        return nil
-    end
-    
-    local bubbles = FindBubbles()
-    local nearest = nil
-    local minDistance = Config.SearchRadius
-    
-    local myPos = HumanoidRootPart.Position
-    
-    for _, bubble in ipairs(bubbles) do
-        local distance = GetDistance(myPos, bubble.Position)
-        if distance < minDistance then
-            minDistance = distance
-            nearest = bubble
-        end
-        
-        if State.ESPObjects[bubble.Object] and State.ESPObjects[bubble.Object].DistanceLabel then
-            State.ESPObjects[bubble.Object].DistanceLabel.Text = math.floor(distance) .. "m"
-        end
-    end
-    
-    State.NearestBubble = nearest
-    State.BubbleDistance = nearest and minDistance or math.huge
-    
-    return nearest
-end
-
--- ============================================
--- Pathfinding
--- ============================================
-
-local function CreatePath(targetPosition)
-    local path = PathfindingService:CreatePath({
-        AgentRadius = 2,
-        AgentHeight = 5,
-        AgentCanJump = true,
-        AgentCanClimb = false,
-        AgentJumpDistance = 10,
-        AgentMaxSlope = 45,
-        Costs = {
-            Water = math.huge,
-        }
-    })
-    
-    if not HumanoidRootPart then
-        return nil
-    end
-    
-    local success, err = pcall(function()
-        path:ComputeAsync(HumanoidRootPart.Position, targetPosition)
-    end)
-    
-    if not success then
-        Log("Pathfinding error: " .. tostring(err), "error")
-        return nil
-    end
-    
-    if path.Status ~= Enum.PathStatus.Success then
-        Log("Path not found!", "warning")
-        return nil
-    end
-    
-    return path
-end
-
-local function FollowPath(path)
-    if not path or not Humanoid then
-        return false
-    end
-    
-    local waypoints = path:GetWaypoints()
-    
-    for i, waypoint in ipairs(waypoints) do
-        if not Config.Enabled then
-            return false
-        end
-        
-        if waypoint.Action == Enum.PathWaypointAction.Jump then
-            Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
-        
-        Humanoid:MoveTo(waypoint.Position)
-        
-        local reached = false
-        local connection = Humanoid.MoveToFinished:Connect(function(success)
-            reached = true
-        end)
-        
-        local startTime = tick()
-        while not reached and tick() - startTime < 3 do
-            if not Config.Enabled then
-                connection:Disconnect()
-                return false
-            end
-            RunService.Heartbeat:Wait()
-        end
-        
-        connection:Disconnect()
-        
-        if not reached then
-            Log("Failed to reach waypoint " .. i, "warning")
-            return false
-        end
-    end
-    
-    return true
-end
-
--- ============================================
--- Move to Bubble
--- ============================================
-
-local function MoveToBubble(bubble)
-    if not HumanoidRootPart then
-        return false
-    end
-    
-    local targetPos = bubble.Position
-    local distance = GetDistance(HumanoidRootPart.Position, targetPos)
-    
-    Log("Moving to: " .. bubble.Name .. " (" .. math.floor(distance) .. "m)")
-    
-    -- Use Pathfinding
-    local path = CreatePath(targetPos)
-    if path then
-        local success = FollowPath(path)
-        if success then
-            Log("Arrived at: " .. bubble.Name, "success")
-            return true
-        end
-    end
-    
-    -- Fallback: Tween
-    local duration = distance / Config.MoveSpeed
-    
-    local tween = TweenService:Create(
-        HumanoidRootPart,
-        TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut),
-        {CFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))}
-    )
-    
-    tween:Play()
-    tween.Completed:Wait()
-    
-    Log("Arrived at: " .. bubble.Name .. " (via tween)", "success")
-    return true
-end
-
--- ============================================
--- Collect Bubble - ប្រមូលពពុះសាប៊ូ
--- ============================================
-
-local function CollectBubble(bubble)
-    Log("Collecting: " .. bubble.Name)
-    
-    -- Proximity prompt
-    local prompt = bubble.Object:FindFirstChildOfClass("ProximityPrompt", true)
-    if prompt then
-        fireproximityprompt(prompt)
-        Log("Fired ProximityPrompt", "success")
-    end
-    
-    -- Click detector
-    local clickDetector = bubble.Object:FindFirstChildOfClass("ClickDetector", true)
-    if clickDetector then
-        fireclickdetector(clickDetector)
-        Log("Fired ClickDetector", "success")
-    end
-    
-    -- Touch (walk into it)
-    if bubble.Part then
-        -- Move directly to the bubble
-        local tween = TweenService:Create(
-            HumanoidRootPart,
-            TweenInfo.new(0.5, Enum.EasingStyle.Quad),
-            {CFrame = CFrame.new(bubble.Position)}
-        )
-        tween:Play()
-        tween.Completed:Wait()
-    end
-    
-    -- Remote events
-    local collectEvents = {
-        "CollectBubble", "CollectEvent", "SummerEvent", 
-        "CollectItem", "GrabBubble", "PopBubble"
-    }
-    
-    for _, eventName in ipairs(collectEvents) do
-        local remote = ReplicatedStorage:FindFirstChild(eventName, true)
-        if remote and remote:IsA("RemoteEvent") then
-            pcall(function()
-                remote:FireServer(bubble.Object)
-                Log("Fired: " .. eventName, "success")
             end)
-        end
-    end
-    
-    wait(Config.CollectDelay)
-    
-    State.BubblesCollected = State.BubblesCollected + 1
-    Log("Collected! Total: " .. State.BubblesCollected, "success")
-end
-
--- ============================================
--- Main Loop
--- ============================================
-
-local function CollectLoop()
-    while Config.Enabled do
-        if not Config.Enabled then
-            break
-        end
-        
-        if not UpdateCharacter() then
-            Log("Character not found, waiting...", "warning")
-            wait(2)
-            continue
-        end
-        
-        -- Find nearest bubble
-        local nearestBubble = GetNearestBubble()
-        
-        if nearestBubble and Config.AutoCollect then
-            -- Move to bubble
-            local moved = MoveToBubble(nearestBubble)
-            
-            if moved then
-                -- Collect bubble
-                CollectBubble(nearestBubble)
-            else
-                Log("Failed to move to bubble", "error")
-            end
         else
-            Log("No bubbles found nearby", "warning")
-            wait(1)
+            toggleNoclip(false)
+            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+            autoLoopBtn.Text = "🧼 ចាប់ផ្តើមហោះប្រមូល Bubble"
+            hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
+            hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
-        
-        wait(0.5)
     end
-    
-    State.IsRunning = false
-    Log("Bubble Collector stopped")
-    Log("Total collected: " .. State.BubblesCollected)
+
+    autoLoopBtn.MouseButton1Down:Connect(toggleAutoLoop)
+    makeDraggable(mainFrame)
 end
 
--- ============================================
--- Controls
--- ============================================
-
-function Start()
-    if Config.Enabled then
-        Log("Already running!", "warning")
-        return
-    end
-    
-    Config.Enabled = true
-    State.IsRunning = true
-    State.BubblesCollected = 0
-    
-    Log("🟢 Bubble Collector STARTED!")
-    Log("Finding bubbles in radius: " .. Config.SearchRadius)
-    
-    spawn(CollectLoop)
+local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
+if ok and response and response.StatusCode == 200 then
+    writefile(FILE_NAME, response.Body)
+    createGUI(getcustomasset(FILE_NAME))
+else
+    createGUI("")
 end
-
-function Stop()
-    Config.Enabled = false
-    State.IsRunning = false
-    
-    Log("🔴 Bubble Collector STOPPED!")
-    Log("Total collected: " .. State.BubblesCollected)
-    
-    ClearESP()
-end
-
--- ============================================
--- Initialize
--- ============================================
-
-Log("🫧 Bubble Collector loaded!", "success")
-Log("Size: 260x340", "success")
-Log("Features: Auto-Collect, ESP, Pathfinding", "success")
-Log("Click START to begin", "success")
