@@ -1,6 +1,6 @@
 -- ============================================
--- Evade Roblox - Full Touch Drag GUI
--- ចុចអូសផ្ទាំងទាំងមូលបានលើអេក្រង់
+-- Evade Summer Event - Bubble Collector
+-- ប្រមូលពពុះសាប៊ូ (Bubbles) ដោយស្វ័យប្រវត្តិ
 -- ============================================
 
 local Players = game:GetService("Players")
@@ -10,8 +10,6 @@ local PathfindingService = game:GetService("PathfindingService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Lighting = game:GetService("Lighting")
-local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -24,32 +22,25 @@ local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
 local Config = {
     Enabled = false,
-    AutoDodge = true,
-    AutoRevive = true,
+    AutoCollect = true,
     ESP = true,
-    Fullbright = true,
-    NoClip = false,
-    SpeedHack = false,
-    SpeedValue = 50,
-    DodgeDistance = 50,
-    DodgeSpeed = 80,
-    ESPColor = Color3.fromRGB(255, 0, 0),
-    AntiAFK = true,
+    BubbleColor = Color3.fromRGB(0, 191, 255), -- ពណ៌ពពុះសាប៊ូ (Deep Sky Blue)
+    SearchRadius = 300,
+    CollectDistance = 5,
+    MoveSpeed = 60,
+    CollectDelay = 0.5,
 }
 
 local State = {
     IsRunning = false,
-    NearestMonster = nil,
-    MonsterDistance = math.huge,
-    IsDowned = false,
-    SurviveTime = 0,
-    LastDodgeTime = 0,
+    NearestBubble = nil,
+    BubbleDistance = math.huge,
+    BubblesCollected = 0,
     ESPObjects = {},
     IsDragging = false,
     DragStart = nil,
     FrameStart = nil,
     IsMinimized = false,
-    CurrentTab = "Main",
 }
 
 -- ============================================
@@ -58,7 +49,7 @@ local State = {
 
 local function Log(message, type)
     local prefix = type == "error" and "❌" or type == "success" and "✅" or type == "warning" and "⚠️" or "ℹ️"
-    print(string.format("[%s] [Evade] %s", prefix, message))
+    print(string.format("[%s] [BubbleCollector] %s", prefix, message))
 end
 
 local function GetDistance(pos1, pos2)
@@ -75,24 +66,22 @@ local function UpdateCharacter()
 end
 
 -- ============================================
--- GUI - តូច + ចុចអូសទាំងអេក្រង់
+-- GUI - តូច + ចុចអូស
 -- ============================================
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "EvadeDragGUI"
+ScreenGui.Name = "BubbleCollectorGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 260, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -130, 0.5, -180)
+MainFrame.Size = UDim2.new(0, 260, 0, 340)
+MainFrame.Position = UDim2.new(0.5, -130, 0.5, -170)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
-MainFrame.Active = true
 MainFrame.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
@@ -114,44 +103,38 @@ Shadow.SliceCenter = Rect.new(49, 49, 450, 450)
 Shadow.Parent = MainFrame
 
 -- ============================================
--- Drag Handle - ផ្ទាំងចុចអូស (ខាងលើ + ខាងក្រោម)
+-- Drag Handles
 -- ============================================
 
--- ផ្ទាំងចុចអូសខាងលើ (Top Drag Handle)
 local TopDrag = Instance.new("Frame")
-TopDrag.Name = "TopDrag"
-TopDrag.Size = UDim2.new(1, 0, 0, 40)
-TopDrag.Position = UDim2.new(0, 0, 0, 0)
+TopDrag.Size = UDim2.new(1, 0, 0, 30)
 TopDrag.BackgroundTransparency = 1
 TopDrag.Active = true
 TopDrag.Parent = MainFrame
 
--- សញ្ញាអូស (Drag Indicator)
 local DragIndicator = Instance.new("TextLabel")
-DragIndicator.Size = UDim2.new(0, 50, 0, 20)
+DragIndicator.Size = UDim2.new(0, 50, 0, 18)
 DragIndicator.Position = UDim2.new(0.5, -25, 0, 2)
 DragIndicator.BackgroundTransparency = 1
 DragIndicator.Text = "━━━"
-DragIndicator.TextColor3 = Color3.fromRGB(80, 80, 100)
+DragIndicator.TextColor3 = Color3.fromRGB(0, 191, 255)
 DragIndicator.TextSize = 12
 DragIndicator.Font = Enum.Font.Gotham
 DragIndicator.Parent = TopDrag
 
--- ផ្ទាំងចុចអូសខាងក្រោម (Bottom Drag Handle)
 local BottomDrag = Instance.new("Frame")
-BottomDrag.Name = "BottomDrag"
-BottomDrag.Size = UDim2.new(1, 0, 0, 30)
-BottomDrag.Position = UDim2.new(0, 0, 1, -30)
+BottomDrag.Size = UDim2.new(1, 0, 0, 25)
+BottomDrag.Position = UDim2.new(0, 0, 1, -25)
 BottomDrag.BackgroundTransparency = 1
 BottomDrag.Active = true
 BottomDrag.Parent = MainFrame
 
 local BottomIndicator = Instance.new("TextLabel")
-BottomIndicator.Size = UDim2.new(0, 50, 0, 20)
-BottomIndicator.Position = UDim2.new(0.5, -25, 0, 5)
+BottomIndicator.Size = UDim2.new(0, 50, 0, 18)
+BottomIndicator.Position = UDim2.new(0.5, -25, 0, 2)
 BottomIndicator.BackgroundTransparency = 1
 BottomIndicator.Text = "━━━"
-BottomIndicator.TextColor3 = Color3.fromRGB(80, 80, 100)
+BottomIndicator.TextColor3 = Color3.fromRGB(0, 191, 255)
 BottomIndicator.TextSize = 12
 BottomIndicator.Font = Enum.Font.Gotham
 BottomIndicator.Parent = BottomDrag
@@ -161,8 +144,8 @@ BottomIndicator.Parent = BottomDrag
 -- ============================================
 
 local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 35)
-TitleBar.Position = UDim2.new(0, 0, 0, 20)
+TitleBar.Size = UDim2.new(1, 0, 0, 32)
+TitleBar.Position = UDim2.new(0, 0, 0, 18)
 TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = MainFrame
@@ -170,204 +153,205 @@ TitleBar.Parent = MainFrame
 local TitleLine = Instance.new("Frame")
 TitleLine.Size = UDim2.new(1, 0, 0, 2)
 TitleLine.Position = UDim2.new(0, 0, 1, -2)
-TitleLine.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+TitleLine.BackgroundColor3 = Color3.fromRGB(0, 191, 255)
 TitleLine.BorderSizePixel = 0
 TitleLine.Parent = TitleBar
 
 local TitleText = Instance.new("TextLabel")
-TitleText.Size = UDim2.new(0, 120, 0, 22)
-TitleText.Position = UDim2.new(0, 10, 0.5, -11)
+TitleText.Size = UDim2.new(0, 180, 0, 20)
+TitleText.Position = UDim2.new(0, 10, 0.5, -10)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "👻 Evade"
-TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleText.TextSize = 15
+TitleText.Text = "🫧 Bubble Collector"
+TitleText.TextColor3 = Color3.fromRGB(0, 191, 255)
+TitleText.TextSize = 14
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Parent = TitleBar
 
 -- Minimize
 local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 26, 0, 26)
-MinBtn.Position = UDim2.new(1, -58, 0.5, -13)
+MinBtn.Size = UDim2.new(0, 24, 0, 24)
+MinBtn.Position = UDim2.new(1, -52, 0.5, -12)
 MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
 MinBtn.BorderSizePixel = 0
 MinBtn.Text = "−"
 MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinBtn.TextSize = 16
+MinBtn.TextSize = 14
 MinBtn.Font = Enum.Font.GothamBold
 MinBtn.Parent = TitleBar
 
 local MinCorner = Instance.new("UICorner")
-MinCorner.CornerRadius = UDim.new(0, 8)
+MinCorner.CornerRadius = UDim.new(0, 6)
 MinCorner.Parent = MinBtn
 
 -- Close
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 26, 0, 26)
-CloseBtn.Position = UDim2.new(1, -30, 0.5, -13)
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.Position = UDim2.new(1, -26, 0.5, -12)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
 CloseBtn.BorderSizePixel = 0
 CloseBtn.Text = "✕"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.TextSize = 13
+CloseBtn.TextSize = 12
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Parent = TitleBar
 
 local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.CornerRadius = UDim.new(0, 6)
 CloseCorner.Parent = CloseBtn
 
 -- ============================================
--- Drag System - ចុចអូសទាំងអេក្រង់
+-- Drag System
 -- ============================================
+
+local IsDragging = false
+local DragStart = nil
+local FrameStart = nil
 
 local function SetupDrag(element)
     element.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or 
            input.UserInputType == Enum.UserInputType.Touch then
-            State.IsDragging = true
-            State.DragStart = input.Position
-            State.FrameStart = MainFrame.Position
-            
-            -- ប្តូរពណ៌ពេលចុច
+            IsDragging = true
+            DragStart = input.Position
+            FrameStart = MainFrame.Position
             DragIndicator.TextColor3 = Color3.fromRGB(255, 100, 100)
             BottomIndicator.TextColor3 = Color3.fromRGB(255, 100, 100)
         end
     end)
 end
 
--- ដាក់ drag លើផ្ទាំងទាំងអស់
 SetupDrag(TopDrag)
 SetupDrag(BottomDrag)
 SetupDrag(TitleBar)
 
--- អូសចលនា
 UserInputService.InputChanged:Connect(function(input)
-    if State.IsDragging and 
+    if IsDragging and 
        (input.UserInputType == Enum.UserInputType.MouseMovement or 
         input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - State.DragStart
+        local delta = input.Position - DragStart
         MainFrame.Position = UDim2.new(
-            State.FrameStart.X.Scale,
-            State.FrameStart.X.Offset + delta.X,
-            State.FrameStart.Y.Scale,
-            State.FrameStart.Y.Offset + delta.Y
+            FrameStart.X.Scale,
+            FrameStart.X.Offset + delta.X,
+            FrameStart.Y.Scale,
+            FrameStart.Y.Offset + delta.Y
         )
     end
 end)
 
--- លែងចុច
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or 
        input.UserInputType == Enum.UserInputType.Touch then
-        State.IsDragging = false
-        DragIndicator.TextColor3 = Color3.fromRGB(80, 80, 100)
-        BottomIndicator.TextColor3 = Color3.fromRGB(80, 80, 100)
+        IsDragging = false
+        DragIndicator.TextColor3 = Color3.fromRGB(0, 191, 255)
+        BottomIndicator.TextColor3 = Color3.fromRGB(0, 191, 255)
     end
 end)
-
--- ============================================
--- Tab System
--- ============================================
-
-local TabFrame = Instance.new("Frame")
-TabFrame.Size = UDim2.new(1, -12, 0, 28)
-TabFrame.Position = UDim2.new(0, 6, 0, 58)
-TabFrame.BackgroundTransparency = 1
-TabFrame.Parent = MainFrame
-
-local MainTab = Instance.new("TextButton")
-MainTab.Size = UDim2.new(0, 75, 0, 24)
-MainTab.Position = UDim2.new(0, 0, 0.5, -12)
-MainTab.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-MainTab.BorderSizePixel = 0
-MainTab.Text = "⚡ Main"
-MainTab.TextColor3 = Color3.fromRGB(255, 255, 255)
-MainTab.TextSize = 11
-MainTab.Font = Enum.Font.GothamBold
-MainTab.Parent = TabFrame
-
-local MainTabCorner = Instance.new("UICorner")
-MainTabCorner.CornerRadius = UDim.new(0, 6)
-MainTabCorner.Parent = MainTab
-
-local VisualTab = Instance.new("TextButton")
-VisualTab.Size = UDim2.new(0, 75, 0, 24)
-VisualTab.Position = UDim2.new(0, 80, 0.5, -12)
-VisualTab.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-VisualTab.BorderSizePixel = 0
-VisualTab.Text = "👁 Visual"
-VisualTab.TextColor3 = Color3.fromRGB(180, 180, 200)
-VisualTab.TextSize = 11
-VisualTab.Font = Enum.Font.GothamBold
-VisualTab.Parent = TabFrame
-
-local VisualTabCorner = Instance.new("UICorner")
-VisualTabCorner.CornerRadius = UDim.new(0, 6)
-VisualTabCorner.Parent = VisualTab
-
-local SettingsTab = Instance.new("TextButton")
-SettingsTab.Size = UDim2.new(0, 75, 0, 24)
-SettingsTab.Position = UDim2.new(0, 160, 0.5, -12)
-SettingsTab.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-SettingsTab.BorderSizePixel = 0
-SettingsTab.Text = "⚙ Set"
-SettingsTab.TextColor3 = Color3.fromRGB(180, 180, 200)
-SettingsTab.TextSize = 11
-SettingsTab.Font = Enum.Font.GothamBold
-SettingsTab.Parent = TabFrame
-
-local SettingsTabCorner = Instance.new("UICorner")
-SettingsTabCorner.CornerRadius = UDim.new(0, 6)
-SettingsTabCorner.Parent = SettingsTab
 
 -- ============================================
 -- Content
 -- ============================================
 
-local ContentFrame = Instance.new("Frame")
-ContentFrame.Size = UDim2.new(1, -12, 0, 260)
-ContentFrame.Position = UDim2.new(0, 6, 0, 90)
-ContentFrame.BackgroundTransparency = 1
-ContentFrame.Parent = MainFrame
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -12, 0, 260)
+Content.Position = UDim2.new(0, 6, 0, 55)
+Content.BackgroundTransparency = 1
+Content.Parent = MainFrame
 
-local MainContent = Instance.new("ScrollingFrame")
-MainContent.Size = UDim2.new(1, 0, 1, 0)
-MainContent.BackgroundTransparency = 1
-MainContent.ScrollBarThickness = 3
-MainContent.ScrollBarImageColor3 = Color3.fromRGB(255, 80, 80)
-MainContent.CanvasSize = UDim2.new(0, 0, 0, 260)
-MainContent.Parent = ContentFrame
+-- Status Cards
+local function CreateStatusCard(title, value, color, position)
+    local Card = Instance.new("Frame")
+    Card.Size = UDim2.new(0.48, 0, 0, 40)
+    Card.Position = position
+    Card.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    Card.BorderSizePixel = 0
+    Card.Parent = Content
+    
+    local CardCorner = Instance.new("UICorner")
+    CardCorner.CornerRadius = UDim.new(0, 8)
+    CardCorner.Parent = Card
+    
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Size = UDim2.new(1, 0, 0, 12)
+    TitleLabel.Position = UDim2.new(0, 0, 0, 3)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Text = title
+    TitleLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
+    TitleLabel.TextSize = 8
+    TitleLabel.Font = Enum.Font.Gotham
+    TitleLabel.Parent = Card
+    
+    local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Name = "ValueLabel"
+    ValueLabel.Size = UDim2.new(1, 0, 0, 18)
+    ValueLabel.Position = UDim2.new(0, 0, 0, 16)
+    ValueLabel.BackgroundTransparency = 1
+    ValueLabel.Text = value
+    ValueLabel.TextColor3 = color
+    ValueLabel.TextSize = 13
+    ValueLabel.Font = Enum.Font.GothamBold
+    ValueLabel.Parent = Card
+    
+    return ValueLabel
+end
 
-local VisualContent = Instance.new("ScrollingFrame")
-VisualContent.Size = UDim2.new(1, 0, 1, 0)
-VisualContent.BackgroundTransparency = 1
-VisualContent.ScrollBarThickness = 3
-VisualContent.ScrollBarImageColor3 = Color3.fromRGB(255, 80, 80)
-VisualContent.CanvasSize = UDim2.new(0, 0, 0, 220)
-VisualContent.Visible = false
-VisualContent.Parent = ContentFrame
+local StatusValue1 = CreateStatusCard("STATUS", "OFF", Color3.fromRGB(255, 60, 60), UDim2.new(0, 0, 0, 0))
+local StatusValue2 = CreateStatusCard("BUBBLE", "None", Color3.fromRGB(0, 191, 255), UDim2.new(0.52, 0, 0, 0))
 
-local SettingsContent = Instance.new("ScrollingFrame")
-SettingsContent.Size = UDim2.new(1, 0, 1, 0)
-SettingsContent.BackgroundTransparency = 1
-SettingsContent.ScrollBarThickness = 3
-SettingsContent.ScrollBarImageColor3 = Color3.fromRGB(255, 80, 80)
-SettingsContent.CanvasSize = UDim2.new(0, 0, 0, 260)
-SettingsContent.Visible = false
-SettingsContent.Parent = ContentFrame
+local StatusValue3 = CreateStatusCard("DIST", "--", Color3.fromRGB(255, 255, 255), UDim2.new(0, 0, 0, 46))
+local StatusValue4 = CreateStatusCard("COLLECTED", "0", Color3.fromRGB(255, 200, 80), UDim2.new(0.52, 0, 0, 46))
 
--- ============================================
--- GUI Elements
--- ============================================
+-- Start/Stop Buttons
+local StartBtn = Instance.new("TextButton")
+StartBtn.Size = UDim2.new(1, -6, 0, 28)
+StartBtn.Position = UDim2.new(0, 3, 0, 94)
+StartBtn.BackgroundColor3 = Color3.fromRGB(0, 191, 255)
+StartBtn.BorderSizePixel = 0
+StartBtn.Text = "🟢 START COLLECT"
+StartBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+StartBtn.TextSize = 11
+StartBtn.Font = Enum.Font.GothamBold
+StartBtn.Parent = Content
 
-local function CreateToggle(parent, name, defaultValue, callback, yPosition)
+local StartCorner = Instance.new("UICorner")
+StartCorner.CornerRadius = UDim.new(0, 8)
+StartCorner.Parent = StartBtn
+
+StartBtn.MouseButton1Click:Connect(function()
+    if not Config.Enabled then
+        Start()
+    end
+end)
+
+local StopBtn = Instance.new("TextButton")
+StopBtn.Size = UDim2.new(1, -6, 0, 28)
+StopBtn.Position = UDim2.new(0, 3, 0, 128)
+StopBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+StopBtn.BorderSizePixel = 0
+StopBtn.Text = "🔴 STOP"
+StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StopBtn.TextSize = 11
+StopBtn.Font = Enum.Font.GothamBold
+StopBtn.Parent = Content
+
+local StopCorner = Instance.new("UICorner")
+StopCorner.CornerRadius = UDim.new(0, 8)
+StopCorner.Parent = StopBtn
+
+StopBtn.MouseButton1Click:Connect(function()
+    if Config.Enabled then
+        Stop()
+    end
+end)
+
+-- Toggles
+local function CreateToggle(name, defaultValue, callback, yPosition)
     local ToggleFrame = Instance.new("Frame")
     ToggleFrame.Size = UDim2.new(1, -6, 0, 32)
     ToggleFrame.Position = UDim2.new(0, 3, 0, yPosition)
     ToggleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
     ToggleFrame.BorderSizePixel = 0
-    ToggleFrame.Parent = parent
+    ToggleFrame.Parent = Content
     
     local ToggleCorner = Instance.new("UICorner")
     ToggleCorner.CornerRadius = UDim.new(0, 8)
@@ -387,10 +371,10 @@ local function CreateToggle(parent, name, defaultValue, callback, yPosition)
     local ToggleBtn = Instance.new("TextButton")
     ToggleBtn.Size = UDim2.new(0, 40, 0, 22)
     ToggleBtn.Position = UDim2.new(1, -48, 0.5, -11)
-    ToggleBtn.BackgroundColor3 = defaultValue and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(255, 60, 60)
+    ToggleBtn.BackgroundColor3 = defaultValue and Color3.fromRGB(0, 191, 255) or Color3.fromRGB(255, 60, 60)
     ToggleBtn.BorderSizePixel = 0
     ToggleBtn.Text = defaultValue and "ON" or "OFF"
-    ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleBtn.TextColor3 = defaultValue and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
     ToggleBtn.TextSize = 10
     ToggleBtn.Font = Enum.Font.GothamBold
     ToggleBtn.Parent = ToggleFrame
@@ -403,11 +387,13 @@ local function CreateToggle(parent, name, defaultValue, callback, yPosition)
     
     ToggleBtn.MouseButton1Click:Connect(function()
         isEnabled = not isEnabled
-        local targetColor = isEnabled and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(255, 60, 60)
+        local targetColor = isEnabled and Color3.fromRGB(0, 191, 255) or Color3.fromRGB(255, 60, 60)
+        local textColor = isEnabled and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
         local tween = TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {
             BackgroundColor3 = targetColor
         })
         tween:Play()
+        ToggleBtn.TextColor3 = textColor
         ToggleBtn.Text = isEnabled and "ON" or "OFF"
         if callback then
             callback(isEnabled)
@@ -417,13 +403,23 @@ local function CreateToggle(parent, name, defaultValue, callback, yPosition)
     return ToggleFrame
 end
 
-local function CreateSlider(parent, name, min, max, default, callback, yPosition)
+CreateToggle("Auto Collect", Config.AutoCollect, function(v)
+    Config.AutoCollect = v
+end, 166)
+
+CreateToggle("ESP Bubbles", Config.ESP, function(v)
+    Config.ESP = v
+    if not v then ClearESP() end
+end, 204)
+
+-- Sliders
+local function CreateSlider(name, min, max, default, callback, yPosition)
     local SliderFrame = Instance.new("Frame")
     SliderFrame.Size = UDim2.new(1, -6, 0, 45)
     SliderFrame.Position = UDim2.new(0, 3, 0, yPosition)
     SliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
     SliderFrame.BorderSizePixel = 0
-    SliderFrame.Parent = parent
+    SliderFrame.Parent = Content
     
     local SliderCorner = Instance.new("UICorner")
     SliderCorner.CornerRadius = UDim.new(0, 8)
@@ -445,7 +441,7 @@ local function CreateSlider(parent, name, min, max, default, callback, yPosition
     ValueLabel.Position = UDim2.new(1, -43, 0, 3)
     ValueLabel.BackgroundTransparency = 1
     ValueLabel.Text = tostring(default)
-    ValueLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+    ValueLabel.TextColor3 = Color3.fromRGB(0, 191, 255)
     ValueLabel.TextSize = 10
     ValueLabel.Font = Enum.Font.GothamBold
     ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
@@ -464,7 +460,7 @@ local function CreateSlider(parent, name, min, max, default, callback, yPosition
     
     local Fill = Instance.new("Frame")
     Fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    Fill.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+    Fill.BackgroundColor3 = Color3.fromRGB(0, 191, 255)
     Fill.BorderSizePixel = 0
     Fill.Parent = SliderBar
     
@@ -524,239 +520,25 @@ local function CreateSlider(parent, name, min, max, default, callback, yPosition
     return SliderFrame
 end
 
-local function CreateStatusCard(parent, title, value, color, position)
-    local Card = Instance.new("Frame")
-    Card.Size = UDim2.new(0.48, 0, 0, 40)
-    Card.Position = position
-    Card.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    Card.BorderSizePixel = 0
-    Card.Parent = parent
-    
-    local CardCorner = Instance.new("UICorner")
-    CardCorner.CornerRadius = UDim.new(0, 8)
-    CardCorner.Parent = Card
-    
-    local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Size = UDim2.new(1, 0, 0, 12)
-    TitleLabel.Position = UDim2.new(0, 0, 0, 3)
-    TitleLabel.BackgroundTransparency = 1
-    TitleLabel.Text = title
-    TitleLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
-    TitleLabel.TextSize = 8
-    TitleLabel.Font = Enum.Font.Gotham
-    TitleLabel.Parent = Card
-    
-    local ValueLabel = Instance.new("TextLabel")
-    ValueLabel.Name = "ValueLabel"
-    ValueLabel.Size = UDim2.new(1, 0, 0, 18)
-    ValueLabel.Position = UDim2.new(0, 0, 0, 16)
-    ValueLabel.BackgroundTransparency = 1
-    ValueLabel.Text = value
-    ValueLabel.TextColor3 = color
-    ValueLabel.TextSize = 13
-    ValueLabel.Font = Enum.Font.GothamBold
-    ValueLabel.Parent = Card
-    
-    return Card, ValueLabel
-end
-
--- ============================================
--- Main Content
--- ============================================
-
-local StatusCard1, StatusValue1 = CreateStatusCard(MainContent, "STATUS", "OFF", Color3.fromRGB(255, 60, 60), UDim2.new(0, 0, 0, 0))
-local StatusCard2, StatusValue2 = CreateStatusCard(MainContent, "MONSTER", "None", Color3.fromRGB(80, 255, 80), UDim2.new(0.52, 0, 0, 0))
-
-local StatusCard3, StatusValue3 = CreateStatusCard(MainContent, "DIST", "--", Color3.fromRGB(255, 255, 255), UDim2.new(0, 0, 0, 46))
-local StatusCard4, StatusValue4 = CreateStatusCard(MainContent, "TIME", "0s", Color3.fromRGB(255, 200, 80), UDim2.new(0.52, 0, 0, 46))
-
--- Start/Stop Buttons
-local StartBtn = Instance.new("TextButton")
-StartBtn.Size = UDim2.new(1, -6, 0, 28)
-StartBtn.Position = UDim2.new(0, 3, 0, 94)
-StartBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 80)
-StartBtn.BorderSizePixel = 0
-StartBtn.Text = "🟢 START"
-StartBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-StartBtn.TextSize = 11
-StartBtn.Font = Enum.Font.GothamBold
-StartBtn.Parent = MainContent
-
-local StartCorner = Instance.new("UICorner")
-StartCorner.CornerRadius = UDim.new(0, 8)
-StartCorner.Parent = StartBtn
-
-StartBtn.MouseButton1Click:Connect(function()
-    if not Config.Enabled then
-        Start()
-    end
-end)
-
-local StopBtn = Instance.new("TextButton")
-StopBtn.Size = UDim2.new(1, -6, 0, 28)
-StopBtn.Position = UDim2.new(0, 3, 0, 128)
-StopBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-StopBtn.BorderSizePixel = 0
-StopBtn.Text = "🔴 STOP"
-StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-StopBtn.TextSize = 11
-StopBtn.Font = Enum.Font.GothamBold
-StopBtn.Parent = MainContent
-
-local StopCorner = Instance.new("UICorner")
-StopCorner.CornerRadius = UDim.new(0, 8)
-StopCorner.Parent = StopBtn
-
-StopBtn.MouseButton1Click:Connect(function()
-    if Config.Enabled then
-        Stop()
-    end
-end)
-
--- Toggles
-CreateToggle(MainContent, "Auto Dodge", Config.AutoDodge, function(v)
-    Config.AutoDodge = v
-end, 164)
-
-CreateToggle(MainContent, "Auto Revive", Config.AutoRevive, function(v)
-    Config.AutoRevive = v
-end, 202)
-
-CreateToggle(MainContent, "Anti-AFK", Config.AntiAFK, function(v)
-    Config.AntiAFK = v
-    if v then SetupAntiAFK() end
-end, 240)
-
--- ============================================
--- Visual Content
--- ============================================
-
-CreateToggle(VisualContent, "ESP", Config.ESP, function(v)
-    Config.ESP = v
-    if not v then ClearESP() end
-end, 0)
-
-CreateToggle(VisualContent, "Fullbright", Config.Fullbright, function(v)
-    Config.Fullbright = v
-    if v then EnableFullbright() else DisableFullbright() end
-end, 38)
-
-CreateToggle(VisualContent, "No-Clip", Config.NoClip, function(v)
-    Config.NoClip = v
-    if v then EnableNoClip() else DisableNoClip() end
-end, 76)
-
-CreateToggle(VisualContent, "Speed", Config.SpeedHack, function(v)
-    Config.SpeedHack = v
-    if Humanoid then
-        Humanoid.WalkSpeed = v and Config.SpeedValue or 16
-    end
-end, 114)
-
-CreateSlider(VisualContent, "Speed", 20, 200, Config.SpeedValue, function(v)
-    Config.SpeedValue = v
-    if Config.SpeedHack and Humanoid then
-        Humanoid.WalkSpeed = v
-    end
-end, 156)
-
-CreateSlider(VisualContent, "Dodge Dist", 30, 100, 50, function(v)
-    Config.DodgeDistance = v
-end, 210)
-
--- ============================================
--- Settings Content
--- ============================================
-
-CreateSlider(SettingsContent, "Dodge Speed", 50, 200, 80, function(v)
-    Config.DodgeSpeed = v
-end, 0)
-
-local InfoFrame = Instance.new("Frame")
-InfoFrame.Size = UDim2.new(1, -6, 0, 70)
-InfoFrame.Position = UDim2.new(0, 3, 0, 54)
-InfoFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-InfoFrame.BorderSizePixel = 0
-InfoFrame.Parent = SettingsContent
-
-local InfoCorner = Instance.new("UICorner")
-InfoCorner.CornerRadius = UDim.new(0, 8)
-InfoCorner.Parent = InfoFrame
-
-local InfoTitle = Instance.new("TextLabel")
-InfoTitle.Size = UDim2.new(1, 0, 0, 18)
-InfoTitle.Position = UDim2.new(0, 0, 0, 5)
-InfoTitle.BackgroundTransparency = 1
-InfoTitle.Text = "⚠️ Warning"
-InfoTitle.TextColor3 = Color3.fromRGB(255, 200, 80)
-InfoTitle.TextSize = 11
-InfoTitle.Font = Enum.Font.GothamBold
-InfoTitle.Parent = InfoFrame
-
-local InfoText = Instance.new("TextLabel")
-InfoText.Size = UDim2.new(1, -10, 0, 40)
-InfoText.Position = UDim2.new(0, 5, 0, 22)
-InfoText.BackgroundTransparency = 1
-InfoText.Text = "For educational use only. May result in ban. Use alt accounts."
-InfoText.TextColor3 = Color3.fromRGB(200, 200, 200)
-InfoText.TextSize = 9
-InfoText.Font = Enum.Font.Gotham
-InfoText.TextWrapped = true
-InfoText.TextYAlignment = Enum.TextYAlignment.Top
-InfoText.Parent = InfoFrame
-
--- ============================================
--- Tab Switching
--- ============================================
-
-local function SwitchTab(tabName)
-    State.CurrentTab = tabName
-    MainContent.Visible = false
-    VisualContent.Visible = false
-    SettingsContent.Visible = false
-    
-    MainTab.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-    MainTab.TextColor3 = Color3.fromRGB(180, 180, 200)
-    VisualTab.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-    VisualTab.TextColor3 = Color3.fromRGB(180, 180, 200)
-    SettingsTab.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-    SettingsTab.TextColor3 = Color3.fromRGB(180, 180, 200)
-    
-    if tabName == "Main" then
-        MainContent.Visible = true
-        MainTab.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-        MainTab.TextColor3 = Color3.fromRGB(255, 255, 255)
-    elseif tabName == "Visual" then
-        VisualContent.Visible = true
-        VisualTab.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-        VisualTab.TextColor3 = Color3.fromRGB(255, 255, 255)
-    elseif tabName == "Settings" then
-        SettingsContent.Visible = true
-        SettingsTab.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-        SettingsTab.TextColor3 = Color3.fromRGB(255, 255, 255)
-    end
-end
-
-MainTab.MouseButton1Click:Connect(function() SwitchTab("Main") end)
-VisualTab.MouseButton1Click:Connect(function() SwitchTab("Visual") end)
-SettingsTab.MouseButton1Click:Connect(function() SwitchTab("Settings") end)
+CreateSlider("Speed", 20, 200, 60, function(v)
+    Config.MoveSpeed = v
+end, 242)
 
 -- ============================================
 -- Frame Controls
 -- ============================================
 
+local IsMinimized = false
+
 MinBtn.MouseButton1Click:Connect(function()
-    State.IsMinimized = not State.IsMinimized
-    local targetSize = State.IsMinimized and UDim2.new(0, 260, 0, 40) or UDim2.new(0, 260, 0, 360)
+    IsMinimized = not IsMinimized
+    local targetSize = IsMinimized and UDim2.new(0, 260, 0, 35) or UDim2.new(0, 260, 0, 340)
     local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = targetSize})
     tween:Play()
-    MinBtn.Text = State.IsMinimized and "+" or "−"
-    ContentFrame.Visible = not State.IsMinimized
-    TabFrame.Visible = not State.IsMinimized
-    TitleText.Visible = not State.IsMinimized
-    -- លាក់ drag indicator ពេលបង្រួម
-    DragIndicator.Visible = not State.IsMinimized
-    BottomDrag.Visible = not State.IsMinimized
+    MinBtn.Text = IsMinimized and "+" or "−"
+    Content.Visible = not IsMinimized
+    TopDrag.Visible = not IsMinimized
+    BottomDrag.Visible = not IsMinimized
 end)
 
 CloseBtn.MouseButton1Click:Connect(function()
@@ -771,31 +553,94 @@ CloseBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ============================================
+-- Toggle Button
+-- ============================================
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0, 40, 0, 40)
+ToggleBtn.Position = UDim2.new(0, 10, 0, 10)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 191, 255)
+ToggleBtn.BorderSizePixel = 0
+ToggleBtn.Text = "🫧"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+ToggleBtn.TextSize = 20
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Visible = false
+ToggleBtn.Parent = ScreenGui
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0.5, 0)
+ToggleCorner.Parent = ToggleBtn
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- Drag Toggle Button
+local toggleDragStart = nil
+local toggleFrameStart = nil
+local isToggleDragging = false
+
+ToggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+       input.UserInputType == Enum.UserInputType.Touch then
+        isToggleDragging = true
+        toggleDragStart = input.Position
+        toggleFrameStart = ToggleBtn.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if isToggleDragging and 
+       (input.UserInputType == Enum.UserInputType.MouseMovement or 
+        input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - toggleDragStart
+        ToggleBtn.Position = UDim2.new(
+            toggleFrameStart.X.Scale,
+            toggleFrameStart.X.Offset + delta.X,
+            toggleFrameStart.Y.Scale,
+            toggleFrameStart.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+       input.UserInputType == Enum.UserInputType.Touch then
+        isToggleDragging = false
+    end
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ToggleBtn.Visible = true
+end)
+
+-- ============================================
 -- GUI Update
 -- ============================================
 
 RunService.RenderStepped:Connect(function()
     if Config.Enabled then
         StatusValue1.Text = "ON"
-        StatusValue1.TextColor3 = Color3.fromRGB(80, 255, 80)
+        StatusValue1.TextColor3 = Color3.fromRGB(0, 191, 255)
     else
         StatusValue1.Text = "OFF"
         StatusValue1.TextColor3 = Color3.fromRGB(255, 60, 60)
     end
     
-    if State.NearestMonster then
-        StatusValue2.Text = State.NearestMonster.Name:sub(1, 8)
-        StatusValue2.TextColor3 = Color3.fromRGB(255, 80, 80)
-        StatusValue3.Text = math.floor(State.MonsterDistance) .. "m"
-        StatusValue3.TextColor3 = State.MonsterDistance < 30 and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(255, 255, 255)
+    if State.NearestBubble then
+        StatusValue2.Text = State.NearestBubble.Name:sub(1, 8)
+        StatusValue2.TextColor3 = Color3.fromRGB(0, 191, 255)
+        StatusValue3.Text = math.floor(State.BubbleDistance) .. "m"
+        StatusValue3.TextColor3 = State.BubbleDistance < 10 and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(255, 255, 255)
     else
-        StatusValue2.Text = "Safe"
-        StatusValue2.TextColor3 = Color3.fromRGB(80, 255, 80)
+        StatusValue2.Text = "None"
+        StatusValue2.TextColor3 = Color3.fromRGB(180, 180, 200)
         StatusValue3.Text = "--"
-        StatusValue3.TextColor3 = Color3.fromRGB(80, 255, 80)
+        StatusValue3.TextColor3 = Color3.fromRGB(180, 180, 200)
     end
     
-    StatusValue4.Text = math.floor(State.SurviveTime) .. "s"
+    StatusValue4.Text = tostring(State.BubblesCollected)
 end)
 
 -- ============================================
@@ -816,16 +661,16 @@ local function CreateESP(obj, color, name)
     end
     
     local highlight = Instance.new("Highlight")
-    highlight.Name = "EvadeESP"
+    highlight.Name = "BubbleESP"
     highlight.Adornee = obj
     highlight.FillColor = color
     highlight.OutlineColor = color
-    highlight.FillTransparency = 0.6
+    highlight.FillTransparency = 0.5
     highlight.OutlineTransparency = 0.2
     highlight.Parent = part
     
     local billboard = Instance.new("BillboardGui")
-    billboard.Size = UDim2.new(0, 70, 0, 35)
+    billboard.Size = UDim2.new(0, 80, 0, 40)
     billboard.StudsOffset = Vector3.new(0, 2, 0)
     billboard.AlwaysOnTop = true
     billboard.Parent = part
@@ -835,7 +680,7 @@ local function CreateESP(obj, color, name)
     label.BackgroundTransparency = 1
     label.Text = name:sub(1, 10)
     label.TextColor3 = color
-    label.TextSize = 9
+    label.TextSize = 10
     label.Font = Enum.Font.GothamBold
     label.Parent = billboard
     
@@ -845,7 +690,7 @@ local function CreateESP(obj, color, name)
     distLabel.BackgroundTransparency = 1
     distLabel.Text = "0m"
     distLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    distLabel.TextSize = 8
+    distLabel.TextSize = 9
     distLabel.Font = Enum.Font.Gotham
     distLabel.Parent = billboard
     
@@ -883,36 +728,35 @@ local function ClearESP()
 end
 
 -- ============================================
--- Monster Finding
+-- Bubble Finding - រកពពុះសាប៊ូ
 -- ============================================
 
-local function FindMonsters()
-    local monsters = {}
+local function FindBubbles()
+    local bubbles = {}
     
-    local monsterFolders = {
-        Workspace:FindFirstChild("Monsters"),
-        Workspace:FindFirstChild("Bots"),
-        Workspace:FindFirstChild("NPCs"),
-        Workspace:FindFirstChild("Enemies"),
-        Workspace:FindFirstChild("Nextbots"),
-        Workspace:FindFirstChild("AI"),
+    -- រកនៅក្នុង folders ស្តង់ដារ
+    local bubbleFolders = {
+        Workspace:FindFirstChild("Bubbles"),
+        Workspace:FindFirstChild("Summer"),
+        Workspace:FindFirstChild("Event"),
+        Workspace:FindFirstChild("Collectibles"),
+        Workspace:FindFirstChild("Items"),
+        Workspace:FindFirstChild("Spawns"),
     }
     
-    for _, folder in ipairs(monsterFolders) do
+    for _, folder in ipairs(bubbleFolders) do
         if folder then
             for _, obj in ipairs(folder:GetDescendants()) do
                 if obj:IsA("Model") or obj:IsA("BasePart") then
                     local name = obj.Name:lower()
-                    if name:find("nextbot") or name:find("bot") or name:find("monster") 
-                       or name:find("enemy") or name:find("killer") or name:find("slender")
-                       or name:find("sonic") or name:find("obama") or name:find("mario") 
-                       or name:find("spongebob") or name:find("creep") or name:find("scary")
-                       or name:find("sans") or name:find("baldi") or name:find("amogus")
-                       or name:find("morbius") or name:find("shrek") then
+                    -- ឈ្មោះពពុះសាប៊ូ
+                    if name:find("bubble") or name:find("soap") or name:find("foam") 
+                       or name:find("summer") or name:find("event") or name:find("collectible")
+                       or name:find("prize") or name:find("reward") or name:find("gift") then
                         
                         local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
                         if part then
-                            table.insert(monsters, {
+                            table.insert(bubbles, {
                                 Object = obj,
                                 Part = part,
                                 Position = part.Position,
@@ -920,7 +764,7 @@ local function FindMonsters()
                             })
                             
                             if Config.ESP then
-                                CreateESP(obj, Config.ESPColor, obj.Name)
+                                CreateESP(obj, Config.BubbleColor, obj.Name)
                             end
                         end
                     end
@@ -929,19 +773,17 @@ local function FindMonsters()
         end
     end
     
+    -- Search entire workspace
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("Model") and not State.ESPObjects[obj] then
             local name = obj.Name:lower()
-            if name:find("nextbot") or name:find("slender") or name:find("sonic") 
-               or name:find("obama") or name:find("mario") or name:find("luigi")
-               or name:find("spongebob") or name:find("patrick") or name:find("squidward")
-               or name:find("doom") or name:find("creep") or name:find("scary")
-               or name:find("sans") or name:find("baldi") or name:find("amogus")
-               or name:find("morbius") or name:find("shrek") or name:find("npc") then
+            if name:find("bubble") or name:find("soap") or name:find("foam") 
+               or name:find("summer") or name:find("event") or name:find("collectible")
+               or name:find("prize") or name:find("reward") or name:find("gift") then
                 
                 local part = obj:FindFirstChildWhichIsA("BasePart")
                 if part then
-                    table.insert(monsters, {
+                    table.insert(bubbles, {
                         Object = obj,
                         Part = part,
                         Position = part.Position,
@@ -949,41 +791,41 @@ local function FindMonsters()
                     })
                     
                     if Config.ESP then
-                        CreateESP(obj, Config.ESPColor, obj.Name)
+                        CreateESP(obj, Config.BubbleColor, obj.Name)
                     end
                 end
             end
         end
     end
     
-    return monsters
+    return bubbles
 end
 
-local function GetNearestMonster()
+local function GetNearestBubble()
     if not UpdateCharacter() then
         return nil
     end
     
-    local monsters = FindMonsters()
+    local bubbles = FindBubbles()
     local nearest = nil
-    local minDistance = Config.DodgeDistance
+    local minDistance = Config.SearchRadius
     
     local myPos = HumanoidRootPart.Position
     
-    for _, monster in ipairs(monsters) do
-        local distance = GetDistance(myPos, monster.Position)
+    for _, bubble in ipairs(bubbles) do
+        local distance = GetDistance(myPos, bubble.Position)
         if distance < minDistance then
             minDistance = distance
-            nearest = monster
+            nearest = bubble
         end
         
-        if State.ESPObjects[monster.Object] and State.ESPObjects[monster.Object].DistanceLabel then
-            State.ESPObjects[monster.Object].DistanceLabel.Text = math.floor(distance) .. "m"
+        if State.ESPObjects[bubble.Object] and State.ESPObjects[bubble.Object].DistanceLabel then
+            State.ESPObjects[bubble.Object].DistanceLabel.Text = math.floor(distance) .. "m"
         end
     end
     
-    State.NearestMonster = nearest
-    State.MonsterDistance = nearest and minDistance or math.huge
+    State.NearestBubble = nearest
+    State.BubbleDistance = nearest and minDistance or math.huge
     
     return nearest
 end
@@ -1038,12 +880,6 @@ local function FollowPath(path)
             return false
         end
         
-        local monster = GetNearestMonster()
-        if monster and Config.AutoDodge and State.MonsterDistance < 30 then
-            Log("Monster detected while pathing! Dodging!", "warning")
-            return false
-        end
-        
         if waypoint.Action == Enum.PathWaypointAction.Jump then
             Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
         end
@@ -1076,314 +912,105 @@ local function FollowPath(path)
 end
 
 -- ============================================
--- Dodge
+-- Move to Bubble
 -- ============================================
 
-local function GetSafeDirection(monsterPos)
-    if not HumanoidRootPart then
-        return nil
-    end
-    
-    local myPos = HumanoidRootPart.Position
-    local awayVector = (myPos - monsterPos).Unit
-    
-    local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {Character}
-    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-    
-    local safeDirections = {}
-    
-    for angle = 0, 360, 30 do
-        local rad = math.rad(angle)
-        local direction = Vector3.new(
-            awayVector.X * math.cos(rad) - awayVector.Z * math.sin(rad),
-            0,
-            awayVector.X * math.sin(rad) + awayVector.Z * math.cos(rad)
-        ).Unit
-        
-        local ray = Workspace:Raycast(myPos, direction * Config.DodgeDistance, rayParams)
-        if not ray then
-            table.insert(safeDirections, direction)
-        else
-            local dist = ray.Distance
-            if dist > 15 then
-                table.insert(safeDirections, direction)
-            end
-        end
-    end
-    
-    local bestDirection = awayVector
-    local bestDist = 0
-    
-    for _, dir in ipairs(safeDirections) do
-        local endPos = myPos + dir * Config.DodgeDistance
-        local dist = GetDistance(endPos, monsterPos)
-        if dist > bestDist then
-            bestDist = dist
-            bestDirection = dir
-        end
-    end
-    
-    return bestDirection
-end
-
-local function DodgeMonster(monster)
+local function MoveToBubble(bubble)
     if not HumanoidRootPart then
         return false
     end
     
-    local currentTime = tick()
-    if currentTime - State.LastDodgeTime < 0.5 then
-        return false
-    end
+    local targetPos = bubble.Position
+    local distance = GetDistance(HumanoidRootPart.Position, targetPos)
     
-    State.LastDodgeTime = currentTime
+    Log("Moving to: " .. bubble.Name .. " (" .. math.floor(distance) .. "m)")
     
-    local monsterPos = monster.Position
-    local safeDir = GetSafeDirection(monsterPos)
-    
-    if not safeDir then
-        Log("No safe direction found!", "warning")
-        return false
-    end
-    
-    local targetPos = HumanoidRootPart.Position + safeDir * Config.DodgeDistance
-    
-    Log("Dodging " .. monster.Name .. "! (" .. math.floor(State.MonsterDistance) .. "m)")
-    
+    -- Use Pathfinding
     local path = CreatePath(targetPos)
     if path then
         local success = FollowPath(path)
         if success then
-            Log("Dodge completed via pathfinding!", "success")
+            Log("Arrived at: " .. bubble.Name, "success")
             return true
         end
     end
     
-    local distance = Config.DodgeDistance
-    local duration = distance / Config.DodgeSpeed
+    -- Fallback: Tween
+    local duration = distance / Config.MoveSpeed
     
     local tween = TweenService:Create(
         HumanoidRootPart,
-        TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        {CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))}
+        TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut),
+        {CFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))}
     )
     
     tween:Play()
-    
-    local originalCanCollide = {}
-    for _, part in ipairs(Character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            originalCanCollide[part] = part.CanCollide
-            part.CanCollide = false
-        end
-    end
-    
     tween.Completed:Wait()
     
-    for part, canCollide in pairs(originalCanCollide) do
-        if part and part.Parent then
-            part.CanCollide = canCollide
-        end
-    end
-    
-    Log("Dodge completed via tween!", "success")
+    Log("Arrived at: " .. bubble.Name .. " (via tween)", "success")
     return true
 end
 
 -- ============================================
--- Revive
+-- Collect Bubble - ប្រមូលពពុះសាប៊ូ
 -- ============================================
 
-local function CheckDowned()
-    if not Humanoid then
-        return false
+local function CollectBubble(bubble)
+    Log("Collecting: " .. bubble.Name)
+    
+    -- Proximity prompt
+    local prompt = bubble.Object:FindFirstChildOfClass("ProximityPrompt", true)
+    if prompt then
+        fireproximityprompt(prompt)
+        Log("Fired ProximityPrompt", "success")
     end
     
-    if Humanoid.Health <= 0 or Humanoid.Health < 10 then
-        State.IsDowned = true
-        return true
+    -- Click detector
+    local clickDetector = bubble.Object:FindFirstChildOfClass("ClickDetector", true)
+    if clickDetector then
+        fireclickdetector(clickDetector)
+        Log("Fired ClickDetector", "success")
     end
     
-    local downedFolder = Workspace:FindFirstChild("Downed")
-    if downedFolder then
-        for _, obj in ipairs(downedFolder:GetChildren()) do
-            if obj.Name == LocalPlayer.Name or obj:FindFirstChild(LocalPlayer.Name) then
-                State.IsDowned = true
-                return true
-            end
-        end
+    -- Touch (walk into it)
+    if bubble.Part then
+        -- Move directly to the bubble
+        local tween = TweenService:Create(
+            HumanoidRootPart,
+            TweenInfo.new(0.5, Enum.EasingStyle.Quad),
+            {CFrame = CFrame.new(bubble.Position)}
+        )
+        tween:Play()
+        tween.Completed:Wait()
     end
     
-    State.IsDowned = false
-    return false
-end
-
-local function AutoRevive()
-    if not Config.AutoRevive or not State.IsDowned then
-        return
-    end
-    
-    Log("Trying to revive...", "warning")
-    
-    local reviveEvents = {
-        "Revive", "ReviveEvent", "Respawn", "RespawnEvent",
-        "RevivePlayer", "SelfRevive", "ReviveRemote", "ReviveMe"
+    -- Remote events
+    local collectEvents = {
+        "CollectBubble", "CollectEvent", "SummerEvent", 
+        "CollectItem", "GrabBubble", "PopBubble"
     }
     
-    for _, eventName in ipairs(reviveEvents) do
+    for _, eventName in ipairs(collectEvents) do
         local remote = ReplicatedStorage:FindFirstChild(eventName, true)
         if remote and remote:IsA("RemoteEvent") then
             pcall(function()
-                remote:FireServer()
+                remote:FireServer(bubble.Object)
                 Log("Fired: " .. eventName, "success")
             end)
-        elseif remote and remote:IsA("RemoteFunction") then
-            pcall(function()
-                remote:InvokeServer()
-                Log("Invoked: " .. eventName, "success")
-            end)
         end
     end
     
-    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
-    for _, gui in ipairs(playerGui:GetDescendants()) do
-        if gui:IsA("TextButton") or gui:IsA("ImageButton") then
-            local text = gui.Text:lower()
-            if text:find("revive") or text:find("respawn") or text:find("retry") or text:find("spawn") then
-                pcall(function()
-                    gui.MouseButton1Click:Fire()
-                    Log("Clicked revive button", "success")
-                end)
-            end
-        end
-    end
+    wait(Config.CollectDelay)
     
-    wait(2)
-end
-
--- ============================================
--- Fullbright
--- ============================================
-
-local OriginalLighting = nil
-
-local function EnableFullbright()
-    if not Config.Fullbright then
-        return
-    end
-    
-    if not OriginalLighting then
-        OriginalLighting = {
-            Brightness = Lighting.Brightness,
-            ClockTime = Lighting.ClockTime,
-            FogEnd = Lighting.FogEnd,
-            GlobalShadows = Lighting.GlobalShadows,
-            Ambient = Lighting.Ambient,
-            OutdoorAmbient = Lighting.OutdoorAmbient,
-        }
-    end
-    
-    Lighting.Brightness = 2
-    Lighting.ClockTime = 14
-    Lighting.FogEnd = 100000
-    Lighting.GlobalShadows = false
-    Lighting.Ambient = Color3.fromRGB(178, 178, 178)
-    Lighting.OutdoorAmbient = Color3.fromRGB(178, 178, 178)
-    
-    Log("Fullbright enabled", "success")
-end
-
-local function DisableFullbright()
-    if not OriginalLighting then
-        return
-    end
-    
-    Lighting.Brightness = OriginalLighting.Brightness
-    Lighting.ClockTime = OriginalLighting.ClockTime
-    Lighting.FogEnd = OriginalLighting.FogEnd
-    Lighting.GlobalShadows = OriginalLighting.GlobalShadows
-    Lighting.Ambient = OriginalLighting.Ambient
-    Lighting.OutdoorAmbient = OriginalLighting.OutdoorAmbient
-    
-    Log("Fullbright disabled", "success")
-end
-
--- ============================================
--- No-Clip
--- ============================================
-
-local NoClipConnection = nil
-
-local function EnableNoClip()
-    if not Config.NoClip then
-        return
-    end
-    
-    if NoClipConnection then
-        NoClipConnection:Disconnect()
-    end
-    
-    NoClipConnection = RunService.Stepped:Connect(function()
-        if not Config.Enabled or not Config.NoClip then
-            return
-        end
-        if not Character then
-            return
-        end
-        
-        for _, part in ipairs(Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-    end)
-    
-    Log("No-Clip enabled", "success")
-end
-
-local function DisableNoClip()
-    if NoClipConnection then
-        NoClipConnection:Disconnect()
-        NoClipConnection = nil
-    end
-    
-    if not Character then
-        return
-    end
-    
-    for _, part in ipairs(Character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = true
-        end
-    end
-    
-    Log("No-Clip disabled", "success")
-end
-
--- ============================================
--- Anti-AFK
--- ============================================
-
-local function SetupAntiAFK()
-    if not Config.AntiAFK then
-        return
-    end
-    
-    LocalPlayer.Idled:Connect(function()
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
-        Log("Anti-AFK triggered", "warning")
-    end)
-    
-    Log("Anti-AFK enabled", "success")
+    State.BubblesCollected = State.BubblesCollected + 1
+    Log("Collected! Total: " .. State.BubblesCollected, "success")
 end
 
 -- ============================================
 -- Main Loop
 -- ============================================
 
-local function SurviveLoop()
+local function CollectLoop()
     while Config.Enabled do
         if not Config.Enabled then
             break
@@ -1395,36 +1022,30 @@ local function SurviveLoop()
             continue
         end
         
-        if CheckDowned() then
-            AutoRevive()
-            wait(1)
-            continue
-        end
+        -- Find nearest bubble
+        local nearestBubble = GetNearestBubble()
         
-        local nearestMonster = GetNearestMonster()
-        
-        if nearestMonster and Config.AutoDodge then
-            Log("Monster nearby: " .. nearestMonster.Name .. " (" .. math.floor(State.MonsterDistance) .. "m)")
+        if nearestBubble and Config.AutoCollect then
+            -- Move to bubble
+            local moved = MoveToBubble(nearestBubble)
             
-            local dodged = DodgeMonster(nearestMonster)
-            
-            if not dodged then
-                Log("Dodge failed, running away!", "error")
-                if Humanoid then
-                    local awayDir = (HumanoidRootPart.Position - nearestMonster.Position).Unit
-                    Humanoid:MoveTo(HumanoidRootPart.Position + awayDir * 100)
-                end
+            if moved then
+                -- Collect bubble
+                CollectBubble(nearestBubble)
+            else
+                Log("Failed to move to bubble", "error")
             end
+        else
+            Log("No bubbles found nearby", "warning")
+            wait(1)
         end
-        
-        State.SurviveTime = State.SurviveTime + 0.5
         
         wait(0.5)
     end
     
     State.IsRunning = false
-    Log("Auto-Survive stopped")
-    Log("Survived for: " .. math.floor(State.SurviveTime) .. " seconds")
+    Log("Bubble Collector stopped")
+    Log("Total collected: " .. State.BubblesCollected)
 end
 
 -- ============================================
@@ -1439,102 +1060,29 @@ function Start()
     
     Config.Enabled = true
     State.IsRunning = true
-    State.SurviveTime = 0
-    State.LastDodgeTime = 0
+    State.BubblesCollected = 0
     
-    Log("🟢 Auto-Survive STARTED!")
+    Log("🟢 Bubble Collector STARTED!")
+    Log("Finding bubbles in radius: " .. Config.SearchRadius)
     
-    EnableFullbright()
-    EnableNoClip()
-    SetupAntiAFK()
-    
-    spawn(SurviveLoop)
+    spawn(CollectLoop)
 end
 
 function Stop()
     Config.Enabled = false
     State.IsRunning = false
     
-    Log("🔴 Auto-Survive STOPPED!")
-    Log("Survived for: " .. math.floor(State.SurviveTime) .. " seconds")
+    Log("🔴 Bubble Collector STOPPED!")
+    Log("Total collected: " .. State.BubblesCollected)
     
-    DisableFullbright()
-    DisableNoClip()
     ClearESP()
-    
-    if Humanoid then
-        Humanoid.WalkSpeed = 16
-    end
 end
-
--- ============================================
--- Toggle GUI Button
--- ============================================
-
-local ToggleGUIBtn = Instance.new("TextButton")
-ToggleGUIBtn.Size = UDim2.new(0, 40, 0, 40)
-ToggleGUIBtn.Position = UDim2.new(0, 10, 0, 10)
-ToggleGUIBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-ToggleGUIBtn.BorderSizePixel = 0
-ToggleGUIBtn.Text = "👻"
-ToggleGUIBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleGUIBtn.TextSize = 20
-ToggleGUIBtn.Font = Enum.Font.GothamBold
-ToggleGUIBtn.Visible = false
-ToggleGUIBtn.Parent = ScreenGui
-
-local ToggleGUICorner = Instance.new("UICorner")
-ToggleGUICorner.CornerRadius = UDim.new(0.5, 0)
-ToggleGUICorner.Parent = ToggleGUIBtn
-
-ToggleGUIBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-
--- Drag Toggle Button
-local toggleDragStart = nil
-local toggleFrameStart = nil
-local isToggleDragging = false
-
-ToggleGUIBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-       input.UserInputType == Enum.UserInputType.Touch then
-        isToggleDragging = true
-        toggleDragStart = input.Position
-        toggleFrameStart = ToggleGUIBtn.Position
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if isToggleDragging and 
-       (input.UserInputType == Enum.UserInputType.MouseMovement or 
-        input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - toggleDragStart
-        ToggleGUIBtn.Position = UDim2.new(
-            toggleFrameStart.X.Scale,
-            toggleFrameStart.X.Offset + delta.X,
-            toggleFrameStart.Y.Scale,
-            toggleFrameStart.Y.Offset + delta.Y
-        )
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
-       input.UserInputType == Enum.UserInputType.Touch then
-        isToggleDragging = false
-    end
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    ToggleGUIBtn.Visible = true
-end)
 
 -- ============================================
 -- Initialize
 -- ============================================
 
-Log("Evade Full Touch GUI loaded!", "success")
-Log("Size: 260x360 (compact)", "success")
-Log("Drag: Top + Bottom handles + Title bar", "success")
+Log("🫧 Bubble Collector loaded!", "success")
+Log("Size: 260x340", "success")
+Log("Features: Auto-Collect, ESP, Pathfinding", "success")
 Log("Click START to begin", "success")
