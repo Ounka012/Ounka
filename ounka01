@@ -1,6 +1,6 @@
 --[[
-    EVADE: Summer Event Auto Farm (Accurate Hitbox Edition)
-    ហោះអណ្តែតលើអាកាស ២០ ម៉ែត្រ + ហោះទៅបុកស៊ីចំគោលដៅយ៉ាងច្បាស់លាស់ មិនរំលង
+    EVADE: Summer Event Auto Farm (100M Ultra Sky-Float)
+    ហោះអណ្តែតលើអាកាសកប់ពពក ១០០ ម៉ែត្រថេរ + បុកស៊ី Bubble ពេញ Map មិនទាក់
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -106,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🫧 EVADE: ACCURATE BUBBLE AUTO"
+    title.Text = "☁️ EVADE: 100M ULTRA SKY-FLOAT"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -125,7 +125,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធបុកស៊ី (២០ម៉ែត្រអណ្តែត)"
+    autoLoopBtn.Text = "🚀 បើកការអណ្តែត ១០០ ម៉ែត្រ (បុកស៊ីពេញ Map)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -156,8 +156,8 @@ local function createGUI(imageAsset)
 
     local isLooping = false
     local floatConnection
-    local skyHeight = 20 
-    local isAttacking = false -- ពិនិត្យស្ថានភាពពេលកំពុងចុះទៅបុកស៊ី
+    local skyHeight = 100 -- កំណត់កម្ពស់ ១០០ ម៉ែត្រថេរកប់ពពក
+    local isAttacking = false
 
     local function startFloating(enable)
         if floatConnection then floatConnection:Disconnect() floatConnection = nil end
@@ -179,16 +179,15 @@ local function createGUI(imageAsset)
         end
     end
 
-    -- មុខងារផ្លាស់ទីទៅបុកចំគោលដៅ និងធានាថា Server ចាប់ទាន់
     local function hitTarget(targetPos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
         
         isAttacking = true
-        root.CFrame = CFrame.new(targetPos) -- ហោះទៅចំពីលើ Bubble ភ្លាមៗ
+        root.CFrame = CFrame.new(targetPos) -- ហោះទៅបុកចំទីតាំង Bubble ភ្លាមៗ
         root.Velocity = Vector3.new(0,0,0)
-        task.wait(0.08) -- ឈប់ចាំបន្តិចឲ្យវាបុកស៊ីចូល Server ពេញលេញ
+        task.wait(0.08) -- ឈប់រង់ចាំ ០.០៨ វិនាទីឲ្យ Server គិតពិន្ទុ
         isAttacking = false
     end
 
@@ -209,13 +208,12 @@ local function createGUI(imageAsset)
                         local targets = scanFullMap()
                         
                         if #targets > 0 then
-                            hintLabel.Text = "ស្ថានភាព៖ 🔍 កំពុងតម្រង់ទៅបុកស៊ី Bubble..."
+                            hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងបុកចុះទៅស៊ី Bubble ពេញ Map..."
                             hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
                             
                             for _, choice in ipairs(targets) do
                                 if not isLooping then break end
                                 if choice.part and choice.part.Parent then
-                                    -- បុកស៊ីគោលដៅ
                                     hitTarget(choice.part.Position)
                                     
                                     if choice.type == "revive" and choice.prompt then
@@ -225,7 +223,7 @@ local function createGUI(imageAsset)
                                 end
                             end
                         else
-                            hintLabel.Text = "ស្ថានភាព៖ ☁️ អណ្តែត ២០ ម៉ែត្រ & ស្កេនរក Bubble ថ្មី..."
+                            hintLabel.Text = "ស្ថានភាព៖ ☁️ កំពុងអណ្តែត ១០០ម៉ែត្រ & ស្កេនរកអូតូ..."
                             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                         end
                     end
@@ -235,7 +233,7 @@ local function createGUI(imageAsset)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធបុកស៊ី (២០ម៉ែត្រអណ្តែត)"
+            autoLoopBtn.Text = "🚀 បើកការអណ្តែត ១០០ ម៉ែត្រ (បុកស៊ីពេញ Map)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
