@@ -1,6 +1,6 @@
 --[[
-    EVADE: Summer Event Auto Farm (Sky-Lock Edition)
-    ហោះស៊ីរួច ហោះឡើងលើ ១០ ម៉ែត្រ ហើយអណ្តែតជាប់លើអាកាសស្ងៀម រង់ចាំស្កេនរកវត្ថុថ្មី
+    EVADE: Summer Event Auto Farm (Platform Safe Edition)
+    ហោះស៊ី Bubble រួចហោះឡើងលើ ១០ ម៉ែត្រ បង្កើតកាក់ទ្រជើង ពេលមាន Bubble ថ្មី វានឹងលុបកាក់ហើយហោះទៅស៊ីបន្តអូតូ!
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -121,7 +121,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "☀️ EVADE: SKY-LOCK FARM"
+    title.Text = "☀️ EVADE: AUTOMATIC SUMMER FARM"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 15
     title.TextColor3 = Color3.new(1,1,1)
@@ -140,7 +140,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🧼 បើកប្រព័ន្ធ Auto (ហោះស៊ីរួចអណ្តែតមេឃ)"
+    autoLoopBtn.Text = "🧼 បើកប្រព័ន្ធ Auto Farm (Smooth Glide)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -171,25 +171,36 @@ local function createGUI(imageAsset)
 
     local isLooping = false
     local noclipConnection
-    local floatCF = nil -- ទុកចាំទីតាំងកម្ពស់ដែលត្រូវបង្កកលើមេឃ
+    local platform = nil
 
+    -- បើក Noclip រហូតដើម្បីហោះធ្លុះជញ្ជាំងបានរលូន
     local function toggleNoclip(enable)
         if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
-        
         if enable then
             noclipConnection = RunService.Stepped:Connect(function()
                 local char = LocalPlayer.Character
                 if char then
                     for _, part in pairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then part.CanCollide = false end
-                    end
-                    -- ប្រសិនបើកំណត់ឲ្យបង្កកលើអាកាស វានឹង Lock ទីតាំងតួអង្គជាប់នៅទីនោះ
-                    if floatCF and char:FindFirstChild("HumanoidRootPart") then
-                        char.HumanoidRootPart.CFrame = floatCF
-                        char.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+                        if part:IsA("BasePart") and part.Name ~= "EvadePlatform" then 
+                            part.CanCollide = false 
+                        end
                     end
                 end
             end)
+        end
+    end
+
+    -- មុខងារបង្កើត ឬលុបកាក់ទ្រជើងលើអាកាស
+    local function managePlatform(spawn, position)
+        if platform then platform:Destroy() platform = nil end
+        if spawn and position then
+            platform = Instance.new("Part")
+            platform.Name = "EvadePlatform"
+            platform.Size = Vector3.new(6, 1, 6)
+            platform.CFrame = CFrame.new(position - Vector3.new(0, 3.5, 0))
+            platform.Anchored = true
+            platform.Transparency = 1 -- ដាក់ឲ្យមើលមិនឃើញកាក់បាំងភ្នែក
+            platform.Parent = Workspace
         end
     end
 
@@ -201,7 +212,6 @@ local function createGUI(imageAsset)
         isLooping = not isLooping
 
         if isLooping then
-            floatCF = nil
             toggleNoclip(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
             autoLoopBtn.Text = "⏹️ ឈប់ហោះ"
@@ -211,7 +221,9 @@ local function createGUI(imageAsset)
                     local targets = getAllTargets()
 
                     if #targets > 0 then
-                        floatCF = nil -- ដោះលែងការបង្កកដើម្បីហោះទៅស៊ីគោលដៅ
+                        -- លុបកាក់ទ្រជើងចោលភ្លាម ដើម្បីឲ្យវាហោះទៅស៊ីអូតូ
+                        managePlatform(false) 
+                        
                         hintLabel.Text = "ស្ថានភាព៖ 🫧 រកឃើញគោលដៅ! កំពុងហោះទៅ..."
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
 
@@ -222,7 +234,6 @@ local function createGUI(imageAsset)
                             local targetPart = getTargetPart(obj)
                             
                             if targetPart and targetPart.Parent then
-                                -- 1. ហោះទៅបុកស៊ី ឬជួយមនុស្ស
                                 local targetPos = targetPart.Position
                                 local distance = (root.Position - targetPos).Magnitude
                                 local speed = 65 
@@ -244,25 +255,26 @@ local function createGUI(imageAsset)
                                     task.wait(0.15) 
                                 end
 
-                                -- 2. ហោះឡើងលើមេឃ ១០ ម៉ែត្រភ្លាមៗ
+                                -- បន្ទាប់ពីស៊ីរួច ហោះឡើងលើមេឃ ១០ ម៉ែត្រ
                                 if isLooping then
                                     local upPos = root.Position + Vector3.new(0, 10, 0)
-                                    local upTween = TweenService:Create(root, TweenInfo.new(0.35, Enum.EasingStyle.QuadOut), {CFrame = CFrame.new(upPos)})
+                                    local upTween = TweenService:Create(root, TweenInfo.new(0.3, Enum.EasingStyle.QuadOut), {CFrame = CFrame.new(upPos)})
                                     upTween:Play()
                                     upTween.Completed:Wait()
                                     
-                                    -- 3. បង្កកទីតាំង (Lock) នៅលើមេឃកម្ពស់ ១０ ម៉ែត្រនោះជាប់តែម្តង
-                                    floatCF = root.CFrame 
+                                    -- បង្កើតកាក់ invisible ទ្រជើងឲ្យឈរស្ងៀមលើមេឃ
+                                    managePlatform(true, root.Position)
                                     task.wait(0.2)
                                 end
                             end
                         end
                     else
-                        -- បើអត់ទាន់មានវត្ថុ ឲ្យវារក្សាកម្ពស់បង្កកលើមេឃដដែល និងបន្តស្កេន
-                        if not floatCF then
-                            floatCF = root.Position.Y < 5 and (root.CFrame + Vector3.new(0, 10, 0)) or root.CFrame
+                        -- បើអត់ទាន់មាន Bubble ទេ ឲ្យវានៅឈរលើកាក់ទ្រជើងលើមេឃដដែល ហើយបន្តស្កេនរក
+                        if not platform then
+                            managePlatform(true, root.Position + Vector3.new(0, 10, 0))
+                            root.CFrame = root.CFrame + Vector3.new(0, 10, 0)
                         end
-                        hintLabel.Text = "ស្ថានភាព៖ ☁️ កំពុងអណ្តែតលើមេឃ & ស្កេនរក Bubble..."
+                        hintLabel.Text = "ស្ថានភាព៖ ☁️ ឈរលើមេឃសុវត្ថិភាព & ស្កេនរក Bubble ថ្មី..."
                         hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                         task.wait(0.5)
                     end
@@ -270,10 +282,10 @@ local function createGUI(imageAsset)
                 end
             end)
         else
-            floatCF = nil
+            managePlatform(false)
             toggleNoclip(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🧼 បើកប្រព័ន្ធ Auto (ហោះស៊ីរួចអណ្តែតមេឃ)"
+            autoLoopBtn.Text = "🧼 បើកប្រព័ន្ធ Auto Farm (Smooth Glide)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
