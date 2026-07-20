@@ -1,6 +1,6 @@
 --[[
-    EVADE: Summer Event Auto Farm (Underground Radar Edition)
-    លាក់ខ្លួនក្រោមដី + លោតទីតាំងស្កេនពេញ Map ដើម្បីបំបែក StreamingEnabled
+    EVADE: Summer Event Auto Farm (100M Sky Radar Edition)
+    ហោះកម្ពស់ ១០០ ម៉ែត្រ, ចុះស៊ីមួយគ្រាប់ឡើងវិញភ្លាមៗ + ប្រព័ន្ធរ៉ាដាស្កេនពេញ Map
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -106,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "📡 EVADE: RADAR UNDERGROUND"
+    title.Text = "☁️ EVADE: 100M RADAR AUTO"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -125,7 +125,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🕳️ បើកប្រព័ន្ធមុជល្បាតក្រោមដីពេញ Map"
+    autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធហោះស្កេនកម្ពស់ ១០០ ម៉ែត្រ"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -156,7 +156,7 @@ local function createGUI(imageAsset)
 
     local isLooping = false
     local floatConnection
-    local safeY = -40
+    local skyHeight = 100 -- កម្ពស់ ១០០ ម៉ែត្រ
     local isAttacking = false
 
     local function startFloating(enable)
@@ -168,7 +168,7 @@ local function createGUI(imageAsset)
                 if root and not isAttacking then
                     root.Velocity = Vector3.new(0, 0, 0)
                     local currentPos = root.Position
-                    root.CFrame = CFrame.new(currentPos.X, safeY, currentPos.Z)
+                    root.CFrame = CFrame.new(currentPos.X, skyHeight, currentPos.Z)
                 end
                 if char then
                     for _, part in pairs(char:GetDescendants()) do
@@ -187,11 +187,13 @@ local function createGUI(imageAsset)
         isAttacking = true
         local oldX, oldZ = root.Position.X, root.Position.Z
         
+        -- ចុះទៅបុកស៊ីមួយប៉ប្រិចភ្នែក
         root.CFrame = CFrame.new(targetPos)
         root.Velocity = Vector3.new(0,0,0)
         task.wait(0.04) 
         
-        root.CFrame = CFrame.new(oldX, safeY, oldZ)
+        -- ឡើងមកកម្ពស់ ១០០ ម៉ែត្រវិញភ្លាមៗ
+        root.CFrame = CFrame.new(oldX, skyHeight, oldZ)
         isAttacking = false
     end
 
@@ -201,7 +203,7 @@ local function createGUI(imageAsset)
         if isLooping then
             startFloating(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
-            autoLoopBtn.Text = "⏹️ ឈប់ល្បាត"
+            autoLoopBtn.Text = "⏹️ ឈប់ហោះអណ្តែត"
 
             task.spawn(function()
                 local scanTick = tick()
@@ -213,14 +215,13 @@ local function createGUI(imageAsset)
                         local targets = scanFullMap()
                         
                         if #targets > 0 then
-                            -- រក Bubble ណាដែលជិតខ្លួនជាងគេបំផុត
                             table.sort(targets, function(a, b)
                                 return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
                             end)
                             
                             local closest = targets[1]
                             if closest.part and closest.part.Parent then
-                                hintLabel.Text = "ស្ថានភាព៖ ⚡ ងើបស៊ីគ្រាប់ក្បែរខ្លួនរួចមុជវិញ..."
+                                hintLabel.Text = "ស្ថានភាព៖ ⚡ ចុះស៊ីគ្រាប់រួចហោះឡើង ១០០ម វិញ..."
                                 hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
                                 
                                 hitSingleTarget(closest.part.Position)
@@ -233,7 +234,7 @@ local function createGUI(imageAsset)
                             -- បើកប្រព័ន្ធលោតទីតាំងល្បាតរាល់ ១.៥ វិនាទី បើរក Bubble មិនឃើញ
                             if tick() - scanTick > 1.5 then
                                 scanTick = tick()
-                                hintLabel.Text = "ស្ថានភាព៖ 📡 លោតទីតាំងស្កេនរកតំបន់ថ្មីៗ..."
+                                hintLabel.Text = "ស្ថានភាព៖ 📡 ហោះលោតទីតាំងស្កេនរកតំបន់ថ្មីៗ..."
                                 hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
                                 
                                 local allPlayers = Players:GetPlayers()
@@ -241,8 +242,8 @@ local function createGUI(imageAsset)
                                 
                                 if randomPlayer and randomPlayer.Character and randomPlayer.Character:FindFirstChild("HumanoidRootPart") then
                                     local pPos = randomPlayer.Character.HumanoidRootPart.Position
-                                    -- លោតទៅក្រោមជើង Player ផ្សេងដើម្បី load Map នៅទីនោះ
-                                    root.CFrame = CFrame.new(pPos.X, safeY, pPos.Z)
+                                    -- លោតទៅលើក្បាល Player ផ្សេងកម្ពស់ ១០០ម ដើម្បី Load Map
+                                    root.CFrame = CFrame.new(pPos.X, skyHeight, pPos.Z)
                                 end
                             end
                         end
@@ -253,7 +254,7 @@ local function createGUI(imageAsset)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🕳️ បើកប្រព័ន្ធមុជល្បាតក្រោមដីពេញ Map"
+            autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធហោះស្កេនកម្ពស់ ១០០ ម៉ែត្រ"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
