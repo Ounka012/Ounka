@@ -1,6 +1,6 @@
 --[[
-    EVADE: Summer Event Auto Farm (Instant Hit & Escape Edition)
-    ស៊ីម្តងតែមួយគ្រាប់ដែលជិតបំផុត រួចដកខ្លួនឡើងលើមេឃភ្លាមៗ ធានា NPC បុកមិនត្រូវ
+    EVADE: Summer Event Auto Farm (Underground Hit & Hide Edition)
+    លាក់ខ្លួនក្រោមដី លោតឡើងមកស៊ីមួយគ្រាប់ រួចមុជចុះក្រោមវិញភ្លាមៗ សុវត្ថិភាព ១០០%
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -106,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ EVADE: HIT & INSTANT ESCAPE"
+    title.Text = "🕳️ EVADE: UNDERGROUND AUTO"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -125,7 +125,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធស៊ីមួយគ្រាប់ហោះឡើងលើវិញភ្លាម"
+    autoLoopBtn.Text = "🕳️ បើកប្រព័ន្ធមុជក្រោមដីស៊ីល្បឿនលឿន"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -156,7 +156,7 @@ local function createGUI(imageAsset)
 
     local isLooping = false
     local floatConnection
-    local skyHeight = 60 
+    local safeY = -40 -- កម្ពស់ក្រោមដី ៤០ ម៉ែត្រ (NPC រកមិនឃើញដាច់ខាត)
     local isAttacking = false
 
     local function startFloating(enable)
@@ -168,8 +168,10 @@ local function createGUI(imageAsset)
                 if root and not isAttacking then
                     root.Velocity = Vector3.new(0, 0, 0)
                     local currentPos = root.Position
-                    root.CFrame = CFrame.new(currentPos.X, skyHeight, currentPos.Z)
+                    -- ទាញខ្លួនចុះក្រោមដីជានិច្ចពេលមិនកំពុងស៊ី
+                    root.CFrame = CFrame.new(currentPos.X, safeY, currentPos.Z)
                 end
+                -- បិទ CanCollide ដើម្បីកុំឱ្យទាក់នឹងដីពេលងើបឡើងស៊ី
                 if char then
                     for _, part in pairs(char:GetDescendants()) do
                         if part:IsA("BasePart") then part.CanCollide = false end
@@ -179,7 +181,7 @@ local function createGUI(imageAsset)
         end
     end
 
-    -- មុខងារចុះទៅបុកស៊ីរួច ត្រឡប់មកលើមេឃវិញភ្លាមៗមួយប៉ប្រិចភ្នែក
+    -- ងើបឡើងមកស៊ីរួច មុជចុះក្រោមដីវិញភ្លាមៗ
     local function hitSingleTarget(targetPos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -188,13 +190,13 @@ local function createGUI(imageAsset)
         isAttacking = true
         local oldX, oldZ = root.Position.X, root.Position.Z
         
-        -- ចុះទៅបុកស៊ីកម្រិតមីលីវិនាទី
+        -- ឡើងមកលើដីដើម្បីបុកស៊ី Bubble
         root.CFrame = CFrame.new(targetPos)
         root.Velocity = Vector3.new(0,0,0)
-        task.wait(0.04) -- រង់ចាំត្រឹម ០.០៤ វិនាទីខ្លីបំផុតឱ្យ Server គិតពិន្ទុ
+        task.wait(0.04) -- រង់ចាំមីលីវិនាទីឱ្យ Server ទទួលពិន្ទុ
         
-        -- រុញឡើងមកកម្ពស់ ៦០ ម៉ែត្រវិញភ្លាមៗ
-        root.CFrame = CFrame.new(oldX, skyHeight, oldZ)
+        -- មុជចុះទៅក្រោមដី -៤០ ម៉ែត្រវិញភ្លាមៗ
+        root.CFrame = CFrame.new(oldX, safeY, oldZ)
         isAttacking = false
     end
 
@@ -204,7 +206,7 @@ local function createGUI(imageAsset)
         if isLooping then
             startFloating(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
-            autoLoopBtn.Text = "⏹️ ឈប់ហោះអណ្តែត"
+            autoLoopBtn.Text = "⏹️ ឈប់លាក់ខ្លួនក្រោមដី"
 
             task.spawn(function()
                 while isLooping do
@@ -215,14 +217,14 @@ local function createGUI(imageAsset)
                         local targets = scanFullMap()
                         
                         if #targets > 0 then
-                            -- តម្រៀបរក Bubble ណាដែលនៅជិតតួអង្គជាងគេបំផុត
+                            -- រក Bubble ណាដែលជិតខ្លួនជាងគេបំផុត
                             table.sort(targets, function(a, b)
                                 return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
                             end)
                             
                             local closest = targets[1]
                             if closest.part and closest.part.Parent then
-                                hintLabel.Text = "ស្ថានភាព៖ ⚡ កំពុងឆ្កឹះស៊ីគ្រាប់ជិតបំផុត រួចដកខ្លួន..."
+                                hintLabel.Text = "ស្ថានភាព៖ ⚡ ងើបស៊ីគ្រាប់ជិតបំផុត រួចមុជវិញ..."
                                 hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
                                 
                                 hitSingleTarget(closest.part.Position)
@@ -232,17 +234,17 @@ local function createGUI(imageAsset)
                                 end
                             end
                         else
-                            hintLabel.Text = "ស្ថានភាព៖ ☁️ កំពុងអណ្តែតសុវត្ថិភាពខ្ពស់ស្កេនរក..."
+                            hintLabel.Text = "ស្ថានភាព៖ 🕳️ លាក់ខ្លួនក្រោមដីសុវត្ថិភាពស្កេនរក..."
                             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                         end
                     end
-                    task.wait(0.01) -- បន្ត Loop ស្កេនរកគ្រាប់បន្ទាប់ភ្លាមៗពីលើមេឃ
+                    task.wait(0.01)
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធស៊ីមួយគ្រាប់ហោះឡើងលើវិញភ្លាម"
+            autoLoopBtn.Text = "🕳️ បើកប្រព័ន្ធមុជក្រោមដីស៊ីល្បឿនលឿន"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
