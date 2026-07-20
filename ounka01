@@ -1,6 +1,6 @@
 --[[
-    EVADE: Summer Event Auto Farm (Fix Missing Bubble & StreamingEnabled)
-    កម្ពស់សុវត្ថិភាព ៦០ ម៉ែត្រ ធានាស្កេនឃើញ Bubble គ្រប់គ្រាប់ ១០០% និងការពារ NPC
+    EVADE: Summer Event Auto Farm (Instant Hit & Escape Edition)
+    ស៊ីម្តងតែមួយគ្រាប់ដែលជិតបំផុត រួចដកខ្លួនឡើងលើមេឃភ្លាមៗ ធានា NPC បុកមិនត្រូវ
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -106,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🫧 EVADE: PERFECT RENDER AUTO"
+    title.Text = "⚡ EVADE: HIT & INSTANT ESCAPE"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -125,7 +125,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធស្កេនច្បាស់ ១០០% (កម្ពស់ ៦០ ម៉ែត្រ)"
+    autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធស៊ីមួយគ្រាប់ហោះឡើងលើវិញភ្លាម"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -156,7 +156,7 @@ local function createGUI(imageAsset)
 
     local isLooping = false
     local floatConnection
-    local skyHeight = 60 -- ទម្លាក់មក ៦០ ម៉ែត្រ ដើម្បីកុំឱ្យបាត់បង់ការ Render របស់ហ្គេម
+    local skyHeight = 60 
     local isAttacking = false
 
     local function startFloating(enable)
@@ -179,7 +179,8 @@ local function createGUI(imageAsset)
         end
     end
 
-    local function hitTargetBalanced(targetPos)
+    -- មុខងារចុះទៅបុកស៊ីរួច ត្រឡប់មកលើមេឃវិញភ្លាមៗមួយប៉ប្រិចភ្នែក
+    local function hitSingleTarget(targetPos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
@@ -187,11 +188,12 @@ local function createGUI(imageAsset)
         isAttacking = true
         local oldX, oldZ = root.Position.X, root.Position.Z
         
+        -- ចុះទៅបុកស៊ីកម្រិតមីលីវិនាទី
         root.CFrame = CFrame.new(targetPos)
         root.Velocity = Vector3.new(0,0,0)
+        task.wait(0.04) -- រង់ចាំត្រឹម ០.០៤ វិនាទីខ្លីបំផុតឱ្យ Server គិតពិន្ទុ
         
-        task.wait(0.05) -- រង់ចាំបន្តិចដើម្បីឱ្យ Server ទទួលដឹង និងគិតពិន្ទុ
-        
+        -- រុញឡើងមកកម្ពស់ ៦០ ម៉ែត្រវិញភ្លាមៗ
         root.CFrame = CFrame.new(oldX, skyHeight, oldZ)
         isAttacking = false
     end
@@ -213,31 +215,34 @@ local function createGUI(imageAsset)
                         local targets = scanFullMap()
                         
                         if #targets > 0 then
-                            hintLabel.Text = "ស្ថានភាព៖ 🔍 កំពុងប្រមូល Bubble គ្រប់គ្រាប់យ៉ាងលឿន..."
-                            hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+                            -- តម្រៀបរក Bubble ណាដែលនៅជិតតួអង្គជាងគេបំផុត
+                            table.sort(targets, function(a, b)
+                                return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
+                            end)
                             
-                            for _, choice in ipairs(targets) do
-                                if not isLooping then break end
-                                if choice.part and choice.part.Parent then
-                                    hitTargetBalanced(choice.part.Position)
-                                    
-                                    if choice.type == "revive" and choice.prompt then
-                                        pcall(function() fireproximityprompt(choice.prompt, 1) end)
-                                    end
+                            local closest = targets[1]
+                            if closest.part and closest.part.Parent then
+                                hintLabel.Text = "ស្ថានភាព៖ ⚡ កំពុងឆ្កឹះស៊ីគ្រាប់ជិតបំផុត រួចដកខ្លួន..."
+                                hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+                                
+                                hitSingleTarget(closest.part.Position)
+                                
+                                if closest.type == "revive" and closest.prompt then
+                                    pcall(function() fireproximityprompt(closest.prompt, 1) end)
                                 end
                             end
                         else
-                            hintLabel.Text = "ស្ថានភាព៖ ☁️ កំពុងស្កេនរក Bubble ថ្មីៗ..."
+                            hintLabel.Text = "ស្ថានភាព៖ ☁️ កំពុងអណ្តែតសុវត្ថិភាពខ្ពស់ស្កេនរក..."
                             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                         end
                     end
-                    task.wait(0.1)
+                    task.wait(0.01) -- បន្ត Loop ស្កេនរកគ្រាប់បន្ទាប់ភ្លាមៗពីលើមេឃ
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធស្កេនច្បាស់ ១០០% (កម្ពស់ ៦០ ម៉ែត្រ)"
+            autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធស៊ីមួយគ្រាប់ហោះឡើងលើវិញភ្លាម"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
