@@ -1,6 +1,6 @@
 --[[
-    EVADE: Summer Event Auto Farm (200M God-Fast Hit Edition)
-    ហោះអណ្តែត ២០០ ម៉ែត្រថេរ + បុកស៊ីល្បឿនលឿនបំផុត មិនបង្អង់នៅលើដី ការពារ NPC វាយ
+    EVADE: Summer Event Auto Farm (Fix Scan & Anti-NPC Edition)
+    ស្កេនរកឃើញ Bubble គ្រប់កន្លែងដូចមុន + បុកស៊ីលឿន សុវត្ថិភាពពី NPC ១០០%
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -106,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ EVADE: GOD-SPEED BUBBLE AUTO"
+    title.Text = "🫧 EVADE: FIXED SCAN AUTO"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -125,7 +125,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "⚡ បើកការហោះស៊ីល្បឿនលឿន (២០០ម៉ែត្រអមតៈ)"
+    autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធស្កេនលឿនគ្រប់ទិសទី (២០០ម៉ែត្រ)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -170,6 +170,7 @@ local function createGUI(imageAsset)
                     local currentPos = root.Position
                     root.CFrame = CFrame.new(currentPos.X, skyHeight, currentPos.Z)
                 end
+                -- ការពារ NPC៖ បិទ CanCollide របស់តួអង្គរហូត ទោះបីជាចុះដីក៏ NPC វាយអត់ត្រូវដែរ
                 if char then
                     for _, part in pairs(char:GetDescendants()) do
                         if part:IsA("BasePart") then part.CanCollide = false end
@@ -179,8 +180,7 @@ local function createGUI(imageAsset)
         end
     end
 
-    -- មុខងារបុកស៊ីល្បឿនលឿនបំផុត (Instant Capture & Teleport back)
-    local function hitTargetFast(targetPos)
+    local function hitTargetBalanced(targetPos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
@@ -188,11 +188,13 @@ local function createGUI(imageAsset)
         isAttacking = true
         local oldX, oldZ = root.Position.X, root.Position.Z
         
-        -- ចុះទៅបុកស៊ី និងរុញមកលើអាកាសវិញភ្លាមៗដោយគ្មានការរង់ចាំ (0 delay)
+        -- ហោះទៅបុកចំ Bubble
         root.CFrame = CFrame.new(targetPos)
         root.Velocity = Vector3.new(0,0,0)
         
-        -- រុញត្រឡប់ទៅ ២០០ ម៉ែត្រវិញភ្លាមៗមួយប៉ប្រិចភ្នែក
+        task.wait(0.01) -- រង់ចាំបន្តិចបំផុតដើម្បីឱ្យម៉ាស៊ីនស្កេនដំណើរការទាន់ មិនគាំង
+        
+        -- ត្រឡប់ទៅ ២០០ ម៉ែត្រវិញ
         root.CFrame = CFrame.new(oldX, skyHeight, oldZ)
         isAttacking = false
     end
@@ -214,13 +216,13 @@ local function createGUI(imageAsset)
                         local targets = scanFullMap()
                         
                         if #targets > 0 then
-                            hintLabel.Text = "ស្ថានភាព៖ ⚡ កំពុងស្រូបស៊ីល្បឿនរន្ទះ..."
+                            hintLabel.Text = "ស្ថានភាព៖ 🔍 កំពុងប្រមូល Bubble ពេញ Map ដូចមុន..."
                             hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
                             
                             for _, choice in ipairs(targets) do
                                 if not isLooping then break end
                                 if choice.part and choice.part.Parent then
-                                    hitTargetFast(choice.part.Position)
+                                    hitTargetBalanced(choice.part.Position)
                                     
                                     if choice.type == "revive" and choice.prompt then
                                         pcall(function() fireproximityprompt(choice.prompt, 1) end)
@@ -228,17 +230,17 @@ local function createGUI(imageAsset)
                                 end
                             end
                         else
-                            hintLabel.Text = "ស្ថានភាព៖ ☁️ អណ្តែត ២០០ម៉ែត្រ សុវត្ថិភាពខ្ពស់..."
+                            hintLabel.Text = "ស្ថានភាព៖ ☁️ រង់ចាំ Bubble ថ្មីៗធ្លាក់មក..."
                             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                         end
                     end
-                    task.wait(0.05) -- ស្កេនញឹកញាប់ និងលឿនជាងមុន
+                    task.wait(0.1) -- រក្សាល្បឿនស្កេនឱ្យលឿននិងថេរល្អ
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "⚡ បើកការហោះស៊ីល្បឿនលឿន (២០០ម៉ែត្រអមតៈ)"
+            autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធស្កេនលឿនគ្រប់ទិសទី (២០០ម៉ែត្រ)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
