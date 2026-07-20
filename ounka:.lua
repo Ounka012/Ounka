@@ -1,5 +1,6 @@
 --==================================================
--- ✨ PREMIUM SPRINT GUI SYSTEM (Roblox Studio)
+-- ⚡ PREMIUM SPRINT GUI (ROBLOX STUDIO)
+-- LocalScript -> StarterGui
 --==================================================
 
 local Players = game:GetService("Players")
@@ -8,31 +9,39 @@ local UserInputService = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
 
--- Settings
+
+-- SETTINGS
 local NORMAL_SPEED = 16
 local SPRINT_SPEED = 28
 
-local SprintEnabled = false
+local Sprint = false
 
 
 --==================================================
--- CREATE GUI
+-- GUI
 --==================================================
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PremiumSprintGUI"
+ScreenGui.Name = "SprintUI"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = Player:WaitForChild("PlayerGui")
 
 
--- Main Frame
+-- MAIN FRAME
 local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
+
 MainFrame.Size = UDim2.new(0,350,0,180)
 MainFrame.Position = UDim2.new(0.5,-175,0.5,-90)
-MainFrame.BackgroundColor3 = Color3.fromRGB(18,20,35)
-MainFrame.BackgroundTransparency = .15
+
+MainFrame.BackgroundColor3 = Color3.fromRGB(20,22,35)
+MainFrame.BackgroundTransparency = 0.1
+
 MainFrame.BorderSizePixel = 0
+MainFrame.Visible = true
+MainFrame.ZIndex = 5
 
 
 local Corner = Instance.new("UICorner")
@@ -40,43 +49,52 @@ Corner.CornerRadius = UDim.new(0,20)
 Corner.Parent = MainFrame
 
 
+-- BORDER
 local Stroke = Instance.new("UIStroke")
 Stroke.Parent = MainFrame
 Stroke.Thickness = 2
-Stroke.Color = Color3.fromRGB(0,170,255)
+Stroke.Transparency = 0.1
 
 
--- Gradient
+-- GRADIENT
 local Gradient = Instance.new("UIGradient")
 Gradient.Parent = MainFrame
+
 Gradient.Color = ColorSequence.new{
 	ColorSequenceKeypoint.new(0,Color3.fromRGB(0,170,255)),
-	ColorSequenceKeypoint.new(.5,Color3.fromRGB(100,0,255)),
+	ColorSequenceKeypoint.new(0.5,Color3.fromRGB(160,0,255)),
 	ColorSequenceKeypoint.new(1,Color3.fromRGB(0,255,255))
 }
 
 
--- Title
+-- TITLE
 local Title = Instance.new("TextLabel")
 Title.Parent = MainFrame
+
 Title.Size = UDim2.new(1,0,0,45)
 Title.BackgroundTransparency = 1
-Title.Text = "⚡ PREMIUM SPRINT"
+
+Title.Text = "⚡ SPRINT SYSTEM"
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 22
-Title.TextColor3 = Color3.new(1,1,1)
+Title.TextColor3 = Color3.fromRGB(255,255,255)
 
 
--- Speed Text
-local SpeedText = Instance.new("TextLabel")
-SpeedText.Parent = MainFrame
-SpeedText.Position = UDim2.new(0,20,0,55)
-SpeedText.Size = UDim2.new(1,-40,0,30)
-SpeedText.BackgroundTransparency = 1
-SpeedText.Text = "Speed : 16"
-SpeedText.Font = Enum.Font.Gotham
-SpeedText.TextSize = 16
-SpeedText.TextColor3 = Color3.fromRGB(200,200,220)
+-- STATUS
+
+local Status = Instance.new("TextLabel")
+Status.Parent = MainFrame
+
+Status.Position = UDim2.new(0,20,0,55)
+Status.Size = UDim2.new(1,-40,0,25)
+
+Status.BackgroundTransparency = 1
+
+Status.Text = "Speed : 16"
+Status.Font = Enum.Font.Gotham
+Status.TextSize = 16
+
+Status.TextColor3 = Color3.fromRGB(200,200,220)
 
 
 
@@ -86,8 +104,10 @@ SpeedText.TextColor3 = Color3.fromRGB(200,200,220)
 
 local Toggle = Instance.new("Frame")
 Toggle.Parent = MainFrame
+
 Toggle.Size = UDim2.new(0,70,0,34)
-Toggle.Position = UDim2.new(0.5,-35,0,105)
+Toggle.Position = UDim2.new(0.5,-35,0,110)
+
 Toggle.BackgroundColor3 = Color3.fromRGB(70,70,90)
 
 
@@ -96,10 +116,15 @@ ToggleCorner.CornerRadius = UDim.new(1,0)
 ToggleCorner.Parent = Toggle
 
 
+
+-- KNOB
+
 local Knob = Instance.new("Frame")
 Knob.Parent = Toggle
+
 Knob.Size = UDim2.new(0,28,0,28)
-Knob.Position = UDim2.new(0,3,.5,-14)
+Knob.Position = UDim2.new(0,3,0.5,-14)
+
 Knob.BackgroundColor3 = Color3.fromRGB(255,255,255)
 
 
@@ -110,87 +135,77 @@ KnobCorner.Parent = Knob
 
 
 --==================================================
--- SPRINT FUNCTION
+-- SPRINT
 --==================================================
 
-local function UpdateSprint()
+local function UpdateSpeed()
 
 	local Character = Player.Character
-
 	if not Character then return end
 
 	local Humanoid = Character:FindFirstChildOfClass("Humanoid")
 
 	if Humanoid then
 
-		if SprintEnabled then
+		if Sprint then
+
 			Humanoid.WalkSpeed = SPRINT_SPEED
-			SpeedText.Text = "Speed : "..SPRINT_SPEED
+			Status.Text = "Speed : "..SPRINT_SPEED
 
 		else
-			Humanoid.WalkSpeed = NORMAL_SPEED
-			SpeedText.Text = "Speed : "..NORMAL_SPEED
-		end
 
+			Humanoid.WalkSpeed = NORMAL_SPEED
+			Status.Text = "Speed : "..NORMAL_SPEED
+
+		end
 	end
 end
 
 
 
--- Toggle Click
 Toggle.InputBegan:Connect(function(input)
 
 	if input.UserInputType == Enum.UserInputType.MouseButton1
 	or input.UserInputType == Enum.UserInputType.Touch then
 
-		SprintEnabled = not SprintEnabled
+
+		Sprint = not Sprint
 
 
-		if SprintEnabled then
+		if Sprint then
 
 			TweenService:Create(
 				Knob,
 				TweenInfo.new(.25,Enum.EasingStyle.Back),
 				{
-					Position = UDim2.new(0,39,.5,-14)
+					Position = UDim2.new(0,39,0.5,-14)
 				}
 			):Play()
 
 
-			TweenService:Create(
-				Toggle,
-				TweenInfo.new(.25),
-				{
-					BackgroundColor3 =
-					Color3.fromRGB(0,170,255)
-				}
-			):Play()
+			Toggle.BackgroundColor3 =
+				Color3.fromRGB(0,170,255)
 
 
 		else
 
+
 			TweenService:Create(
 				Knob,
 				TweenInfo.new(.25,Enum.EasingStyle.Back),
 				{
-					Position = UDim2.new(0,3,.5,-14)
+					Position = UDim2.new(0,3,0.5,-14)
 				}
 			):Play()
 
 
-			TweenService:Create(
-				Toggle,
-				TweenInfo.new(.25),
-				{
-					BackgroundColor3 =
-					Color3.fromRGB(70,70,90)
-				}
-			):Play()
+			Toggle.BackgroundColor3 =
+				Color3.fromRGB(70,70,90)
 
 		end
 
 
-		UpdateSprint()
+		UpdateSpeed()
 
 	end
 
@@ -198,21 +213,25 @@ end)
 
 
 
--- Respawn Fix
+-- RESPAWN
+
 Player.CharacterAdded:Connect(function()
+
 	task.wait(1)
-	UpdateSprint()
+
+	UpdateSpeed()
+
 end)
 
 
 
 --==================================================
--- DRAG MOBILE + PC
+-- DRAG SYSTEM
 --==================================================
 
-local dragging = false
-local dragStart
-local startPos
+local Dragging = false
+local DragStart
+local StartPosition
 
 
 MainFrame.InputBegan:Connect(function(input)
@@ -220,27 +239,31 @@ MainFrame.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1
 	or input.UserInputType == Enum.UserInputType.Touch then
 
-		dragging = true
-		dragStart = input.Position
-		startPos = MainFrame.Position
+
+		Dragging = true
+
+		DragStart = input.Position
+		StartPosition = MainFrame.Position
 
 	end
 
 end)
 
 
+
 UserInputService.InputChanged:Connect(function(input)
 
-	if dragging then
+	if Dragging then
 
-		local delta = input.Position - dragStart
+		local Delta = input.Position - DragStart
+
 
 		MainFrame.Position =
 			UDim2.new(
-				startPos.X.Scale,
-				startPos.X.Offset + delta.X,
-				startPos.Y.Scale,
-				startPos.Y.Offset + delta.Y
+				StartPosition.X.Scale,
+				StartPosition.X.Offset + Delta.X,
+				StartPosition.Y.Scale,
+				StartPosition.Y.Offset + Delta.Y
 			)
 
 	end
@@ -248,23 +271,26 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 
+
 UserInputService.InputEnded:Connect(function()
 
-	dragging = false
+	Dragging = false
 
 end)
 
 
 
--- Rainbow Border
+--==================================================
+-- ANIMATION
+--==================================================
 
 task.spawn(function()
 
-	local h = 0
-
 	while ScreenGui.Parent do
 
-		h = (h + .005) % 1
+		Gradient.Rotation += 1
+
+		local h = tick()%5/5
 
 		Stroke.Color =
 			Color3.fromHSV(h,1,1)
@@ -276,4 +302,4 @@ task.spawn(function()
 end)
 
 
-print("⚡ Premium Sprint GUI Loaded")
+print("⚡ Sprint GUI Loaded")
