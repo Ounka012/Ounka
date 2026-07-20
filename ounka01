@@ -1,6 +1,6 @@
 --[[
-    EVADE: Summer Event Auto Farm (Fix Scan & Anti-NPC Edition)
-    ស្កេនរកឃើញ Bubble គ្រប់កន្លែងដូចមុន + បុកស៊ីលឿន សុវត្ថិភាពពី NPC ១០០%
+    EVADE: Summer Event Auto Farm (Fix Missing Bubble & StreamingEnabled)
+    កម្ពស់សុវត្ថិភាព ៦០ ម៉ែត្រ ធានាស្កេនឃើញ Bubble គ្រប់គ្រាប់ ១០០% និងការពារ NPC
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -106,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🫧 EVADE: FIXED SCAN AUTO"
+    title.Text = "🫧 EVADE: PERFECT RENDER AUTO"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -125,7 +125,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធស្កេនលឿនគ្រប់ទិសទី (២០០ម៉ែត្រ)"
+    autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធស្កេនច្បាស់ ១០០% (កម្ពស់ ៦០ ម៉ែត្រ)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -156,7 +156,7 @@ local function createGUI(imageAsset)
 
     local isLooping = false
     local floatConnection
-    local skyHeight = 200 
+    local skyHeight = 60 -- ទម្លាក់មក ៦០ ម៉ែត្រ ដើម្បីកុំឱ្យបាត់បង់ការ Render របស់ហ្គេម
     local isAttacking = false
 
     local function startFloating(enable)
@@ -170,7 +170,6 @@ local function createGUI(imageAsset)
                     local currentPos = root.Position
                     root.CFrame = CFrame.new(currentPos.X, skyHeight, currentPos.Z)
                 end
-                -- ការពារ NPC៖ បិទ CanCollide របស់តួអង្គរហូត ទោះបីជាចុះដីក៏ NPC វាយអត់ត្រូវដែរ
                 if char then
                     for _, part in pairs(char:GetDescendants()) do
                         if part:IsA("BasePart") then part.CanCollide = false end
@@ -188,13 +187,11 @@ local function createGUI(imageAsset)
         isAttacking = true
         local oldX, oldZ = root.Position.X, root.Position.Z
         
-        -- ហោះទៅបុកចំ Bubble
         root.CFrame = CFrame.new(targetPos)
         root.Velocity = Vector3.new(0,0,0)
         
-        task.wait(0.01) -- រង់ចាំបន្តិចបំផុតដើម្បីឱ្យម៉ាស៊ីនស្កេនដំណើរការទាន់ មិនគាំង
+        task.wait(0.05) -- រង់ចាំបន្តិចដើម្បីឱ្យ Server ទទួលដឹង និងគិតពិន្ទុ
         
-        -- ត្រឡប់ទៅ ២០០ ម៉ែត្រវិញ
         root.CFrame = CFrame.new(oldX, skyHeight, oldZ)
         isAttacking = false
     end
@@ -216,7 +213,7 @@ local function createGUI(imageAsset)
                         local targets = scanFullMap()
                         
                         if #targets > 0 then
-                            hintLabel.Text = "ស្ថានភាព៖ 🔍 កំពុងប្រមូល Bubble ពេញ Map ដូចមុន..."
+                            hintLabel.Text = "ស្ថានភាព៖ 🔍 កំពុងប្រមូល Bubble គ្រប់គ្រាប់យ៉ាងលឿន..."
                             hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
                             
                             for _, choice in ipairs(targets) do
@@ -230,17 +227,17 @@ local function createGUI(imageAsset)
                                 end
                             end
                         else
-                            hintLabel.Text = "ស្ថានភាព៖ ☁️ រង់ចាំ Bubble ថ្មីៗធ្លាក់មក..."
+                            hintLabel.Text = "ស្ថានភាព៖ ☁️ កំពុងស្កេនរក Bubble ថ្មីៗ..."
                             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                         end
                     end
-                    task.wait(0.1) -- រក្សាល្បឿនស្កេនឱ្យលឿននិងថេរល្អ
+                    task.wait(0.1)
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធស្កេនលឿនគ្រប់ទិសទី (២០០ម៉ែត្រ)"
+            autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធស្កេនច្បាស់ ១០០% (កម្ពស់ ៦០ ម៉ែត្រ)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
