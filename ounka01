@@ -1,6 +1,6 @@
 --[[
-    EVADE: Summer Event Auto Farm (100M Ultra Sky-Float)
-    ហោះអណ្តែតលើអាកាសកប់ពពក ១០០ ម៉ែត្រថេរ + បុកស៊ី Bubble ពេញ Map មិនទាក់
+    EVADE: Summer Event Auto Farm (200M God-Fast Hit Edition)
+    ហោះអណ្តែត ២០០ ម៉ែត្រថេរ + បុកស៊ីល្បឿនលឿនបំផុត មិនបង្អង់នៅលើដី ការពារ NPC វាយ
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -106,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "☁️ EVADE: 100M ULTRA SKY-FLOAT"
+    title.Text = "⚡ EVADE: GOD-SPEED BUBBLE AUTO"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -125,7 +125,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🚀 បើកការអណ្តែត ១០០ ម៉ែត្រ (បុកស៊ីពេញ Map)"
+    autoLoopBtn.Text = "⚡ បើកការហោះស៊ីល្បឿនលឿន (២០០ម៉ែត្រអមតៈ)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -156,7 +156,7 @@ local function createGUI(imageAsset)
 
     local isLooping = false
     local floatConnection
-    local skyHeight = 100 -- កំណត់កម្ពស់ ១០០ ម៉ែត្រថេរកប់ពពក
+    local skyHeight = 200 
     local isAttacking = false
 
     local function startFloating(enable)
@@ -179,15 +179,21 @@ local function createGUI(imageAsset)
         end
     end
 
-    local function hitTarget(targetPos)
+    -- មុខងារបុកស៊ីល្បឿនលឿនបំផុត (Instant Capture & Teleport back)
+    local function hitTargetFast(targetPos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
         
         isAttacking = true
-        root.CFrame = CFrame.new(targetPos) -- ហោះទៅបុកចំទីតាំង Bubble ភ្លាមៗ
+        local oldX, oldZ = root.Position.X, root.Position.Z
+        
+        -- ចុះទៅបុកស៊ី និងរុញមកលើអាកាសវិញភ្លាមៗដោយគ្មានការរង់ចាំ (0 delay)
+        root.CFrame = CFrame.new(targetPos)
         root.Velocity = Vector3.new(0,0,0)
-        task.wait(0.08) -- ឈប់រង់ចាំ ០.០៨ វិនាទីឲ្យ Server គិតពិន្ទុ
+        
+        -- រុញត្រឡប់ទៅ ២០០ ម៉ែត្រវិញភ្លាមៗមួយប៉ប្រិចភ្នែក
+        root.CFrame = CFrame.new(oldX, skyHeight, oldZ)
         isAttacking = false
     end
 
@@ -208,32 +214,31 @@ local function createGUI(imageAsset)
                         local targets = scanFullMap()
                         
                         if #targets > 0 then
-                            hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងបុកចុះទៅស៊ី Bubble ពេញ Map..."
+                            hintLabel.Text = "ស្ថានភាព៖ ⚡ កំពុងស្រូបស៊ីល្បឿនរន្ទះ..."
                             hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
                             
                             for _, choice in ipairs(targets) do
                                 if not isLooping then break end
                                 if choice.part and choice.part.Parent then
-                                    hitTarget(choice.part.Position)
+                                    hitTargetFast(choice.part.Position)
                                     
                                     if choice.type == "revive" and choice.prompt then
                                         pcall(function() fireproximityprompt(choice.prompt, 1) end)
-                                        task.wait(0.5)
                                     end
                                 end
                             end
                         else
-                            hintLabel.Text = "ស្ថានភាព៖ ☁️ កំពុងអណ្តែត ១០០ម៉ែត្រ & ស្កេនរកអូតូ..."
+                            hintLabel.Text = "ស្ថានភាព៖ ☁️ អណ្តែត ២០០ម៉ែត្រ សុវត្ថិភាពខ្ពស់..."
                             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                         end
                     end
-                    task.wait(0.2)
+                    task.wait(0.05) -- ស្កេនញឹកញាប់ និងលឿនជាងមុន
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🚀 បើកការអណ្តែត ១០០ ម៉ែត្រ (បុកស៊ីពេញ Map)"
+            autoLoopBtn.Text = "⚡ បើកការហោះស៊ីល្បឿនលឿន (២០០ម៉ែត្រអមតៈ)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
