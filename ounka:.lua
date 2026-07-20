@@ -1,364 +1,305 @@
--- ================================================================
---  ✨ AUTO DASH GUI (Premium Glassmorphism) ✨
--- ================================================================
-local DASH_CONFIG = {
-    DASH_DISTANCE = 3.5,
-    DASH_COOLDOWN = 0.05
-}
--- ================================================================
+--==================================================
+-- ⚡ PREMIUM SPRINT GUI (ROBLOX STUDIO)
+-- LocalScript -> StarterGui
+--==================================================
 
--- Compatibility: បើ executor អត់មាន task library
-if not task then
-    task = {}
-    task.spawn = function(func) coroutine.wrap(func)() end
-    task.wait = function(...) return wait(...) end
-    task.delay = function(t, func) coroutine.wrap(function() wait(t) func() end)() end
-end
-
-local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
--- ====== លុប GUI ចាស់ ======
-if CoreGui:FindFirstChild("DashOnlyGUI") then 
-    CoreGui:FindFirstChild("DashOnlyGUI"):Destroy() 
+local Player = Players.LocalPlayer
+
+
+-- SETTINGS
+local NORMAL_SPEED = 16
+local SPRINT_SPEED = 28
+
+local Sprint = false
+
+
+--==================================================
+-- GUI
+--==================================================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SprintUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+
+
+-- MAIN FRAME
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+
+MainFrame.Size = UDim2.new(0,350,0,180)
+MainFrame.Position = UDim2.new(0.5,-175,0.5,-90)
+
+MainFrame.BackgroundColor3 = Color3.fromRGB(20,22,35)
+MainFrame.BackgroundTransparency = 0.1
+
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = true
+MainFrame.ZIndex = 5
+
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0,20)
+Corner.Parent = MainFrame
+
+
+-- BORDER
+local Stroke = Instance.new("UIStroke")
+Stroke.Parent = MainFrame
+Stroke.Thickness = 2
+Stroke.Transparency = 0.1
+
+
+-- GRADIENT
+local Gradient = Instance.new("UIGradient")
+Gradient.Parent = MainFrame
+
+Gradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0,Color3.fromRGB(0,170,255)),
+	ColorSequenceKeypoint.new(0.5,Color3.fromRGB(160,0,255)),
+	ColorSequenceKeypoint.new(1,Color3.fromRGB(0,255,255))
+}
+
+
+-- TITLE
+local Title = Instance.new("TextLabel")
+Title.Parent = MainFrame
+
+Title.Size = UDim2.new(1,0,0,45)
+Title.BackgroundTransparency = 1
+
+Title.Text = "⚡ SPRINT SYSTEM"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 22
+Title.TextColor3 = Color3.fromRGB(255,255,255)
+
+
+-- STATUS
+
+local Status = Instance.new("TextLabel")
+Status.Parent = MainFrame
+
+Status.Position = UDim2.new(0,20,0,55)
+Status.Size = UDim2.new(1,-40,0,25)
+
+Status.BackgroundTransparency = 1
+
+Status.Text = "Speed : 16"
+Status.Font = Enum.Font.Gotham
+Status.TextSize = 16
+
+Status.TextColor3 = Color3.fromRGB(200,200,220)
+
+
+
+--==================================================
+-- TOGGLE
+--==================================================
+
+local Toggle = Instance.new("Frame")
+Toggle.Parent = MainFrame
+
+Toggle.Size = UDim2.new(0,70,0,34)
+Toggle.Position = UDim2.new(0.5,-35,0,110)
+
+Toggle.BackgroundColor3 = Color3.fromRGB(70,70,90)
+
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1,0)
+ToggleCorner.Parent = Toggle
+
+
+
+-- KNOB
+
+local Knob = Instance.new("Frame")
+Knob.Parent = Toggle
+
+Knob.Size = UDim2.new(0,28,0,28)
+Knob.Position = UDim2.new(0,3,0.5,-14)
+
+Knob.BackgroundColor3 = Color3.fromRGB(255,255,255)
+
+
+local KnobCorner = Instance.new("UICorner")
+KnobCorner.CornerRadius = UDim.new(1,0)
+KnobCorner.Parent = Knob
+
+
+
+--==================================================
+-- SPRINT
+--==================================================
+
+local function UpdateSpeed()
+
+	local Character = Player.Character
+	if not Character then return end
+
+	local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+
+	if Humanoid then
+
+		if Sprint then
+
+			Humanoid.WalkSpeed = SPRINT_SPEED
+			Status.Text = "Speed : "..SPRINT_SPEED
+
+		else
+
+			Humanoid.WalkSpeed = NORMAL_SPEED
+			Status.Text = "Speed : "..NORMAL_SPEED
+
+		end
+	end
 end
 
--- ====== Utility Functions ======
-local function tween(object, properties, duration, easingStyle, easingDirection)
-    local tweenInfo = TweenInfo.new(
-        duration or 0.3,
-        easingStyle or Enum.EasingStyle.Quad,
-        easingDirection or Enum.EasingDirection.Out
-    )
-    local tween = TweenService:Create(object, tweenInfo, properties)
-    tween:Play()
-    return tween
-end
 
--- ====== បង្កើត GUI ======
-local gui = Instance.new("ScreenGui", CoreGui)
-gui.Name = "DashOnlyGUI"
-gui.IgnoreGuiInset = true
 
--- ====== Toggle Button (Floating Orb) ======
-local toggleBtn = Instance.new("ImageButton", gui)
-toggleBtn.Size = UDim2.new(0, 60, 0, 60)
-toggleBtn.Position = UDim2.new(0, 25, 0.5, -30)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-toggleBtn.Image = ""
-toggleBtn.ScaleType = Enum.ScaleType.Crop
+Toggle.InputBegan:Connect(function(input)
 
-local toggleCorner = Instance.new("UICorner", toggleBtn)
-toggleCorner.CornerRadius = UDim.new(1, 0)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
 
-local toggleStroke = Instance.new("UIStroke", toggleBtn)
-toggleStroke.Thickness = 2
-toggleStroke.Color = Color3.fromRGB(100, 100, 255)
-toggleStroke.Transparency = 0.3
 
-local toggleGlow = Instance.new("ImageLabel", toggleBtn)
-toggleGlow.Size = UDim2.new(1.4, 0, 1.4, 0)
-toggleGlow.Position = UDim2.new(-0.2, 0, -0.2, 0)
-toggleGlow.BackgroundTransparency = 1
-toggleGlow.Image = "rbxassetid://5028857084"
-toggleGlow.ImageColor3 = Color3.fromRGB(100, 100, 255)
-toggleGlow.ImageTransparency = 0.8
-toggleGlow.ZIndex = -1
+		Sprint = not Sprint
 
--- ====== Main Frame ======
-local mainFrame = Instance.new("Frame", gui)
-mainFrame.Size = UDim2.new(0, 380, 0, 160) -- តូចជាងមុន ព្រោះមានតែមួយប៉ុណ្ណោះ
-mainFrame.Position = UDim2.new(0.5, -190, 0.5, -80)
-mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-mainFrame.BackgroundTransparency = 0.15
-mainFrame.BorderSizePixel = 0
-mainFrame.Visible = true
-mainFrame.ClipsDescendants = true
 
-local mainCorner = Instance.new("UICorner", mainFrame)
-mainCorner.CornerRadius = UDim.new(0, 20)
+		if Sprint then
 
-local mainStroke = Instance.new("UIStroke", mainFrame)
-mainStroke.Thickness = 1.5
-mainStroke.Color = Color3.fromRGB(100, 100, 255)
-mainStroke.Transparency = 0.4
+			TweenService:Create(
+				Knob,
+				TweenInfo.new(.25,Enum.EasingStyle.Back),
+				{
+					Position = UDim2.new(0,39,0.5,-14)
+				}
+			):Play()
 
--- Shadow
-local shadow = Instance.new("ImageLabel", mainFrame)
-shadow.Size = UDim2.new(1, 60, 1, 60)
-shadow.Position = UDim2.new(0, -30, 0, -30)
-shadow.BackgroundTransparency = 1
-shadow.Image = "rbxassetid://5028857084"
-shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-shadow.ImageTransparency = 0.6
-shadow.ZIndex = -2
 
--- Background Gradient
-local bgGradient = Instance.new("UIGradient", mainFrame)
-bgGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 20, 40)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(15, 15, 30)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 15, 35))
-})
-bgGradient.Rotation = 45
+			Toggle.BackgroundColor3 =
+				Color3.fromRGB(0,170,255)
 
--- ====== Header ======
-local header = Instance.new("Frame", mainFrame)
-header.Size = UDim2.new(1, 0, 0, 55)
-header.BackgroundTransparency = 1
-header.Position = UDim2.new(0, 0, 0, 0)
 
-local headerLine = Instance.new("Frame", header)
-headerLine.Size = UDim2.new(1, -40, 0, 1)
-headerLine.Position = UDim2.new(0, 20, 1, -1)
-headerLine.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
-headerLine.BackgroundTransparency = 0.7
+		else
 
-local title = Instance.new("TextLabel", header)
-title.Size = UDim2.new(1, -60, 1, 0)
-title.Position = UDim2.new(0, 20, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "✦ AUTO DASH ✦"
-title.Font = Enum.Font.GothamBlack
-title.TextSize = 20
-title.TextColor3 = Color3.new(1, 1, 1)
-title.TextXAlignment = Enum.TextXAlignment.Left
 
-local subtitle = Instance.new("TextLabel", header)
-subtitle.Size = UDim2.new(1, -60, 0, 18)
-subtitle.Position = UDim2.new(0, 20, 0, 32)
-subtitle.BackgroundTransparency = 1
-subtitle.Text = "PREMIUM EDITION"
-subtitle.Font = Enum.Font.Gotham
-subtitle.TextSize = 11
-subtitle.TextColor3 = Color3.fromRGB(150, 150, 200)
-subtitle.TextXAlignment = Enum.TextXAlignment.Left
+			TweenService:Create(
+				Knob,
+				TweenInfo.new(.25,Enum.EasingStyle.Back),
+				{
+					Position = UDim2.new(0,3,0.5,-14)
+				}
+			):Play()
 
-local closeBtn = Instance.new("TextButton", header)
-closeBtn.Size = UDim2.new(0, 32, 0, 32)
-closeBtn.Position = UDim2.new(1, -42, 0, 12)
-closeBtn.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
-closeBtn.Text = "✕"
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 14
-closeBtn.AutoButtonColor = false
 
-local closeCorner = Instance.new("UICorner", closeBtn)
-closeCorner.CornerRadius = UDim.new(0, 10)
+			Toggle.BackgroundColor3 =
+				Color3.fromRGB(70,70,90)
 
--- ====== Content ======
-local content = Instance.new("Frame", mainFrame)
-content.Size = UDim2.new(1, -40, 1, -75)
-content.Position = UDim2.new(0, 20, 0, 60)
-content.BackgroundTransparency = 1
+		end
 
--- ====== Auto Dash Toggle ======
-local dashContainer = Instance.new("Frame", content)
-dashContainer.Size = UDim2.new(1, 0, 0, 50)
-dashContainer.Position = UDim2.new(0, 0, 0, 0)
-dashContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
-dashContainer.BackgroundTransparency = 0.3
 
-local dashCorner = Instance.new("UICorner", dashContainer)
-dashCorner.CornerRadius = UDim.new(0, 12)
+		UpdateSpeed()
 
-local dashIcon = Instance.new("TextLabel", dashContainer)
-dashIcon.Size = UDim2.new(0, 35, 0, 35)
-dashIcon.Position = UDim2.new(0, 10, 0.5, -17)
-dashIcon.BackgroundTransparency = 1
-dashIcon.Text = "💨"
-dashIcon.Font = Enum.Font.GothamBold
-dashIcon.TextSize = 22
+	end
 
-local dashLabel = Instance.new("TextLabel", dashContainer)
-dashLabel.Size = UDim2.new(0, 120, 0, 20)
-dashLabel.Position = UDim2.new(0, 50, 0, 8)
-dashLabel.BackgroundTransparency = 1
-dashLabel.Text = "AUTO DASH"
-dashLabel.Font = Enum.Font.GothamBold
-dashLabel.TextSize = 14
-dashLabel.TextColor3 = Color3.fromRGB(220, 220, 255)
-dashLabel.TextXAlignment = Enum.TextXAlignment.Left
+end)
 
-local dashDesc = Instance.new("TextLabel", dashContainer)
-dashDesc.Size = UDim2.new(0, 120, 0, 16)
-dashDesc.Position = UDim2.new(0, 50, 0, 28)
-dashDesc.BackgroundTransparency = 1
-dashDesc.Text = "Teleport dash forward"
-dashDesc.Font = Enum.Font.Gotham
-dashDesc.TextSize = 10
-dashDesc.TextColor3 = Color3.fromRGB(150, 150, 180)
-dashDesc.TextXAlignment = Enum.TextXAlignment.Left
 
--- Toggle Switch
-local dashToggle = Instance.new("Frame", dashContainer)
-dashToggle.Size = UDim2.new(0, 50, 0, 26)
-dashToggle.Position = UDim2.new(1, -65, 0.5, -13)
-dashToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
 
-local dashToggleCorner = Instance.new("UICorner", dashToggle)
-dashToggleCorner.CornerRadius = UDim.new(1, 0)
+-- RESPAWN
 
-local dashKnob = Instance.new("Frame", dashToggle)
-dashKnob.Size = UDim2.new(0, 22, 0, 22)
-dashKnob.Position = UDim2.new(0, 2, 0.5, -11)
-dashKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Player.CharacterAdded:Connect(function()
 
-local dashKnobCorner = Instance.new("UICorner", dashKnob)
-dashKnobCorner.CornerRadius = UDim.new(1, 0)
+	task.wait(1)
 
-local dashBtn = Instance.new("TextButton", dashContainer)
-dashBtn.Size = UDim2.new(1, 0, 1, 0)
-dashBtn.BackgroundTransparency = 1
-dashBtn.Text = ""
+	UpdateSpeed()
 
--- Status Bar
-local statusBar = Instance.new("Frame", mainFrame)
-statusBar.Size = UDim2.new(1, 0, 0, 30)
-statusBar.Position = UDim2.new(0, 0, 1, -30)
-statusBar.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
-statusBar.BackgroundTransparency = 0.2
+end)
 
-local statusText = Instance.new("TextLabel", statusBar)
-statusText.Size = UDim2.new(1, -20, 1, 0)
-statusText.Position = UDim2.new(0, 10, 0, 0)
-statusText.BackgroundTransparency = 1
-statusText.Text = "● Ready | Press [F] to toggle"
-statusText.Font = Enum.Font.Gotham
-statusText.TextSize = 11
-statusText.TextColor3 = Color3.fromRGB(120, 120, 150)
-statusText.TextXAlignment = Enum.TextXAlignment.Left
 
--- ====== មុខងារ Toggle Animation ======
-local function animateToggle(toggleFrame, knob, state, activeColor)
-    if state then
-        tween(toggleFrame, {BackgroundColor3 = activeColor}, 0.2)
-        tween(knob, {Position = UDim2.new(0, 26, 0.5, -11)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    else
-        tween(toggleFrame, {BackgroundColor3 = Color3.fromRGB(60, 60, 80)}, 0.2)
-        tween(knob, {Position = UDim2.new(0, 2, 0.5, -11)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    end
-end
 
--- ====== [ Auto Dash Logic ] ======
-local dashToggled = false
+--==================================================
+-- DRAG SYSTEM
+--==================================================
+
+local Dragging = false
+local DragStart
+local StartPosition
+
+
+MainFrame.InputBegan:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+
+
+		Dragging = true
+
+		DragStart = input.Position
+		StartPosition = MainFrame.Position
+
+	end
+
+end)
+
+
+
+UserInputService.InputChanged:Connect(function(input)
+
+	if Dragging then
+
+		local Delta = input.Position - DragStart
+
+
+		MainFrame.Position =
+			UDim2.new(
+				StartPosition.X.Scale,
+				StartPosition.X.Offset + Delta.X,
+				StartPosition.Y.Scale,
+				StartPosition.Y.Offset + Delta.Y
+			)
+
+	end
+
+end)
+
+
+
+UserInputService.InputEnded:Connect(function()
+
+	Dragging = false
+
+end)
+
+
+
+--==================================================
+-- ANIMATION
+--==================================================
 
 task.spawn(function()
-    while gui.Parent do
-        if dashToggled then
-            pcall(function()
-                local char = LocalPlayer.Character
-                if char then
-                    local hum = char:FindFirstChildOfClass("Humanoid")
-                    local root = char:FindFirstChild("HumanoidRootPart")
-                    if hum and root and hum.MoveDirection.Magnitude > 0 then
-                        local dir = hum.MoveDirection
-                        local dashMove = Vector3.new(dir.X, 0, dir.Z).Unit * DASH_CONFIG.DASH_DISTANCE
-                        root.CFrame = root.CFrame + dashMove
-                    end
-                end
-            end)
-            task.wait(DASH_CONFIG.DASH_COOLDOWN)
-        else
-            task.wait(0.1)
-        end
-    end
+
+	while ScreenGui.Parent do
+
+		Gradient.Rotation += 1
+
+		local h = tick()%5/5
+
+		Stroke.Color =
+			Color3.fromHSV(h,1,1)
+
+		task.wait()
+
+	end
+
 end)
 
-dashBtn.MouseButton1Down:Connect(function()
-    dashToggled = not dashToggled
-    animateToggle(dashToggle, dashKnob, dashToggled, Color3.fromRGB(0, 150, 255))
-    
-    if dashToggled then
-        tween(dashContainer, {BackgroundColor3 = Color3.fromRGB(15, 35, 50)}, 0.3)
-        tween(dashIcon, {TextColor3 = Color3.fromRGB(0, 200, 255)}, 0.3)
-        statusText.Text = "● AUTO DASH: ON"
-        statusText.TextColor3 = Color3.fromRGB(0, 200, 255)
-    else
-        tween(dashContainer, {BackgroundColor3 = Color3.fromRGB(25, 25, 40)}, 0.3)
-        tween(dashIcon, {TextColor3 = Color3.fromRGB(255, 255, 255)}, 0.3)
-        statusText.Text = "● AUTO DASH: OFF"
-        statusText.TextColor3 = Color3.fromRGB(120, 120, 150)
-    end
-end)
 
--- ====== បើក/បិទ GUI ======
-toggleBtn.MouseButton1Down:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
-    if mainFrame.Visible then
-        tween(mainFrame, {Size = UDim2.new(0, 380, 0, 160)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    end
-end)
-
-closeBtn.MouseButton1Down:Connect(function()
-    tween(mainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.2)
-    task.wait(0.2)
-    dashToggled = false
-    gui:Destroy()
-end)
-
-closeBtn.MouseEnter:Connect(function()
-    tween(closeBtn, {BackgroundColor3 = Color3.fromRGB(255, 100, 100)}, 0.15)
-end)
-closeBtn.MouseLeave:Connect(function()
-    tween(closeBtn, {BackgroundColor3 = Color3.fromRGB(255, 70, 70)}, 0.15)
-end)
-
--- ====== Keybind (F) ======
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.F then
-        mainFrame.Visible = not mainFrame.Visible
-        if mainFrame.Visible then
-            tween(mainFrame, {Size = UDim2.new(0, 380, 0, 160)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-        end
-    end
-end)
-
--- ====== Draggable ======
-local function makeDraggable(guiObject)
-    local dragging, startPos, objPos
-    guiObject.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; startPos = input.Position; objPos = guiObject.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - startPos
-            guiObject.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-end
-
-makeDraggable(mainFrame)
-makeDraggable(toggleBtn)
-
--- ====== Rainbow Effect ======
-task.spawn(function()
-    local hue = 0
-    while gui.Parent do
-        hue = (hue + 0.015) % 1
-        local color = Color3.fromHSV(hue, 0.8, 1)
-        title.TextColor3 = color
-        mainStroke.Color = Color3.fromHSV(hue, 0.6, 0.8)
-        toggleStroke.Color = Color3.fromHSV((hue+0.3)%1, 0.8, 1)
-        headerLine.BackgroundColor3 = color
-        toggleGlow.ImageColor3 = Color3.fromHSV((hue+0.3)%1, 0.8, 1)
-        task.wait(0.05)
-    end
-end)
-
--- ====== Entrance Animation ======
-mainFrame.Size = UDim2.new(0, 0, 0, 0)
-tween(mainFrame, {Size = UDim2.new(0, 380, 0, 160)}, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-
-print("✨ Auto Dash GUI Loaded Successfully!")
+print("⚡ Sprint GUI Loaded")
