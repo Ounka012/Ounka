@@ -1,14 +1,7 @@
---[================================================================[--
-    LUAU OBFUSCATOR - BUILT TO PROTECT ROBLOX LUA SCRIPTS
-    Protected by Advanced Virtual Machine Encryption & Anti-Tamper
---]================================================================]--
-
-local _Env = getgenv and getgenv() or shared
-if _Env.EVADE_SUMMER_FARM_LOADED then
-    local _gui = game:GetService("CoreGui"):FindFirstChild("EvadeSummerFarm")
-    if _gui then _gui:Destroy() end
-end
-_Env.EVADE_SUMMER_FARM_LOADED = true
+--[[
+    EVADE: Summer Event Auto Farm (100M Sky Radar Edition)
+    ហោះកម្ពស់ ១០០ ម៉ែត្រ, ចុះស៊ីមួយគ្រាប់ឡើងវិញភ្លាមៗ + ប្រព័ន្ធរ៉ាដាស្កេនពេញ Map
+--]]
 
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -113,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🛡️ OBFUSCATED: 100M RADAR AUTO"
+    title.Text = "☁️ EVADE: 100M RADAR AUTO"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -159,14 +152,11 @@ local function createGUI(imageAsset)
     end)
 
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
-    closeBtn.MouseButton1Down:Connect(function() 
-        _Env.EVADE_SUMMER_FARM_LOADED = nil
-        gui:Destroy() 
-    end)
+    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
     local isLooping = false
     local floatConnection
-    local skyHeight = 100
+    local skyHeight = 100 -- កម្ពស់ ១០០ ម៉ែត្រ
     local isAttacking = false
 
     local function startFloating(enable)
@@ -197,10 +187,12 @@ local function createGUI(imageAsset)
         isAttacking = true
         local oldX, oldZ = root.Position.X, root.Position.Z
         
+        -- ចុះទៅបុកស៊ីមួយប៉ប្រិចភ្នែក
         root.CFrame = CFrame.new(targetPos)
         root.Velocity = Vector3.new(0,0,0)
         task.wait(0.04) 
         
+        -- ឡើងមកកម្ពស់ ១០០ ម៉ែត្រវិញភ្លាមៗ
         root.CFrame = CFrame.new(oldX, skyHeight, oldZ)
         isAttacking = false
     end
@@ -239,6 +231,7 @@ local function createGUI(imageAsset)
                                 end
                             end
                         else
+                            -- បើកប្រព័ន្ធលោតទីតាំងល្បាតរាល់ ១.៥ វិនាទី បើរក Bubble មិនឃើញ
                             if tick() - scanTick > 1.5 then
                                 scanTick = tick()
                                 hintLabel.Text = "ស្ថានភាព៖ 📡 ហោះលោតទីតាំងស្កេនរកតំបន់ថ្មីៗ..."
@@ -249,6 +242,7 @@ local function createGUI(imageAsset)
                                 
                                 if randomPlayer and randomPlayer.Character and randomPlayer.Character:FindFirstChild("HumanoidRootPart") then
                                     local pPos = randomPlayer.Character.HumanoidRootPart.Position
+                                    -- លោតទៅលើក្បាល Player ផ្សេងកម្ពស់ ១០០ម ដើម្បី Load Map
                                     root.CFrame = CFrame.new(pPos.X, skyHeight, pPos.Z)
                                 end
                             end
