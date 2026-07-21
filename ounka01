@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Auto Farm (កម្ពស់ ១០០ម + ល្បឿនស៊ីអំណោយផលដល់ Server)
+-- EVADE: Auto Farm (កម្ពស់ ១០០ម + Touch Injection ដោះស្រាយបញ្ហាអត់ស៊ី)
 --========================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -124,7 +124,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធហោះស៊ី (ល្បឿនមធ្យម)"
+    autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធហោះស៊ី (ជួសជុលការអត់ស៊ី)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -202,34 +202,40 @@ local function createGUI(imageAsset)
                                 return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
                             end)
                             
-                            hintLabel.Text = "ស្ថានភាព៖ 🔥 កំពុងចុះស៊ី (ទុកពេលឱ្យ Server ស្គាល់)..."
+                            hintLabel.Text = "ស្ថានភាព៖ 🔥 កំពុងចុះស៊ីដោយប្រើ Touch Injection..."
                             hintLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
                             
-                            -- កំណត់ត្រឹម ៥ គ្រាប់ ដើម្បីកុំឱ្យលឿនពេក ហ្គេមអាចចាប់អត់ទាន់
                             for i, target in ipairs(targets) do
                                 if not isLooping then break end
                                 if target.part and target.part.Parent then
-                                    -- Teleport ទៅចំកន្លែង Bubble
-                                    root.CFrame = CFrame.new(target.part.Position)
+                                    
+                                    -- Teleport ឱ្យខ្ពស់ជាង Bubble ០.៥ ម៉ែត្រ ដើម្បីឱ្យតួអង្គធ្លាក់ប៉ះ
+                                    root.CFrame = CFrame.new(target.part.Position + Vector3.new(0, 0.5, 0))
                                     root.Velocity = Vector3.new(0,0,0)
                                     
-                                    -- **ចំណុចសំខាន់៖** ទុកពេល ០.២ វិនាទី ដើម្បីឱ្យប៉ះចូលកាបូបពិតប្រាកដ
-                                    task.wait(0.2)
+                                    -- បង្ខំឱ្យហ្គេមគិតថាយើងបានប៉ះគ្រាប់នេះមែន (ដោះស្រាយបញ្ហាអត់ស៊ី)
+                                    if firetouchinterest then
+                                        firetouchinterest(root, target.part, 0) -- ចាប់ផ្តើមប៉ះ
+                                        task.wait(0.05)
+                                        firetouchinterest(root, target.part, 1) -- ឈប់ប៉ះ
+                                    end
+                                    
+                                    task.wait(0.15) -- ទុកពេលបន្តិចឱ្យវាលោតចូលកាបូប
                                     
                                     if target.type == "revive" and target.prompt then
                                         pcall(function() fireproximityprompt(target.prompt, 1) end)
-                                        task.wait(0.3) -- សម្រាប់ Revive ត្រូវចាំយូរបន្តិច
+                                        task.wait(0.3) 
                                     end
                                 end
                                 if i >= 5 then break end 
                             end
                             
                             isAttacking = false
-                            task.wait(0.5) -- សម្រាកកន្លះវិនាទី មុននឹងហោះចុះមកស៊ីបន្ត ដើម្បីការពារការគាំង
+                            task.wait(0.5) 
                         else
                             if tick() - scanTick > 1.5 then
                                 scanTick = tick()
-                                hintLabel.Text = "ស្ថានភាព៖ 📡 ហោះតាមដានអ្នកលេងផ្សេងដើម្បីស្កេនរក..."
+                                hintLabel.Text = "ស្ថានភាព៖ 📡 ហោះស្វែងរកចំណុចផ្សេងទៀត..."
                                 hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
                                 
                                 local allPlayers = Players:GetPlayers()
@@ -248,7 +254,7 @@ local function createGUI(imageAsset)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធហោះស៊ី (ល្បឿនមធ្យម)"
+            autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធហោះស៊ី (ជួសជុលការអត់ស៊ី)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
