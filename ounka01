@@ -268,10 +268,10 @@ local function createGUI(imageAsset)
                     end
                 end
 
-                local radius = 40
+                local radius = 100
                 local angle = 0
-                local angleStep = 40
-                local radiusGrowth = 40
+                local angleStep = 100
+                local radiusGrowth = 100
                 local maxRadius = 200
 
                 while isLooping do
