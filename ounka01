@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: SPIRAL FARM (NO AUTO PULL) - FULL SCRIPT
+-- EVADE: SPIRAL FARM (ORIGINAL IMAGE + NO PULL + NO KEY)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -7,7 +7,10 @@ local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
+
+-- រូបភាពដើមរបស់អ្នក
+local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
+local FILE_NAME = "bg.jpg"
 
 --============== ជំនួយ ==============
 local function makeDraggable(guiObject)
@@ -30,7 +33,7 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- រក Bubble គ្រប់ប្រភេទ
+-- រក Bubble គ្រប់ប្រភេទ (ដូចដើម)
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
@@ -76,7 +79,6 @@ local function getValidTarget(obj)
     return nil, nil
 end
 
--- ស្វែងរក Bubble ទាំងអស់ (ត្រឡប់តែដែលមានសុពលភាព)
 local function scanValidBubbles()
     local list = {}
     for _, obj in pairs(Workspace:GetDescendants()) do
@@ -88,27 +90,29 @@ local function scanValidBubbles()
     return list
 end
 
---============== GUI ==============
-local function createGUI()
-    if CoreGui:FindFirstChild("EvadeSpiralNoPull") then
-        CoreGui:FindFirstChild("EvadeSpiralNoPull"):Destroy()
+--============== GUI (មានរូបភាព) ==============
+local function createGUI(imageAsset)
+    if CoreGui:FindFirstChild("EvadeSpiralFarm") then
+        CoreGui:FindFirstChild("EvadeSpiralFarm"):Destroy()
     end
 
     local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeSpiralNoPull"
+    gui.Name = "EvadeSpiralFarm"
     gui.IgnoreGuiInset = true
 
+    -- ប៊ូតុងបិទ/បើក (មានរូបភាព)
     local toggleBtn = Instance.new("ImageButton", gui)
     toggleBtn.Size = UDim2.new(0, 55, 0, 55)
     toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
     toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    toggleBtn.Image = ""
+    toggleBtn.Image = imageAsset or ""
     toggleBtn.ScaleType = Enum.ScaleType.Crop
     toggleBtn.Draggable = true
     Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
     local toggleStroke = Instance.new("UIStroke", toggleBtn)
     toggleStroke.Thickness = 3
 
+    -- ផ្ទាំងមេ
     local mainFrame = Instance.new("Frame", gui)
     mainFrame.Size = UDim2.new(0, 420, 0, 250)
     mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
@@ -119,10 +123,11 @@ local function createGUI()
     local mainStroke = Instance.new("UIStroke", mainFrame)
     mainStroke.Thickness = 3
 
+    -- ផ្ទៃខាងក្រោយជារូបភាព (ដូចដើម)
     local bg = Instance.new("ImageLabel", mainFrame)
     bg.Size = UDim2.new(1,0,1,0)
     bg.BackgroundTransparency = 1
-    bg.Image = ""
+    bg.Image = imageAsset or ""
     bg.ScaleType = Enum.ScaleType.Stretch
     bg.ImageTransparency = 0.3
     bg.ZIndex = -1
@@ -131,7 +136,7 @@ local function createGUI()
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🌀 SPIRAL FARM (NO PULL)"
+    title.Text = "🌀 SPIRAL FARM"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -160,12 +165,12 @@ local function createGUI()
     hintLabel.Size = UDim2.new(1, -40, 0, 30)
     hintLabel.Position = UDim2.new(0, 20, 0, 130)
     hintLabel.BackgroundTransparency = 1
-    hintLabel.Text = "ស្ថានភាព៖ ត្រៀមរួចរាល់"
+    hintLabel.Text = "ស្ថានភាព៖ រង់ចាំ..."
     hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     hintLabel.Font = Enum.Font.Gotham
     hintLabel.TextSize = 12
 
-    -- ចលនាពណ៌
+    -- ចលនាពណ៌ (ដូចដើម)
     task.spawn(function()
         local hue = 0
         while gui.Parent do
@@ -177,13 +182,11 @@ local function createGUI()
         end
     end)
 
-    --============== អថេរ ==============
+    --============== តក្កកម្ម ==============
     local isLooping = false
     local floatConnection
-    local safeHeight = 80   -- កម្ពស់ហោះ
-    local tweenSpeed = 350  -- ល្បឿនហោះ
+    local safeHeight = 80
 
-    --============== មុខងារជំនួយ ==============
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -221,7 +224,6 @@ local function createGUI()
         end
     end
 
-    -- ប្រមូល Bubble ដោយចលនាទៅប៉ះ (គ្មាន fire, គ្មានទាញ)
     local function quickCollect(bubblePart)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
@@ -233,7 +235,6 @@ local function createGUI()
         until not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) or tick() > timeout
     end
 
-    --============== តក្កកម្មហោះវង់ + ប្រមូល ==============
     local function toggleAutoLoop()
         isLooping = not isLooping
         if isLooping then
@@ -246,7 +247,7 @@ local function createGUI()
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
-                -- គណនាចំណុចកណ្តាលផែនទី
+                -- កណ្តាលផែនទី
                 local centerX, centerZ = 0, 0
                 local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
                 if mapModel and mapModel:IsA("Model") then
@@ -272,18 +273,16 @@ local function createGUI()
                 local maxRadius = 150
 
                 while isLooping do
-                    -- គណនាចំណុចគោលដៅតាមវង់
                     local rad = math.rad(angle)
                     local x = centerX + math.cos(rad) * radius
                     local z = centerZ + math.sin(rad) * radius
                     local spiralTarget = Vector3.new(x, safeHeight, z)
 
-                    -- ហោះទៅទីតាំងវង់
                     hintLabel.Text = "🌀 ហោះល្បាត..."
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     smoothFlyTo(spiralTarget)
 
-                    -- ពិនិត្យរក Bubble នៅក្បែរ (ជួរចម្ងាយ 50 studs)
+                    -- ប្រមូល Bubble នៅក្បែរ
                     local nearbyBubbles = {}
                     for _, b in ipairs(scanValidBubbles()) do
                         if (b.part.Position - root.Position).Magnitude <= 50 then
@@ -291,16 +290,13 @@ local function createGUI()
                         end
                     end
 
-                    -- ប្រមូល Bubble នៅក្បែរនោះ (ដោយមិនទាញ)
                     if #nearbyBubbles > 0 then
                         hintLabel.Text = "🎯 ប្រមូល " .. #nearbyBubbles .. " Bubble..."
                         hintLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
                         for _, b in ipairs(nearbyBubbles) do
                             if not isLooping then break end
                             if b.part and b.part.Parent then
-                                -- ហោះទៅ Bubble នីមួយៗ
-                                local targetPos = b.part.Position + Vector3.new(0, safeHeight/2, 0)
-                                smoothFlyTo(targetPos)
+                                smoothFlyTo(b.part.Position + Vector3.new(0, safeHeight/2, 0))
                                 quickCollect(b.part)
                                 task.wait(0.1)
                             end
@@ -309,7 +305,6 @@ local function createGUI()
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
                     end
 
-                    -- ធ្វើបច្ចុប្បន្នភាពមុំនិងកាំ
                     angle = (angle + angleStep) % 360
                     radius = radius + radiusGrowth
                     if radius > maxRadius then
@@ -329,8 +324,6 @@ local function createGUI()
 
     autoLoopBtn.MouseButton1Down:Connect(toggleAutoLoop)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
-
-    -- ប៊ូតុងបិទបើក GUI ដោយចុចលើរូបសញ្ញា
     toggleBtn.MouseButton1Down:Connect(function()
         mainFrame.Visible = not mainFrame.Visible
     end)
@@ -338,5 +331,16 @@ local function createGUI()
     makeDraggable(mainFrame)
 end
 
--- ចាប់ផ្តើម
-createGUI()
+--============== ទាញយករូបភាព (ដូចដើម) ==============
+local function loadImageAndStart()
+    local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
+    if ok and response and response.StatusCode == 200 then
+        writefile(FILE_NAME, response.Body)
+        createGUI(getcustomasset(FILE_NAME))
+    else
+        -- បើគ្មានរូប ក៏នៅតែប្រើបាន (ផ្ទៃខាងក្រោយថ្លា)
+        createGUI("")
+    end
+end
+
+loadImageAndStart()
