@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (ORIGINAL FLIGHT + SPEED & SAFETY)
+-- EVADE: Spiral Farm (SPEED 100 + SAFETY)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -131,7 +131,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL FARM (FLY FAST + SAFE)"
+    title.Text = "⚡ SPIRAL FARM (SPEED 100)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -179,12 +179,12 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (SPIRAL FLIGHT + SPEED) ==============
+    --============== LOGIC (SPIRAL FLIGHT + SPEED 100) ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
-    local tweenSpeed = 1000        -- ល្បឿនហោះ (កែបាន)
-    local stickTimeout = 1         -- ពេលអតិបរមាត្រាំជាប់ Bubble
+    local tweenSpeed = 100          -- ល្បឿនហោះ 100 តាមសំណើ
+    local stickTimeout = 1          -- ពេលអតិបរមាត្រាំជាប់ Bubble
 
     local function flyTo(targetPos)
         local char = LocalPlayer.Character
@@ -351,7 +351,7 @@ local function createGUI(imageAsset)
     makeDraggable(mainFrame)
 end
 
---============== ទាញយករូបភាពល ==============
+--============== ទាញយករូបភាព ==============
 local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
 if ok and response and response.StatusCode == 200 then
     writefile(FILE_NAME, response.Body)
