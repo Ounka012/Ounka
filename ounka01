@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (FIXED CIRCLE PATROL + SPEED 100)
+-- EVADE: Spiral Farm (ORIGINAL FULL MAP + SPEED 100)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -110,7 +110,7 @@ local function createGUI(imageAsset)
     toggleStroke.Thickness = 3
 
     local mainFrame = Instance.new("Frame", gui)
-    mainFrame.Size = UDim2.new(0, 420, 0, 250)  -- ទំហំដើមវិញ
+    mainFrame.Size = UDim2.new(0, 420, 0, 250)
     mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
     mainFrame.BackgroundTransparency = 1
     mainFrame.BorderSizePixel = 0
@@ -131,7 +131,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL FARM (FIXED CIRCLE)"
+    title.Text = "⚡ SPIRAL FARM (FULL MAP)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -179,11 +179,11 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (SPEED 100, FIXED CIRCLE PATROL) ==============
+    --============== LOGIC (ORIGINAL SPIRAL + SPEED 100) ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
-    local tweenSpeed = 100   -- ល្បឿនហោះ 100
+    local tweenSpeed = 100   -- <-- ល្បឿន 100 តាមស្នើ
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -249,7 +249,6 @@ local function createGUI(imageAsset)
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
-                -- រកកណ្ដាលផែនទី
                 local centerX, centerZ = 0, 0
                 local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
                 if mapModel and mapModel:IsA("Model") then
@@ -268,23 +267,22 @@ local function createGUI(imageAsset)
                     end
                 end
 
-                -- ការកំណត់រង្វង់ថេរ (មិនពង្រីក)
-                local patrolRadius = 100   -- អ្នកអាចប្ដូរកាំនេះតាមចិត្ត
+                local radius = 20
                 local angle = 0
-                local angleStep = 30      -- ដឺក្រេក្នុងមួយជំហាន (លឿនឬយឺត)
+                local angleStep = 25
+                local radiusGrowth = 15
+                local maxRadius = 600
 
                 while isLooping do
                     local rad = math.rad(angle)
-                    local x = centerX + math.cos(rad) * patrolRadius
-                    local z = centerZ + math.sin(rad) * patrolRadius
+                    local x = centerX + math.cos(rad) * radius
+                    local z = centerZ + math.sin(rad) * radius
                     local targetPos = Vector3.new(x, safeHeight, z)
 
-                    hintLabel.Text = "ស្ថានភាព៖ 🌀 ល្បាតជុំវិញកន្លែង"
+                    hintLabel.Text = "ស្ថានភាព៖ 🌀 ហោះរកទីតាំងថ្មី"
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     smoothFlyTo(targetPos)
 
-                    -- មកដល់ចំណុចហើយ ស្កេន Bubble
-                    if not isLooping then break end
                     local targets = scanFullMap()
                     if #targets > 0 then
                         hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងប្រមូល " .. #targets .. " Bubble!"
@@ -315,8 +313,11 @@ local function createGUI(imageAsset)
                         end
                     end
 
-                    -- ផ្លាស់មុំ ប៉ុន្តែកាំនៅដដែល
                     angle = (angle + angleStep) % 360
+                    radius = radius + radiusGrowth
+                    if radius > maxRadius then
+                        radius = 20   -- ចាប់ផ្ដើមវង់ថ្មី
+                    end
                     task.wait(0.1)
                 end
             end)
