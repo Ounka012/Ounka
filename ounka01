@@ -1,6 +1,9 @@
 --[[
-    EVADE: Summer Event Auto Farm (VIP Enhanced)
-    ស្កេន Bubble ពេញផែនទី + ល្បាតតាមអ្នកលេង + ស៊ីបានច្រើនជាងមុន
+    EVADE: Bubble Only Auto Farm (Random Patrol, No Revive)
+    - ស៊ីតែ Bubble មិនប៉ះពាល់ Revive
+    - ល្បាតចៃដន្យទៅកាន់អ្នកលេងផ្សេងៗ ដើម្បីផ្ទុក Bubble ថ្មី
+    - រក្សាកម្ពស់ 45m ការពារ NPC
+    - មាន GUI ជាមួយ Rainbow Effect
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -34,47 +37,38 @@ local function makeDraggable(guiObject)
     end)
 end
 
-local function getValidTarget(obj)
-    if not obj then return nil, nil end
+local function getBubbleTarget(obj)
+    if not obj then return nil end
     local name = obj.Name:lower()
-
-    -- រក Bubble / Token
+    -- រកតែ Bubble / Token
     if name:find("bubble") or name:find("bubblepart") or name:find("token") then
-        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
-        if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart, "item" end
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj end
+        if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart end
         if obj:IsA("Model") then 
             local p = obj:FindFirstChildWhichIsA("BasePart")
-            if p then return p, "item" end
+            if p then return p end
         end
     end
-    
-    -- រក Revive Prompt
-    if obj:IsA("ProximityPrompt") and obj.Parent then
-        local action = obj.ActionText:lower()
-        if action:find("revive") or name:find("revive") or action:find("carry") then
-            return obj.Parent, "revive"
-        end
-    end
-    return nil, nil
+    return nil
 end
 
-local function scanFullMap()
-    local list = {}
+local function scanBubbles()
+    local bubbles = {}
     for _, obj in pairs(Workspace:GetDescendants()) do
-        local part, tType = getValidTarget(obj)
+        local part = getBubbleTarget(obj)
         if part and part:IsA("BasePart") then
-            table.insert(list, {part = part, type = tType, prompt = (tType == "revive" and obj or nil)})
+            table.insert(bubbles, part)
         end
     end
-    return list
+    return bubbles
 end
 
 -- ====================== GUI ======================
 local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeSummerFarm") then CoreGui:FindFirstChild("EvadeSummerFarm"):Destroy() end
+    if CoreGui:FindFirstChild("EvadeBubbleFarm") then CoreGui:FindFirstChild("EvadeBubbleFarm"):Destroy() end
 
     local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeSummerFarm"
+    gui.Name = "EvadeBubbleFarm"
     gui.IgnoreGuiInset = true
 
     local toggleBtn = Instance.new("ImageButton", gui)
@@ -110,7 +104,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ EVADE: VIP FARM (Enhanced)"
+    title.Text = "🫧 BUBBLE FARM ONLY"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -129,7 +123,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធស៊ី Bubble ល្បឿនលឿន"
+    autoLoopBtn.Text = "🔥 បើកស៊ី Bubble (ល្បាតរកគ្រប់កន្លែង)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -159,7 +153,7 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    -- ====================== Logic Auto Farm ======================
+    -- ====================== Logic Auto Farm Bubble Only ======================
     local isLooping = false
     local floatConnection
     local safeHeight = 45
@@ -193,51 +187,42 @@ local function createGUI(imageAsset)
             autoLoopBtn.Text = "⏹️ ឈប់ដំណើរការ"
             task.spawn(function()
                 local scanTick = tick()
-                local playerIndex = 1
-
                 while isLooping do
                     local char = LocalPlayer.Character
                     local root = char and char:FindFirstChild("HumanoidRootPart")
                     if not root then task.wait(0.1) continue end
 
-                    -- ស្កេនរក Bubble ទាំងអស់ដែលអាចមើលឃើញ
-                    local targets = scanFullMap()
+                    local bubbles = scanBubbles()
 
-                    if #targets > 0 then
+                    if #bubbles > 0 then
                         isAttacking = true
-                        hintLabel.Text = "ស្ថានភាព៖ 🔥 កំពុងឆាបស៊ី " .. #targets .. " គ្រាប់..."
-                        hintLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+                        hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងស៊ី " .. #bubbles .. " Bubble..."
+                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
 
                         -- តម្រៀបតាមចម្ងាយ
-                        table.sort(targets, function(a, b)
-                            return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
+                        table.sort(bubbles, function(a, b)
+                            return (root.Position - a.Position).Magnitude < (root.Position - b.Position).Magnitude
                         end)
 
-                        -- កំណត់ចំនួនអតិបរមាក្នុងមួយជុំ
-                        local maxPerRound = 50
+                        local maxPerRound = 50  -- ចំនួនអតិបរមាក្នុងមួយជុំ
                         local count = 0
-                        for i, target in ipairs(targets) do
+                        for _, bubble in ipairs(bubbles) do
                             if not isLooping then break end
                             if count >= maxPerRound then break end
-                            if target.part and target.part.Parent then
-                                root.CFrame = CFrame.new(target.part.Position)
+                            if bubble and bubble.Parent then
+                                root.CFrame = CFrame.new(bubble.Position)
                                 root.Velocity = Vector3.new(0,0,0)
                                 task.wait(0.01)
-                                if target.type == "revive" and target.prompt then
-                                    pcall(function() fireproximityprompt(target.prompt, 1) end)
-                                end
                                 count = count + 1
                             end
                         end
-                        -- ស៊ីអស់ឬគ្រប់ហើយឡើងវិញ
                         isAttacking = false
-                        -- ទុកពេលបន្តិចឲ្យ Bubble ថ្មីផ្ទុក
-                        task.wait(0.5)
+                        -- រង់ចាំបន្តិចមុនស្កេនម្ដងទៀត
+                        task.wait(0.3)
                     else
-                        -- គ្មាន Bubble -> ល្បាតទៅកាន់អ្នកលេងផ្សេង
+                        -- គ្មាន Bubble -> ល្បាតចៃដន្យទៅអ្នកលេងផ្សេង ដើម្បីផ្ទុកតំបន់ថ្មី
                         if tick() - scanTick > 1.0 then
                             scanTick = tick()
-                            -- យកបញ្ជីអ្នកលេងផ្សេង (មិនរាប់ខ្លួនឯង)
                             local others = {}
                             for _, plr in pairs(Players:GetPlayers()) do
                                 if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -245,25 +230,24 @@ local function createGUI(imageAsset)
                                 end
                             end
                             if #others > 0 then
-                                if playerIndex > #others then playerIndex = 1 end
-                                local targetPlayer = others[playerIndex]
-                                local pPos = targetPlayer.Character.HumanoidRootPart.Position
+                                local randomPlayer = others[math.random(1, #others)]
+                                local pPos = randomPlayer.Character.HumanoidRootPart.Position
                                 root.CFrame = CFrame.new(pPos.X, safeHeight, pPos.Z)
-                                hintLabel.Text = "ស្ថានភាព៖ 📡 ល្បាត -> " .. targetPlayer.Name
-                                playerIndex = playerIndex + 1
+                                hintLabel.Text = "ស្ថានភាព៖ 📡 ល្បាត -> " .. randomPlayer.Name
+                                hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
                             else
                                 hintLabel.Text = "ស្ថានភាព៖ 📡 រកមិនឃើញអ្នកលេងផ្សេង..."
+                                hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
                             end
-                            hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
                         end
                     end
-                    task.wait(0.05)
+                    task.wait(0.1)
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធស៊ី Bubble ល្បឿនលឿន"
+            autoLoopBtn.Text = "🔥 បើកស៊ី Bubble (ល្បាតរកគ្រប់កន្លែង)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
