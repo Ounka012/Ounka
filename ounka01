@@ -342,7 +342,7 @@ local function createGUI(imageAsset)
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
             autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
-            hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
+            hintLabel.Text = "ស្ថានភាព..៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
     end
