@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (SUPER FAST & SAFE COLLECT)
+-- EVADE: Spiral Farm (FIXED - IGNORE PLAYERS)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -33,10 +33,26 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- រក Bubble គ្រប់ប្រភេទ
+-- រក Bubble គ្រប់ប្រភេទ (ជួសជុលលែងឲ្យចាប់មនុស្ស)
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
+    
+    -- ១. ពិនិត្យរកការសង្គ្រោះ (Revive) ជាមុនសិន ព្រោះវាជាប់នឹងខ្លួនអ្នកលេង
+    if obj:IsA("ProximityPrompt") and obj.Parent then
+        local action = obj.ActionText:lower()
+        if action:find("revive") or name:find("revive") or action:find("carry") then
+            return obj.Parent, "revive"
+        end
+    end
+
+    -- ២. ប្លុក (Block) មិនឲ្យវាចាប់យកអ្នកលេងដទៃ ឬខ្លួនឯងជា Bubble
+    local ancestor = obj:FindFirstAncestorOfClass("Model")
+    if ancestor and ancestor:FindFirstChildOfClass("Humanoid") then
+        return nil, nil -- បើជារាងកាយមនុស្ស (មាន Humanoid) គឺរំលងចោល!
+    end
+
+    -- ៣. ស្វែងរក Bubble និង Token ពិតប្រាកដដែលនៅលើដី
     local parent = obj.Parent
     local parentName = parent and parent.Name:lower() or ""
     local grandParent = parent and parent.Parent
@@ -63,12 +79,6 @@ local function getValidTarget(obj)
         if obj:IsA("BasePart") then return obj, "item" end
     end
 
-    if obj:IsA("ProximityPrompt") and obj.Parent then
-        local action = obj.ActionText:lower()
-        if action:find("revive") or name:find("revive") or action:find("carry") then
-            return obj.Parent, "revive"
-        end
-    end
     return nil, nil
 end
 
@@ -124,7 +134,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL FARM (SPEED 250 - SAFE)"
+    title.Text = "⚡ SPIRAL FARM (FIXED BUGS)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -172,12 +182,12 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (SPEED 250 - SAFE COLLECT) ==============
+    --============== LOGIC (SPEED 250) ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
     local isAttacking = false
-    local tweenSpeed = 250  -- ល្បឿនសាកសម បង្ការបញ្ហា Server ដឹងមិនទាន់
+    local tweenSpeed = 250 
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -215,7 +225,6 @@ local function createGUI(imageAsset)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
         
-        -- រង់ចាំ 0.25s ឲ្យ Server ហ្គេមដឹងថាយើងបានមកដល់ និងប៉ះ Bubble មែន
         local timeout = tick() + 0.25 
         repeat
             if firetouchinterest then
@@ -223,7 +232,6 @@ local function createGUI(imageAsset)
                 pcall(function() firetouchinterest(root, bubblePart, 1) end)
             end
             
-            -- ទម្លាក់តួអង្គឲ្យចំកណ្ដាល Bubble តែម្ដង
             root.CFrame = bubblePart.CFrame
             task.wait(0.02) 
         until not bubblePart.Parent or tick() > timeout
@@ -284,7 +292,6 @@ local function createGUI(imageAsset)
                             return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
                         end)
 
-                        -- ព្យាយាមប្រមូលពីចម្ងាយ (ប្រសិនបើ Exploit គាំទ្រ)
                         if firetouchinterest then
                             for _, target in ipairs(targets) do
                                 if target.part and target.part.Parent then
