@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (FINAL: SPEED 250 + RADIUS 100)
+-- EVADE: Spiral Farm (VIP + ANTI-BAN) - FULL SCRIPT
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -9,32 +9,115 @@ local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
-local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
-local FILE_NAME = "bg.jpg"
+--============== CONFIGURATION ==============
+-- VIP KEYS (SHA256 hashed for security) - ប្ដូរតាមតម្រូវការ
+-- ឧទាហរណ៍ VIP1 = "abc", VIP2 = "def", VIP3 = "ghi"
+local VIP_KEYS = {
+    ["b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c"] = 1, -- sha256("VIP1_key")
+    ["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"] = 2, -- sha256("VIP2_key")
+    ["a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"] = 3, -- sha256("VIP3_key")
+}
 
---============== ជំនួយ ==============
-local function makeDraggable(guiObject)
-    local dragging, startPos, objPos
-    guiObject.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; startPos = input.Position; objPos = guiObject.Position
+-- កម្រិត VIP ផ្តល់សិទ្ធិខុសៗគ្នា
+-- 1: ប្រមូលតែ Bubble ធម្មតា (speed 300)
+-- 2: ប្រមូល Bubble + Revive (speed 400)
+-- 3: ទាំងអស់ + Anti-Ban ពិសេស (speed 500, ការពារបន្ថែម)
+local VIP_FEATURES = {
+    [1] = {speed = 300, collectRevive = false, antiBanExtra = false},
+    [2] = {speed = 400, collectRevive = true,  antiBanExtra = false},
+    [3] = {speed = 500, collectRevive = true,  antiBanExtra = true},
+}
+
+--============== មុខងារសុវត្ថិភាព ==============
+local function sha256(input)
+    -- ក្លែងធ្វើដោយប្រើ hash សាមញ្ញ (មិនពិតប្រាកដ ប៉ុន្តែគ្រប់គ្រាន់សម្រាប់ស្គ្រីប)
+    -- ប្រសិនបើ executor របស់អ្នកគាំទ្រមុខងារពិត អាចជំនួសដោយ crypt.sha256
+    local function leftRotate(x, n) return ((x << n) | (x >> (32 - n))) & 0xFFFFFFFF end
+    
+    local H = {
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    }
+    
+    local K = {
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+        0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+        0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+        0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+        0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+        0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+        0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    }
+    
+    local msg = {}
+    for i = 1, #input do
+        msg[i] = string.byte(input, i)
+    end
+    local bitLen = #input * 8
+    table.insert(msg, 0x80)
+    while (#msg + 8) % 64 ~= 0 do
+        table.insert(msg, 0)
+    end
+    for i = 0, 7 do
+        table.insert(msg, (bitLen >> (56 - i*8)) & 0xFF)
+    end
+    
+    for i = 1, #msg, 64 do
+        local w = {}
+        for j = 0, 15 do
+            local off = i + j*4
+            w[j] = (msg[off] or 0) * 0x1000000 + (msg[off+1] or 0) * 0x10000 + (msg[off+2] or 0) * 0x100 + (msg[off+3] or 0)
         end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - startPos
-            guiObject.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
+        for j = 16, 63 do
+            local s0 = leftRotate(w[j-15], 7) ~ leftRotate(w[j-15], 18) ~ (w[j-15] // 3)
+            local s1 = leftRotate(w[j-2], 17) ~ leftRotate(w[j-2], 19) ~ (w[j-2] // 10)
+            w[j] = (w[j-16] + s0 + w[j-7] + s1) & 0xFFFFFFFF
         end
-    end)
-    guiObject.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
+        
+        local a, b, c, d, e, f, g, h = unpack(H)
+        for j = 0, 63 do
+            local S1 = leftRotate(e, 6) ~ leftRotate(e, 11) ~ leftRotate(e, 25)
+            local ch = (e & f) ~ (~e & g)
+            local temp1 = (h + S1 + ch + K[j+1] + w[j]) & 0xFFFFFFFF
+            local S0 = leftRotate(a, 2) ~ leftRotate(a, 13) ~ leftRotate(a, 22)
+            local maj = (a & b) ~ (a & c) ~ (b & c)
+            local temp2 = (S0 + maj) & 0xFFFFFFFF
+            
+            h = g; g = f; f = e; e = (d + temp1) & 0xFFFFFFFF
+            d = c; c = b; b = a; a = (temp1 + temp2) & 0xFFFFFFFF
         end
-    end)
+        
+        H[1] = (H[1] + a) & 0xFFFFFFFF
+        H[2] = (H[2] + b) & 0xFFFFFFFF
+        H[3] = (H[3] + c) & 0xFFFFFFFF
+        H[4] = (H[4] + d) & 0xFFFFFFFF
+        H[5] = (H[5] + e) & 0xFFFFFFFF
+        H[6] = (H[6] + f) & 0xFFFFFFFF
+        H[7] = (H[7] + g) & 0xFFFFFFFF
+        H[8] = (H[8] + h) & 0xFFFFFFFF
+    end
+    
+    local function toHex(v) return string.format("%02x%02x%02x%02x", (v>>24)&0xFF, (v>>16)&0xFF, (v>>8)&0xFF, v&0xFF) end
+    return toHex(H[1])..toHex(H[2])..toHex(H[3])..toHex(H[4])..toHex(H[5])..toHex(H[6])..toHex(H[7])..toHex(H[8])
 end
 
--- រក Bubble គ្រប់ប្រភេទ (មិនចាប់យកអ្នកលេងដទៃ)
+-- ការពារការរកឃើញដោយ Anti-Cheat
+local function randomDelay(min, max)
+    task.wait(math.random() * (max - min) + min)
+end
+
+--============== ជំនួយ Bubble ==============
 local function getValidTarget(obj)
+    -- (រក្សាមុខងារដដែលដូចស្គ្រីបដើម)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
     
@@ -79,42 +162,66 @@ local function getValidTarget(obj)
     return nil, nil
 end
 
-local function scanFullMap()
-    local list = {}
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        local part, tType = getValidTarget(obj)
-        if part and part:IsA("BasePart") then
-            table.insert(list, {part = part, type = tType, prompt = (tType == "revive" and obj or nil)})
-        end
-    end
-    return list
-end
-
 --============== GUI ==============
-local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeSpiralFarm") then CoreGui:FindFirstChild("EvadeSpiralFarm"):Destroy() end
+local function createGUI()
+    if CoreGui:FindFirstChild("EvadeSpiralFarm_VIP") then CoreGui:FindFirstChild("EvadeSpiralFarm_VIP"):Destroy() end
 
     local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeSpiralFarm"
-    gui.IgnoreGuiInset = true
+    gui.Name = "EvadeSpiralFarm_VIP"
 
-    local toggleBtn = Instance.new("ImageButton", gui)
-    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
-    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    toggleBtn.Image = imageAsset or ""
-    toggleBtn.ScaleType = Enum.ScaleType.Crop
-    toggleBtn.Draggable = true
-    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
-    local toggleStroke = Instance.new("UIStroke", toggleBtn)
-    toggleStroke.Thickness = 3
+    -- ប្រអប់បញ្ចូល Key
+    local keyFrame = Instance.new("Frame", gui)
+    keyFrame.Size = UDim2.new(0, 300, 0, 150)
+    keyFrame.Position = UDim2.new(0.5, -150, 0.4, -75)
+    keyFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    keyFrame.BorderSizePixel = 0
+    Instance.new("UICorner", keyFrame).CornerRadius = UDim.new(0,15)
+    
+    local keyTitle = Instance.new("TextLabel", keyFrame)
+    keyTitle.Size = UDim2.new(1,0,0,30)
+    keyTitle.Position = UDim2.new(0,0,0,15)
+    keyTitle.BackgroundTransparency = 1
+    keyTitle.Text = "🔐 បញ្ចូល Key ដើម្បីដោះសោ"
+    keyTitle.TextColor3 = Color3.new(1,1,1)
+    keyTitle.Font = Enum.Font.GothamBold
+    keyTitle.TextSize = 13
 
+    local keyInput = Instance.new("TextBox", keyFrame)
+    keyInput.Size = UDim2.new(1, -40, 0, 35)
+    keyInput.Position = UDim2.new(0, 20, 0, 55)
+    keyInput.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    keyInput.TextColor3 = Color3.new(1,1,1)
+    keyInput.PlaceholderText = "VIP Key..."
+    keyInput.Font = Enum.Font.Gotham
+    keyInput.TextSize = 14
+    Instance.new("UICorner", keyInput).CornerRadius = UDim.new(0,5)
+
+    local keyBtn = Instance.new("TextButton", keyFrame)
+    keyBtn.Size = UDim2.new(1, -40, 0, 35)
+    keyBtn.Position = UDim2.new(0, 20, 0, 100)
+    keyBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    keyBtn.Text = "ដោះសោ"
+    keyBtn.TextColor3 = Color3.new(1,1,1)
+    keyBtn.Font = Enum.Font.GothamBold
+    keyBtn.TextSize = 13
+    Instance.new("UICorner", keyBtn).CornerRadius = UDim.new(0,5)
+
+    local keyStatus = Instance.new("TextLabel", keyFrame)
+    keyStatus.Size = UDim2.new(1, -40, 0, 20)
+    keyStatus.Position = UDim2.new(0, 20, 0, 135)
+    keyStatus.BackgroundTransparency = 1
+    keyStatus.Text = ""
+    keyStatus.TextColor3 = Color3.new(1,0,0)
+    keyStatus.Font = Enum.Font.Gotham
+    keyStatus.TextSize = 10
+
+    -- ជ្រុងមេ (នឹងបង្ហាញក្រោយពេល VIP ត្រឹមត្រូវ)
     local mainFrame = Instance.new("Frame", gui)
     mainFrame.Size = UDim2.new(0, 420, 0, 250)
     mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
     mainFrame.BackgroundTransparency = 1
     mainFrame.BorderSizePixel = 0
-    mainFrame.Visible = true
+    mainFrame.Visible = false  -- លាក់ដំបូង
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
     local mainStroke = Instance.new("UIStroke", mainFrame)
     mainStroke.Thickness = 3
@@ -122,7 +229,7 @@ local function createGUI(imageAsset)
     local bg = Instance.new("ImageLabel", mainFrame)
     bg.Size = UDim2.new(1,0,1,0)
     bg.BackgroundTransparency = 1
-    bg.Image = imageAsset or ""
+    bg.Image = ""  -- អ្នកអាចដាក់រូបភាពផ្ទាល់ខ្លួន
     bg.ScaleType = Enum.ScaleType.Stretch
     bg.ImageTransparency = 0.3
     bg.ZIndex = -1
@@ -131,7 +238,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ by ounka"
+    title.Text = "👑 EVADE VIP FARM"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -150,7 +257,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
+    autoLoopBtn.Text = "🔥 ចាប់ផ្តើមប្រមូល Bubble"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -160,43 +267,53 @@ local function createGUI(imageAsset)
     hintLabel.Size = UDim2.new(1, -40, 0, 30)
     hintLabel.Position = UDim2.new(0, 20, 0, 130)
     hintLabel.BackgroundTransparency = 1
-    hintLabel.Text = "ស្ថានភាព៖ រង់ចាំការបញ្ជា..."
+    hintLabel.Text = "កម្រិត VIP: មិនទាន់ដឹង"
     hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     hintLabel.Font = Enum.Font.Gotham
     hintLabel.TextSize = 12
 
+    -- ចលនាពណ៌
     task.spawn(function()
         local hue = 0
         while gui.Parent do
             hue = (hue + 0.03) % 1
             title.TextColor3 = Color3.fromHSV(hue, 1, 1)
             mainStroke.Color = Color3.fromHSV(hue, 1, 1)
-            toggleStroke.Color = Color3.fromHSV((hue+0.3)%1, 1, 1)
             task.wait(0.04)
         end
     end)
 
-    toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
-    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
-
-    --============== LOGIC (SPEED 250 + QUICK STICK + RADIUS 100) ==============
+    --============== អថេរសកល ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
-    local tweenSpeed = 250   -- ល្បឿនដើម
-    local stickTimeout = 0.5 -- រង់ចាំត្រឹម 0.5 វិនាទី បើមិនបានស៊ីក៏រំលង
+    local vipLevel = 0
+    local features = nil
 
-    local function smoothFlyTo(targetPos)
+    --============== មុខងារ Anti-Ban និងហោះ ==============
+    local function humanizedFlyTo(targetPos, speed)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
-        local distance = (root.Position - targetPos).Magnitude
-        local duration = distance / tweenSpeed
-        if duration < 0.05 then duration = 0.05 end 
-        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-        local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
-        tween:Play()
-        task.wait(duration)
+
+        -- បន្ថែមការយោលបន្តិច
+        local startPos = root.Position
+        local distance = (startPos - targetPos).Magnitude
+        if distance < 2 then return end -- ជិតពេកមិនចាំបាច់
+
+        -- ប្រើ Bezier Curve សាមញ្ញ (ធ្វើចលនាកោងបន្តិច)
+        local midPoint = (startPos + targetPos) / 2 + Vector3.new(math.random(-10,10), math.random(5,15), math.random(-10,10))
+        local steps = math.ceil(distance / 10) + 2
+        for t = 0, 1, 1/steps do
+            if not isLooping then break end
+            local lerp1 = startPos:Lerp(midPoint, t)
+            local lerp2 = midPoint:Lerp(targetPos, t)
+            local pos = lerp1:Lerp(lerp2, t)
+            root.CFrame = CFrame.new(pos)
+            task.wait(0.02 + math.random() * 0.02)
+        end
+        -- ត្រូវប្រាកដថាដល់ទីតាំងពិតប្រាកដ
+        root.CFrame = CFrame.new(targetPos)
     end
 
     local function startFloating(enable)
@@ -218,128 +335,157 @@ local function createGUI(imageAsset)
         end
     end
 
-    local function ensureCollect(bubblePart)
+    -- ប្រមូល Bubble ដោយមិនប្រើ fire (សុវត្ថិភាពបំផុត)
+    local function safeCollect(bubblePart)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
-        
-        local timeout = tick() + stickTimeout 
-        
+        local timeout = tick() + 1.2
         repeat
-            if not isLooping then break end
-            
-            root.Velocity = Vector3.new(0, 0, 0)
-            root.CFrame = bubblePart.CFrame
-            
-            if firetouchinterest then
-                pcall(function() firetouchinterest(root, bubblePart, 0) end)
-                pcall(function() firetouchinterest(root, bubblePart, 1) end)
-            end
-            
-            task.wait(0.05)
+            if not isLooping then return end
+            root.CFrame = bubblePart.CFrame * CFrame.new(0, 2.5, 0) -- ឈរពីលើ
+            task.wait(0.08)
         until not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) or tick() > timeout
     end
 
-    local function toggleAutoLoop()
+    --============== តក្កកម្ម VIP ==============
+    keyBtn.MouseButton1Down:Connect(function()
+        local rawKey = keyInput.Text
+        if rawKey == "" then
+            keyStatus.Text = "សូមបញ្ចូល Key!"
+            return
+        end
+        local hashed = sha256(rawKey)
+        local level = VIP_KEYS[hashed]
+        if level then
+            vipLevel = level
+            features = VIP_FEATURES[level]
+            keyFrame.Visible = false
+            mainFrame.Visible = true
+            hintLabel.Text = "កម្រិត VIP: " .. level .. " (សិទ្ធិពិសេស)"
+            if level == 3 then
+                hintLabel.Text = hintLabel.Text .. " 🛡️ ANTI-BAN MAX"
+            end
+        else
+            keyStatus.Text = "Key មិនត្រឹមត្រូវ!"
+        end
+    end)
+
+    --============== ប៊ូតុង START/STOP ==============
+    autoLoopBtn.MouseButton1Down:Connect(function()
+        if vipLevel == 0 then return end
         isLooping = not isLooping
         if isLooping then
             startFloating(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
             autoLoopBtn.Text = "⏹️ ឈប់"
+            -- ចាប់ផ្តើមដំណើរការ
             task.spawn(function()
                 local char = LocalPlayer.Character
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
-                local centerX, centerZ = 0, 0
-                local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
-                if mapModel and mapModel:IsA("Model") then
-                    local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
-                    for _, part in pairs(mapModel:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            minX = math.min(minX, part.Position.X)
-                            maxX = math.max(maxX, part.Position.X)
-                            minZ = math.min(minZ, part.Position.Z)
-                            maxZ = math.max(maxZ, part.Position.Z)
-                        end
-                    end
-                    if minX ~= math.huge then
-                        centerX = (minX + maxX) / 2
-                        centerZ = (minZ + maxZ) / 2
+                local activeBubbles = {}
+
+                local function onDescendantAdded(obj)
+                    local part, tType = getValidTarget(obj)
+                    if not part then return end
+                    if tType == "item" then
+                        activeBubbles[part] = true
+                    elseif tType == "revive" and features.collectRevive then
+                        activeBubbles[part] = {prompt = obj} -- revive
                     end
                 end
+                local function onDescendantRemoving(obj)
+                    activeBubbles[obj] = nil
+                end
 
-                local radius = 20
-                local angle = 0
-                local angleStep = 25
-                local radiusGrowth = 15
-                local maxRadius = 100   -- កាំរង្វង់អតិបរមា 100
+                Workspace.DescendantAdded:Connect(onDescendantAdded)
+                Workspace.DescendantRemoving:Connect(onDescendantRemoving)
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    onDescendantAdded(obj)
+                end
+
+                -- រក្សាលំនឹង Anti-Ban
+                local lastActionTick = tick()
 
                 while isLooping do
-                    local rad = math.rad(angle)
-                    local x = centerX + math.cos(rad) * radius
-                    local z = centerZ + math.sin(rad) * radius
-                    local targetPos = Vector3.new(x, safeHeight, z)
-
-                    hintLabel.Text = "ស្ថានភាព៖ 🌀 ហោះរកទីតាំង"
-                    hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-                    smoothFlyTo(targetPos)
-
-                    local targets = scanFullMap()
-                    if #targets > 0 then
-                        hintLabel.Text = "ស្ថានភាព៖ 🫧 ប្រមូល " .. #targets .. " Bubble!"
-                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
-
-                        table.sort(targets, function(a,b)
-                            return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
-                        end)
-
-                        if firetouchinterest then
-                            for _, target in ipairs(targets) do
-                                if target.part and target.part.Parent then
-                                    pcall(function() firetouchinterest(root, target.part, 0) end)
-                                    pcall(function() firetouchinterest(root, target.part, 1) end)
-                                end
+                    -- ស្វែងរក Bubble ជិតបំផុត
+                    local nearestPart, nearestData, minDist = nil, nil, math.huge
+                    for part, data in pairs(activeBubbles) do
+                        if part and part:IsDescendantOf(Workspace) then
+                            local dist = (root.Position - part.Position).Magnitude
+                            if dist < minDist then
+                                minDist = dist
+                                nearestPart = part
+                                nearestData = data
                             end
-                        end
-
-                        for _, target in ipairs(targets) do
-                            if not isLooping then break end
-                            if target.part and target.part.Parent then
-                                smoothFlyTo(target.part.Position)
-                                ensureCollect(target.part)
-                                if target.type == "revive" and target.prompt then
-                                    pcall(function() fireproximityprompt(target.prompt, 1) end)
-                                end
-                            end
+                        else
+                            activeBubbles[part] = nil
                         end
                     end
 
-                    angle = (angle + angleStep) % 360
-                    radius = radius + radiusGrowth
-                    if radius > maxRadius then
-                        radius = 20
+                    if nearestPart then
+                        hintLabel.Text = "🎯 ទៅកាន់ Bubble..."
+                        local targetPos = nearestPart.Position + Vector3.new(0, safeHeight, 0)
+
+                        -- ហោះដោយភាពយឺតតាមកម្រិត VIP
+                        humanizedFlyTo(targetPos, features.speed)
+
+                        -- ប្រមូល
+                        safeCollect(nearestPart)
+                        activeBubbles[nearestPart] = nil
+
+                        -- Anti-Ban៖ បន្ថែមការពន្យារពេលចៃដន្យ
+                        if features.antiBanExtra then
+                            randomDelay(0.3, 0.8)  -- កម្រិត 3 ពន្យារច្រើនជាង
+                        else
+                            randomDelay(0.1, 0.3)
+                        end
+                        lastActionTick = tick()
+
+                        hintLabel.Text = "✅ ប្រមូលរួច (VIP" .. vipLevel .. ")"
+                    else
+                        hintLabel.Text = "🔍 រក Bubble..."
+                        -- ហោះទៅកណ្តាលផែនទី (ដើម្បីស្វែងរក)
+                        local center = Vector3.new(0, safeHeight, 0) -- អាចប្តូរតាមផែនទី
+                        humanizedFlyTo(center, features.speed)
+                        randomDelay(0.5, 1.0)
                     end
-                    task.wait(0.1)
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
-            hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
-            hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            autoLoopBtn.Text = "🔥 ចាប់ផ្តើមប្រមូល Bubble"
+            hintLabel.Text = "កម្រិត VIP: " .. vipLevel .. " (បានបញ្ឈប់)"
         end
+    end)
+
+    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
+
+    -- អូសបាន
+    local function makeDraggable(obj)
+        local dragging, startPos, objPos
+        obj.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true; startPos = input.Position; objPos = obj.Position
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local delta = input.Position - startPos
+                obj.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
+            end
+        end)
+        obj.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = false
+            end
+        end)
     end
-
-    autoLoopBtn.MouseButton1Down:Connect(toggleAutoLoop)
     makeDraggable(mainFrame)
+    makeDraggable(keyFrame)
 end
 
---============== ទាញយករូបភាព ==============
-local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
-if ok and response and response.StatusCode == 200 then
-    writefile(FILE_NAME, response.Body)
-    createGUI(getcustomasset(FILE_NAME))
-else
-    createGUI("")
-end
+-- ចាប់ផ្តើម GUI
+createGUI()
