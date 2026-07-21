@@ -1,6 +1,7 @@
---========================================================
--- EVADE: Auto Farm (កម្ពស់ ១០០ម + Touch Injection ដោះស្រាយបញ្ហាអត់ស៊ី)
---========================================================
+--[[
+    EVADE: Summer Event Auto Farm (Aggressive Chain-Looting)
+    កម្ពស់ ៤៥ ម៉ែត្រ + ឆាបស៊ី Bubble បន្តបន្ទាប់គ្នាដោយមិនបាច់ហោះចុះឡើងរាល់ដង
+--]]
 
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -105,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ EVADE: AUTO FARM (១០០ ម៉ែត្រ)"
+    title.Text = "⚡ EVADE: AGGRESSIVE AUTO (V2)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -124,7 +125,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធហោះស៊ី (ជួសជុលការអត់ស៊ី)"
+    autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធឆាបស៊ីល្បឿនលឿន (កម្ពស់ ៤៥ម)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -155,7 +156,7 @@ local function createGUI(imageAsset)
 
     local isLooping = false
     local floatConnection
-    local safeHeight = 100
+    local safeHeight = 45 -- កម្ពស់សុវត្ថិភាព ៤៥ ម៉ែត្រ (NPC រកមិនឃើញ តែស្កេន Bubble ឃើញច្បាស់)
     local isAttacking = false
 
     local function startFloating(enable)
@@ -196,65 +197,59 @@ local function createGUI(imageAsset)
                         local targets = scanFullMap()
                         
                         if #targets > 0 then
-                            isAttacking = true 
+                            isAttacking = true -- ចាប់ផ្តើមវាយលុក
                             
+                            -- តម្រៀប Bubble តាមចម្ងាយ (ជិតទៅឆ្ងាយ)
                             table.sort(targets, function(a, b)
                                 return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
                             end)
                             
-                            hintLabel.Text = "ស្ថានភាព៖ 🔥 កំពុងចុះស៊ីដោយប្រើ Touch Injection..."
+                            hintLabel.Text = "ស្ថានភាព៖ 🔥 កំពុងឆាបស៊ីបន្តបន្ទាប់គ្នាល្បឿនលឿន..."
                             hintLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
                             
+                            -- ស៊ី Bubble ទាំងអស់ដែលវាស្កេនឃើញបន្តបន្ទាប់គ្នា (អត់ហោះឡើងវិញទេ ទាល់តែស៊ីអស់)
                             for i, target in ipairs(targets) do
                                 if not isLooping then break end
                                 if target.part and target.part.Parent then
-                                    
-                                    -- Teleport ឱ្យខ្ពស់ជាង Bubble ០.៥ ម៉ែត្រ ដើម្បីឱ្យតួអង្គធ្លាក់ប៉ះ
-                                    root.CFrame = CFrame.new(target.part.Position + Vector3.new(0, 0.5, 0))
+                                    root.CFrame = CFrame.new(target.part.Position)
                                     root.Velocity = Vector3.new(0,0,0)
-                                    
-                                    -- បង្ខំឱ្យហ្គេមគិតថាយើងបានប៉ះគ្រាប់នេះមែន (ដោះស្រាយបញ្ហាអត់ស៊ី)
-                                    if firetouchinterest then
-                                        firetouchinterest(root, target.part, 0) -- ចាប់ផ្តើមប៉ះ
-                                        task.wait(0.05)
-                                        firetouchinterest(root, target.part, 1) -- ឈប់ប៉ះ
-                                    end
-                                    
-                                    task.wait(0.15) -- ទុកពេលបន្តិចឱ្យវាលោតចូលកាបូប
+                                    task.wait(0.02) -- ល្បឿនស៊ីលឿនបំផុត (២០ មីលីវិនាទី ក្នុងមួយគ្រាប់)
                                     
                                     if target.type == "revive" and target.prompt then
                                         pcall(function() fireproximityprompt(target.prompt, 1) end)
-                                        task.wait(0.3) 
                                     end
                                 end
-                                if i >= 5 then break end 
+                                
+                                -- កំណត់ត្រឹម ១០ គ្រាប់ក្នុងមួយជុំ ដើម្បីកុំឱ្យ Server សង្ស័យ រួចដកខ្លួនឡើងវិញ
+                                if i >= 10 then break end
                             end
                             
+                            -- ស៊ីអស់ ឬគ្រប់ ១០ គ្រាប់ហើយ ទើបហោះមកកម្ពស់ ៤៥ ម៉ែត្រវិញ
                             isAttacking = false
-                            task.wait(0.5) 
                         else
+                            -- បើកប្រព័ន្ធលោតទីតាំងល្បាត (រាល់ ១.៥ វិនាទី) បើរក Bubble មិនឃើញ
                             if tick() - scanTick > 1.5 then
                                 scanTick = tick()
-                                hintLabel.Text = "ស្ថានភាព៖ 📡 ហោះស្វែងរកចំណុចផ្សេងទៀត..."
+                                hintLabel.Text = "ស្ថានភាព៖ 📡 ហោះលោតទីតាំងស្កេនរកតំបន់ថ្មីៗ..."
                                 hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
                                 
                                 local allPlayers = Players:GetPlayers()
                                 local randomPlayer = allPlayers[math.random(1, #allPlayers)]
                                 
-                                if randomPlayer and randomPlayer ~= LocalPlayer and randomPlayer.Character and randomPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                                if randomPlayer and randomPlayer.Character and randomPlayer.Character:FindFirstChild("HumanoidRootPart") then
                                     local pPos = randomPlayer.Character.HumanoidRootPart.Position
                                     root.CFrame = CFrame.new(pPos.X, safeHeight, pPos.Z)
                                 end
                             end
                         end
                     end
-                    task.wait(0.05)
+                    task.wait(0.01)
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធហោះស៊ី (ជួសជុលការអត់ស៊ី)"
+            autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធឆាបស៊ីល្បឿនលឿន (កម្ពស់ ៤៥ម)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
