@@ -182,7 +182,7 @@ local function createGUI(imageAsset)
     --============== LOGIC (SPEED 250 + HEIGHT 40) ==============
     local isLooping = false
     local floatConnection
-    local safeHeight = 40    -- <-- បានកែមកត្រឹម 40
+    local safeHeight = 30    -- <-- បានកែមកត្រឹម 40
     local tweenSpeed = 250
     local stickTimeout = 2
 
