@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (FAST FLY + NO STUCK)
+-- EVADE: Spiral Farm (FINAL: SPEED 250 + RADIUS 100)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -33,7 +33,7 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- រក Bubble គ្រប់ប្រភេទ
+-- រក Bubble គ្រប់ប្រភេទ (មិនចាប់យកអ្នកលេងដទៃ)
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
@@ -131,7 +131,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL FARM (FAST & SMOOTH)"
+    title.Text = "⚡ SPIRAL FARM (RADIUS 100)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -179,7 +179,7 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (SPEED 250 + QUICK STICK) ==============
+    --============== LOGIC (SPEED 250 + QUICK STICK + RADIUS 100) ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
@@ -272,7 +272,7 @@ local function createGUI(imageAsset)
                 local angle = 0
                 local angleStep = 25
                 local radiusGrowth = 15
-                local maxRadius = 600
+                local maxRadius = 100   -- កាំរង្វង់អតិបរមា 100
 
                 while isLooping do
                     local rad = math.rad(angle)
@@ -306,7 +306,7 @@ local function createGUI(imageAsset)
                             if not isLooping then break end
                             if target.part and target.part.Parent then
                                 smoothFlyTo(target.part.Position)
-                                ensureCollect(target.part) -- ឥឡូវរង់ចាំត្រឹម 0.5 វិនាទី
+                                ensureCollect(target.part)
                                 if target.type == "revive" and target.prompt then
                                     pcall(function() fireproximityprompt(target.prompt, 1) end)
                                 end
@@ -335,7 +335,7 @@ local function createGUI(imageAsset)
     makeDraggable(mainFrame)
 end
 
---============== ទាញយករូបភាព៊ ==============
+--============== ទាញយករូបភាព ==============
 local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
 if ok and response and response.StatusCode == 200 then
     writefile(FILE_NAME, response.Body)
