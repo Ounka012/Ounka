@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Cross Patrol (Forward-Back + Left-Right)
+-- EVADE: Back-and-Forth Patrol (LINEAR + HEIGHT 40)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -123,7 +123,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "➕ CROSS PATROL (4 DIR)"
+    title.Text = "⚡ BACK-FORTH PATROL (LINEAR)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -171,13 +171,13 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (CROSS PATROL) ==============
+    --============== LOGIC (LINEAR BACK-AND-FORTH + HEIGHT 40) ==============
     local isLooping = false
     local floatConnection
-    local safeHeight = 40          -- កម្ពស់ហោះ (អាចកែបាន)
-    local tweenSpeed = 250         -- ល្បឿន
-    local stickTimeout = 0.7         -- ពេលត្រាំ Bubble
-    local patrolDistance = 100     -- ចម្ងាយទៅមុខ/ឆ្វេង/ស្ដាំ (អាចកែបាន)
+    local safeHeight = 40        -- កម្ពស់ហោះ (អាចកែបាន)
+    local tweenSpeed = 250       -- ល្បឿនហោះ
+    local stickTimeout = 2       -- ពេលត្រាំជាប់ Bubble
+    local patrolDistance = 100   -- <--- លេខនេះ! ចម្ងាយដើរទៅមុខ-ថយក្រោយ (studs)
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -238,35 +238,44 @@ local function createGUI(imageAsset)
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
-                -- យកទីតាំងបច្ចុប្បន្នជាចំណុចកណ្ដាល
-                local centerPos = root.Position
+                -- រកកណ្ដាលផែនទី
+                local centerX, centerZ = 0, 0
+                local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
+                if mapModel and mapModel:IsA("Model") then
+                    local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
+                    for _, part in pairs(mapModel:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            minX = math.min(minX, part.Position.X)
+                            maxX = math.max(maxX, part.Position.X)
+                            minZ = math.min(minZ, part.Position.Z)
+                            maxZ = math.max(maxZ, part.Position.Z)
+                        end
+                    end
+                    if minX ~= math.huge then
+                        centerX = (minX + maxX) / 2
+                        centerZ = (minZ + maxZ) / 2
+                    end
+                end
 
-                -- លំដាប់ទិស៖ មុខ -> ក្រោយ -> ស្ដាំ -> ក្រោយ -> ឆ្វេង -> ក្រោយ -> ហើយធ្វើដដែល
-                local directions = {
-                    {name = "មុខ", offset = Vector3.new(patrolDistance, 0, 0)},
-                    {name = "កណ្ដាល", offset = Vector3.new(0, 0, 0)},
-                    {name = "ស្ដាំ", offset = Vector3.new(0, 0, patrolDistance)},
-                    {name = "កណ្ដាល", offset = Vector3.new(0, 0, 0)},
-                    {name = "ឆ្វេង", offset = Vector3.new(0, 0, -patrolDistance)},
-                    {name = "កណ្ដាល", offset = Vector3.new(0, 0, 0)},
-                }
-
-                local dirIndex = 1
+                local movingForward = true   -- ទិសដៅចាប់ផ្ដើម
                 while isLooping do
-                    local currentDir = directions[dirIndex]
-                    local targetPos = centerPos + currentDir.offset
-                    -- កំណត់កម្ពស់ហោះ
-                    targetPos = Vector3.new(targetPos.X, safeHeight, targetPos.Z)
+                    local targetX
+                    if movingForward then
+                        targetX = centerX + patrolDistance
+                    else
+                        targetX = centerX - patrolDistance
+                    end
+                    local targetPos = Vector3.new(targetX, safeHeight, centerZ)
 
-                    hintLabel.Text = "🧭 ល្បាត៖ " .. currentDir.name
+                    hintLabel.Text = "↔️ ដើរល្បាតទៅ " .. (movingForward and "មុខ" or "ក្រោយ")
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     smoothFlyTo(targetPos)
 
-                    -- ស្កេន Bubble រាល់ពេលទៅដល់ចំណុច
+                    -- ពេលដល់ចំណុចចុង ស្កេន Bubble
                     if not isLooping then break end
                     local targets = scanFullMap()
                     if #targets > 0 then
-                        hintLabel.Text = "🫧 ប្រមូល " .. #targets .. " Bubble"
+                        hintLabel.Text = "🫧 ប្រមូល " .. #targets .. " Bubble!"
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
 
                         table.sort(targets, function(a,b)
@@ -295,8 +304,8 @@ local function createGUI(imageAsset)
                         end
                     end
 
-                    -- ប្ដូរទៅទិសបន្ទាប់
-                    dirIndex = dirIndex % #directions + 1
+                    -- ត្រឡប់ទិសដៅ
+                    movingForward = not movingForward
                     task.wait(0.1)
                 end
             end)
