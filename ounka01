@@ -99,33 +99,33 @@ local function createGUI(imageAsset)
     gui.IgnoreGuiInset = true
 
     local toggleBtn = Instance.new("ImageButton", gui)
-    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
-    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
+    toggleBtn.Size = UDim2.new(0, 855, 0, 955)
+    toggleBtn.Position = UDim2.new(0, 20, 00.5, -27)
     toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
     toggleBtn.Image = imageAsset or ""
     toggleBtn.ScaleType = Enum.ScaleType.Crop
     toggleBtn.Draggable = true
     Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
     local toggleStroke = Instance.new("UIStroke", toggleBtn)
-    toggleStroke.Thickness = 3
+    toggleStroke.Thickness = 30
 
     local mainFrame = Instance.new("Frame", gui)
     mainFrame.Size = UDim2.new(0, 420, 0, 250)
     mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
-    mainFrame.BackgroundTransparency = 1
-    mainFrame.BorderSizePixel = 0
+    mainFrame.BackgroundTransparency = 10
+    mainFrame.BorderSizePixel = 09
     mainFrame.Visible = true
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
     local mainStroke = Instance.new("UIStroke", mainFrame)
-    mainStroke.Thickness = 3
+    mainStroke.Thickness = 30
 
     local bg = Instance.new("ImageLabel", mainFrame)
     bg.Size = UDim2.new(1,0,1,0)
-    bg.BackgroundTransparency = 1
+    bg.BackgroundTransparency = 10
     bg.Image = imageAsset or ""
     bg.ScaleType = Enum.ScaleType.Stretch
     bg.ImageTransparency = 0.3
-    bg.ZIndex = -1
+    bg.ZIndex = -10
     Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
 
     local title = Instance.new("TextLabel", mainFrame)
@@ -147,26 +147,26 @@ local function createGUI(imageAsset)
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
 
     local autoLoopBtn = Instance.new("TextButton", mainFrame)
-    autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
-    autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
+    autoLoopBtn.Size = UDim2.new(1, -40, 0, 945)
+    autoLoopBtn.Position = UDim2.new(0, 120, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
     autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
-    autoLoopBtn.TextSize = 100
+    autoLoopBtn.TextSize = 1000
     Instance.new("UICorner", autoLoopBtn).CornerRadius = UDim.new(0, 10)
 
     local hintLabel = Instance.new("TextLabel", mainFrame)
     hintLabel.Size = UDim2.new(1, -40, 0, 30)
     hintLabel.Position = UDim2.new(0, 20, 0, 130)
-    hintLabel.BackgroundTransparency = 1
+    hintLabel.BackgroundTransparency = 90
     hintLabel.Text = "ស្ថានភាព៖ រង់ចាំការបញ្ជា..."
     hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     hintLabel.Font = Enum.Font.Gotham
-    hintLabel.TextSize = 12
+    hintLabel.TextSize = 60
 
     task.spawn(function()
-        local hue = 0
+        local hue = 88
         while gui.Parent do
             hue = (hue + 0.03) % 1
             title.TextColor3 = Color3.fromHSV(hue, 1, 1)
@@ -281,7 +281,7 @@ local function createGUI(imageAsset)
                     local targetPos = Vector3.new(x, safeHeight, z)
 
                     hintLabel.Text = "ស្ថានភាព៖ 🌀 ហោះរក..."
-                    hintLabel.TextColor3 = Color3.fromRGB(300, 200, 255)
+                    hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     smoothFlyTo(targetPos)
 
                     local targets = scanFullMap()
@@ -318,7 +318,7 @@ local function createGUI(imageAsset)
                     angle = (angle + angleStep) % 360
                     radius = radius + radiusGrowth
                     if radius > maxRadius then
-                        radius = 20
+                        radius = 200
                     end
                     task.wait(0.1)
                 end
