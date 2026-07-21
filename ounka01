@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (Enhanced Detection + Debug)
+-- EVADE: Spiral Farm (Name Detection Only + Debug)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -33,8 +33,8 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- ស្វែងរក Bubble ដោយឈ្មោះ + ProximityPrompt/ClickDetector
-local function getValidTarget(obj)
+-- ស្វែងរកតែ Bubble តាមឈ្មោះ (មិនប្រើ Prompt/ClickDetector)
+local function getValidBubble(obj)
     if not obj then return nil end
     local name = obj.Name:lower()
     local parent = obj.Parent
@@ -42,23 +42,28 @@ local function getValidTarget(obj)
     local grandParent = parent and parent.Parent
     local grandParentName = grandParent and grandParent.Name:lower() or ""
 
-    -- ពិនិត្យឈ្មោះដែលអាចជា Bubble (ពង្រីកបញ្ជី)
-    local bubbleNames = {"bubble", "token", "coin", "orb", "star", "pickup", "event", "summer", "gem", "collect"}
-    local function matchesName(str)
-        for _, keyword in ipairs(bubbleNames) do
-            if str:find(keyword) then return true end
+    -- បញ្ជីពាក្យដែលអាចជា Bubble
+    local keywords = {"bubble", "token", "coin", "orb", "star", "summer", "event", "gem", "pickup"}
+
+    local function matches(str)
+        if not str then return false end
+        for _, kw in ipairs(keywords) do
+            if str:find(kw, 1, true) then return true end
         end
         return false
     end
 
     -- ពិនិត្យផ្នែកខ្លួនឯង
-    if matchesName(name) then
+    if matches(name) then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj end
-        if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart end
+        if obj:IsA("Model") then
+            local p = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+            if p then return p end
+        end
     end
 
-    -- ពិនិត្យ Parent (Model ឬ Folder)
-    if matchesName(parentName) then
+    -- ពិនិត្យ Parent (Model/Folder)
+    if matches(parentName) then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj end
         if obj:IsA("Model") then
             local p = obj:FindFirstChildWhichIsA("BasePart")
@@ -67,36 +72,39 @@ local function getValidTarget(obj)
     end
 
     -- ពិនិត្យ GrandParent
-    if matchesName(grandParentName) then
+    if matches(grandParentName) then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj end
     end
 
-    -- ចាប់យកអ្វីដែលមាន ProximityPrompt ឬ ClickDetector (វត្ថុប្រមូលភាគច្រើន)
-    if obj:IsA("BasePart") or obj:IsA("MeshPart") then
-        if obj:FindFirstChildOfClass("ProximityPrompt") or obj:FindFirstChildOfClass("ClickDetector") then
-            return obj
-        end
-    end
-    if obj:IsA("Model") then
-        if obj:FindFirstChildWhichIsA("ProximityPrompt") or obj:FindFirstChildWhichIsA("ClickDetector") then
-            local p = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-            if p then return p end
-        end
+    -- ប្រសិនបើឈ្មោះផ្នែកគឺ "handle" ហើយ parent មានពាក្យដូចជា bubble
+    if name == "handle" and matches(parentName) then
+        if obj:IsA("BasePart") then return obj end
     end
 
     return nil
 end
 
-local function scanFullMap()
+local function scanBubbles()
     local list = {}
     for _, obj in pairs(Workspace:GetDescendants()) do
-        local part = getValidTarget(obj)
-        if part and part:IsA("BasePart") and part ~= LocalPlayer.Character and not part:IsDescendantOf(LocalPlayer.Character) then
-            table.insert(list, part)
+        local part = getValidBubble(obj)
+        if part and part:IsA("BasePart") and part:IsDescendantOf(LocalPlayer.Character) == false then
+            -- កុំឲ្យចាប់យកផ្នែករបស់ខ្លួនឯង
+            local isPlayerPart = false
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr.Character and part:IsDescendantOf(plr.Character) then
+                    isPlayerPart = true
+                    break
+                end
+            end
+            if not isPlayerPart then
+                table.insert(list, part)
+                -- Debug: បង្ហាញឈ្មោះនិង parent
+                print("🫧 Bubble Detected:", part:GetFullName())
+            end
         end
     end
-    -- Debug: បង្ហាញចំនួនដែលរកឃើញ
-    print("🔍 រកឃើញ Bubble ចំនួន: " .. #list)
+    print("🔍 សរុប Bubble ដែលរកឃើញ: " .. #list)
     return list
 end
 
@@ -141,7 +149,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ ENHANCED SPIRAL (DEBUG)"
+    title.Text = "⚡ BUBBLE ONLY (DEBUG)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -160,7 +168,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើក Spiral (Debug រកឃើញច្រើន)"
+    autoLoopBtn.Text = "🔥 បើក Spiral (តែ Bubble តាមឈ្មោះ)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -189,7 +197,7 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (Spiral, Speed 100, Debug) ==============
+    --============== LOGIC (Spiral, Speed 100, Bubble Only) ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
@@ -285,14 +293,14 @@ local function createGUI(imageAsset)
                     local z = centerZ + math.sin(rad) * radius
                     local targetPos = Vector3.new(x, safeHeight, z)
 
-                    hintLabel.Text = "ស្ថានភាព៖ 🌀 Spiral (ល្បឿន 100)"
+                    hintLabel.Text = "ស្ថានភាព៖ 🌀 Spiral (រក Bubble ឈ្មោះ)"
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     smoothFlyTo(targetPos)
 
-                    -- រង់ចាំបន្ថែមឲ្យតំបន់ផ្ទុក
-                    task.wait(0.5)
+                    -- រង់ចាំយូរបន្តិចឲ្យតំបន់ផ្ទុក
+                    task.wait(0.8)
 
-                    local bubbles = scanFullMap()
+                    local bubbles = scanBubbles()
                     if #bubbles > 0 then
                         isAttacking = true
                         hintLabel.Text = "ស្ថានភាព៖ 🫧 ប្រមូល " .. #bubbles .. " Bubble"
@@ -326,7 +334,7 @@ local function createGUI(imageAsset)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើក Spiral (Debug រកឃើញច្រើន)"
+            autoLoopBtn.Text = "🔥 បើក Spiral (តែ Bubble តាមឈ្មោះ)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
