@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (VIP + ANTI-BAN) - FULL SCRIPT
+-- EVADE: VIP FARM (FULL SCRIPT) - ដំណើរការភ្លាមៗ
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -10,117 +10,26 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 --============== CONFIGURATION ==============
--- VIP KEYS (SHA256 hashed for security) - ប្ដូរតាមតម្រូវការ
--- ឧទាហរណ៍ VIP1 = "abc", VIP2 = "def", VIP3 = "ghi"
+-- 🔑 កំណត់សោ VIP នៅទីនេះ (អ្នកអាចប្តូរតាមចិត្ត)
 local VIP_KEYS = {
-    ["b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c"] = 1, -- sha256("VIP1_key")
-    ["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"] = 2, -- sha256("VIP2_key")
-    ["a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"] = 3, -- sha256("VIP3_key")
+    ["VIP1_key"] = 1,  -- កម្រិត 1: មូលដ្ឋាន
+    ["VIP2_key"] = 2,  -- កម្រិត 2: មធ្យម
+    ["VIP3_key"] = 3   -- កម្រិត 3: ខ្ពស់ (Anti-Ban ពិសេស)
 }
 
--- កម្រិត VIP ផ្តល់សិទ្ធិខុសៗគ្នា
--- 1: ប្រមូលតែ Bubble ធម្មតា (speed 300)
--- 2: ប្រមូល Bubble + Revive (speed 400)
--- 3: ទាំងអស់ + Anti-Ban ពិសេស (speed 500, ការពារបន្ថែម)
+-- លក្ខណៈសិទ្ធិតាមកម្រិត
 local VIP_FEATURES = {
     [1] = {speed = 300, collectRevive = false, antiBanExtra = false},
     [2] = {speed = 400, collectRevive = true,  antiBanExtra = false},
     [3] = {speed = 500, collectRevive = true,  antiBanExtra = true},
 }
 
---============== មុខងារសុវត្ថិភាព ==============
-local function sha256(input)
-    -- ក្លែងធ្វើដោយប្រើ hash សាមញ្ញ (មិនពិតប្រាកដ ប៉ុន្តែគ្រប់គ្រាន់សម្រាប់ស្គ្រីប)
-    -- ប្រសិនបើ executor របស់អ្នកគាំទ្រមុខងារពិត អាចជំនួសដោយ crypt.sha256
-    local function leftRotate(x, n) return ((x << n) | (x >> (32 - n))) & 0xFFFFFFFF end
-    
-    local H = {
-        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
-    }
-    
-    local K = {
-        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
-        0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-        0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
-        0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
-        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
-        0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
-        0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-        0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-    }
-    
-    local msg = {}
-    for i = 1, #input do
-        msg[i] = string.byte(input, i)
-    end
-    local bitLen = #input * 8
-    table.insert(msg, 0x80)
-    while (#msg + 8) % 64 ~= 0 do
-        table.insert(msg, 0)
-    end
-    for i = 0, 7 do
-        table.insert(msg, (bitLen >> (56 - i*8)) & 0xFF)
-    end
-    
-    for i = 1, #msg, 64 do
-        local w = {}
-        for j = 0, 15 do
-            local off = i + j*4
-            w[j] = (msg[off] or 0) * 0x1000000 + (msg[off+1] or 0) * 0x10000 + (msg[off+2] or 0) * 0x100 + (msg[off+3] or 0)
-        end
-        for j = 16, 63 do
-            local s0 = leftRotate(w[j-15], 7) ~ leftRotate(w[j-15], 18) ~ (w[j-15] // 3)
-            local s1 = leftRotate(w[j-2], 17) ~ leftRotate(w[j-2], 19) ~ (w[j-2] // 10)
-            w[j] = (w[j-16] + s0 + w[j-7] + s1) & 0xFFFFFFFF
-        end
-        
-        local a, b, c, d, e, f, g, h = unpack(H)
-        for j = 0, 63 do
-            local S1 = leftRotate(e, 6) ~ leftRotate(e, 11) ~ leftRotate(e, 25)
-            local ch = (e & f) ~ (~e & g)
-            local temp1 = (h + S1 + ch + K[j+1] + w[j]) & 0xFFFFFFFF
-            local S0 = leftRotate(a, 2) ~ leftRotate(a, 13) ~ leftRotate(a, 22)
-            local maj = (a & b) ~ (a & c) ~ (b & c)
-            local temp2 = (S0 + maj) & 0xFFFFFFFF
-            
-            h = g; g = f; f = e; e = (d + temp1) & 0xFFFFFFFF
-            d = c; c = b; b = a; a = (temp1 + temp2) & 0xFFFFFFFF
-        end
-        
-        H[1] = (H[1] + a) & 0xFFFFFFFF
-        H[2] = (H[2] + b) & 0xFFFFFFFF
-        H[3] = (H[3] + c) & 0xFFFFFFFF
-        H[4] = (H[4] + d) & 0xFFFFFFFF
-        H[5] = (H[5] + e) & 0xFFFFFFFF
-        H[6] = (H[6] + f) & 0xFFFFFFFF
-        H[7] = (H[7] + g) & 0xFFFFFFFF
-        H[8] = (H[8] + h) & 0xFFFFFFFF
-    end
-    
-    local function toHex(v) return string.format("%02x%02x%02x%02x", (v>>24)&0xFF, (v>>16)&0xFF, (v>>8)&0xFF, v&0xFF) end
-    return toHex(H[1])..toHex(H[2])..toHex(H[3])..toHex(H[4])..toHex(H[5])..toHex(H[6])..toHex(H[7])..toHex(H[8])
-end
-
--- ការពារការរកឃើញដោយ Anti-Cheat
-local function randomDelay(min, max)
-    task.wait(math.random() * (max - min) + min)
-end
-
---============== ជំនួយ Bubble ==============
+--============== ជំនួយរក Bubble ==============
 local function getValidTarget(obj)
-    -- (រក្សាមុខងារដដែលដូចស្គ្រីបដើម)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
     
+    -- Revive bubble (ProximityPrompt)
     if obj:IsA("ProximityPrompt") and obj.Parent then
         local action = obj.ActionText:lower()
         if action:find("revive") or name:find("revive") or action:find("carry") then
@@ -128,6 +37,7 @@ local function getValidTarget(obj)
         end
     end
 
+    -- កុំប្រមូលតួអង្គអ្នកលេង
     local ancestor = obj:FindFirstAncestorOfClass("Model")
     if ancestor and ancestor:FindFirstChildOfClass("Humanoid") then
         return nil, nil 
@@ -138,11 +48,13 @@ local function getValidTarget(obj)
     local grandParent = parent and parent.Parent
     local grandParentName = grandParent and grandParent.Name:lower() or ""
 
+    -- Bubble ដោយផ្ទាល់
     if name:find("bubble") or name:find("token") then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
         if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart, "item" end
     end
 
+    -- Bubble ជាកូន
     if parent and (parentName:find("bubble") or parentName:find("token")) then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
         if obj:IsA("Model") then
@@ -151,10 +63,12 @@ local function getValidTarget(obj)
         end
     end
 
+    -- Bubble ជាចៅ
     if grandParent and (grandParentName:find("bubble") or grandParentName:find("token")) then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
     end
 
+    -- Handle ក្នុង Bubble
     if name == "handle" and parent and (parentName:find("bubble") or parentName:find("token")) then
         if obj:IsA("BasePart") then return obj, "item" end
     end
@@ -164,10 +78,12 @@ end
 
 --============== GUI ==============
 local function createGUI()
-    if CoreGui:FindFirstChild("EvadeSpiralFarm_VIP") then CoreGui:FindFirstChild("EvadeSpiralFarm_VIP"):Destroy() end
+    if CoreGui:FindFirstChild("EvadeVIPFarm") then
+        CoreGui:FindFirstChild("EvadeVIPFarm"):Destroy()
+    end
 
     local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeSpiralFarm_VIP"
+    gui.Name = "EvadeVIPFarm"
 
     -- ប្រអប់បញ្ចូល Key
     local keyFrame = Instance.new("Frame", gui)
@@ -176,7 +92,7 @@ local function createGUI()
     keyFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
     keyFrame.BorderSizePixel = 0
     Instance.new("UICorner", keyFrame).CornerRadius = UDim.new(0,15)
-    
+
     local keyTitle = Instance.new("TextLabel", keyFrame)
     keyTitle.Size = UDim2.new(1,0,0,30)
     keyTitle.Position = UDim2.new(0,0,0,15)
@@ -215,13 +131,13 @@ local function createGUI()
     keyStatus.Font = Enum.Font.Gotham
     keyStatus.TextSize = 10
 
-    -- ជ្រុងមេ (នឹងបង្ហាញក្រោយពេល VIP ត្រឹមត្រូវ)
+    -- ផ្ទាំងមេ (បង្ហាញក្រោយដោះសោ)
     local mainFrame = Instance.new("Frame", gui)
     mainFrame.Size = UDim2.new(0, 420, 0, 250)
     mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
     mainFrame.BackgroundTransparency = 1
     mainFrame.BorderSizePixel = 0
-    mainFrame.Visible = false  -- លាក់ដំបូង
+    mainFrame.Visible = false
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
     local mainStroke = Instance.new("UIStroke", mainFrame)
     mainStroke.Thickness = 3
@@ -229,7 +145,7 @@ local function createGUI()
     local bg = Instance.new("ImageLabel", mainFrame)
     bg.Size = UDim2.new(1,0,1,0)
     bg.BackgroundTransparency = 1
-    bg.Image = ""  -- អ្នកអាចដាក់រូបភាពផ្ទាល់ខ្លួន
+    bg.Image = ""  -- អាចដាក់រូបភាពផ្ទាល់ខ្លួន
     bg.ScaleType = Enum.ScaleType.Stretch
     bg.ImageTransparency = 0.3
     bg.ZIndex = -1
@@ -272,7 +188,7 @@ local function createGUI()
     hintLabel.Font = Enum.Font.Gotham
     hintLabel.TextSize = 12
 
-    -- ចលនាពណ៌
+    -- ចលនាពណ៌ RGB
     task.spawn(function()
         local hue = 0
         while gui.Parent do
@@ -286,22 +202,21 @@ local function createGUI()
     --============== អថេរសកល ==============
     local isLooping = false
     local floatConnection
-    local safeHeight = 100
     local vipLevel = 0
     local features = nil
+    local safeHeight = 100  -- រយៈកម្ពស់ហោះ
 
-    --============== មុខងារ Anti-Ban និងហោះ ==============
+    --============== មុខងារការពារ និងហោះ ==============
     local function humanizedFlyTo(targetPos, speed)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
 
-        -- បន្ថែមការយោលបន្តិច
         local startPos = root.Position
         local distance = (startPos - targetPos).Magnitude
-        if distance < 2 then return end -- ជិតពេកមិនចាំបាច់
+        if distance < 2 then return end
 
-        -- ប្រើ Bezier Curve សាមញ្ញ (ធ្វើចលនាកោងបន្តិច)
+        -- បង្កើតចំណុចកណ្តាលកោងដើម្បីធ្វើឲ្យចលនាដូចមនុស្ស
         local midPoint = (startPos + targetPos) / 2 + Vector3.new(math.random(-10,10), math.random(5,15), math.random(-10,10))
         local steps = math.ceil(distance / 10) + 2
         for t = 0, 1, 1/steps do
@@ -312,7 +227,6 @@ local function createGUI()
             root.CFrame = CFrame.new(pos)
             task.wait(0.02 + math.random() * 0.02)
         end
-        -- ត្រូវប្រាកដថាដល់ទីតាំងពិតប្រាកដ
         root.CFrame = CFrame.new(targetPos)
     end
 
@@ -335,33 +249,32 @@ local function createGUI()
         end
     end
 
-    -- ប្រមូល Bubble ដោយមិនប្រើ fire (សុវត្ថិភាពបំផុត)
+    -- ប្រមូល Bubble ដោយគ្មាន fire (សុវត្ថិភាព 100%)
     local function safeCollect(bubblePart)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
         local timeout = tick() + 1.2
         repeat
             if not isLooping then return end
-            root.CFrame = bubblePart.CFrame * CFrame.new(0, 2.5, 0) -- ឈរពីលើ
+            root.CFrame = bubblePart.CFrame * CFrame.new(0, 2.5, 0)
             task.wait(0.08)
         until not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) or tick() > timeout
     end
 
-    --============== តក្កកម្ម VIP ==============
+    --============== ផ្ទៀងផ្ទាត់ VIP ==============
     keyBtn.MouseButton1Down:Connect(function()
         local rawKey = keyInput.Text
         if rawKey == "" then
             keyStatus.Text = "សូមបញ្ចូល Key!"
             return
         end
-        local hashed = sha256(rawKey)
-        local level = VIP_KEYS[hashed]
+        local level = VIP_KEYS[rawKey]
         if level then
             vipLevel = level
             features = VIP_FEATURES[level]
             keyFrame.Visible = false
             mainFrame.Visible = true
-            hintLabel.Text = "កម្រិត VIP: " .. level .. " (សិទ្ធិពិសេស)"
+            hintLabel.Text = "កម្រិត VIP: " .. level .. " (បានដោះសោ)"
             if level == 3 then
                 hintLabel.Text = hintLabel.Text .. " 🛡️ ANTI-BAN MAX"
             end
@@ -378,7 +291,7 @@ local function createGUI()
             startFloating(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
             autoLoopBtn.Text = "⏹️ ឈប់"
-            -- ចាប់ផ្តើមដំណើរការ
+
             task.spawn(function()
                 local char = LocalPlayer.Character
                 local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -386,13 +299,14 @@ local function createGUI()
 
                 local activeBubbles = {}
 
+                -- តាមដាន Bubble ថ្មីពេញម៉ោង
                 local function onDescendantAdded(obj)
                     local part, tType = getValidTarget(obj)
                     if not part then return end
                     if tType == "item" then
                         activeBubbles[part] = true
                     elseif tType == "revive" and features.collectRevive then
-                        activeBubbles[part] = {prompt = obj} -- revive
+                        activeBubbles[part] = {prompt = obj}
                     end
                 end
                 local function onDescendantRemoving(obj)
@@ -401,15 +315,13 @@ local function createGUI()
 
                 Workspace.DescendantAdded:Connect(onDescendantAdded)
                 Workspace.DescendantRemoving:Connect(onDescendantRemoving)
+                -- បំពេញ Bubble ដែលមានស្រាប់
                 for _, obj in pairs(Workspace:GetDescendants()) do
                     onDescendantAdded(obj)
                 end
 
-                -- រក្សាលំនឹង Anti-Ban
-                local lastActionTick = tick()
-
                 while isLooping do
-                    -- ស្វែងរក Bubble ជិតបំផុត
+                    -- រក Bubble ជិតបំផុត
                     local nearestPart, nearestData, minDist = nil, nil, math.huge
                     for part, data in pairs(activeBubbles) do
                         if part and part:IsDescendantOf(Workspace) then
@@ -427,29 +339,22 @@ local function createGUI()
                     if nearestPart then
                         hintLabel.Text = "🎯 ទៅកាន់ Bubble..."
                         local targetPos = nearestPart.Position + Vector3.new(0, safeHeight, 0)
-
-                        -- ហោះដោយភាពយឺតតាមកម្រិត VIP
                         humanizedFlyTo(targetPos, features.speed)
-
-                        -- ប្រមូល
                         safeCollect(nearestPart)
                         activeBubbles[nearestPart] = nil
 
-                        -- Anti-Ban៖ បន្ថែមការពន្យារពេលចៃដន្យ
+                        -- បន្ថែមពន្យារពេលតាមកម្រិត VIP
                         if features.antiBanExtra then
-                            randomDelay(0.3, 0.8)  -- កម្រិត 3 ពន្យារច្រើនជាង
+                            task.wait(math.random() * 0.5 + 0.3)
                         else
-                            randomDelay(0.1, 0.3)
+                            task.wait(math.random() * 0.2 + 0.1)
                         end
-                        lastActionTick = tick()
-
                         hintLabel.Text = "✅ ប្រមូលរួច (VIP" .. vipLevel .. ")"
                     else
-                        hintLabel.Text = "🔍 រក Bubble..."
-                        -- ហោះទៅកណ្តាលផែនទី (ដើម្បីស្វែងរក)
-                        local center = Vector3.new(0, safeHeight, 0) -- អាចប្តូរតាមផែនទី
-                        humanizedFlyTo(center, features.speed)
-                        randomDelay(0.5, 1.0)
+                        hintLabel.Text = "🔍 កំពុងស្វែងរក Bubble..."
+                        -- ហោះទៅកណ្តាលផែនទី (អាចកែតាមផែនទី)
+                        humanizedFlyTo(Vector3.new(0, safeHeight, 0), features.speed)
+                        task.wait(1)
                     end
                 end
             end)
@@ -463,7 +368,7 @@ local function createGUI()
 
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    -- អូសបាន
+    -- អូស GUI បាន
     local function makeDraggable(obj)
         local dragging, startPos, objPos
         obj.InputBegan:Connect(function(input)
