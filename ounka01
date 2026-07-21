@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Full Map Bubble Farm (Patrol Speed 60)
+-- EVADE: Grid Patrol Bubble Farm (Short Jumps, Full Coverage)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -64,47 +64,42 @@ local function scanFullMap()
     return list
 end
 
---============== ចំណុចល្បាតពេញផែនទី ==============
-local function getMapWaypoints()
-    local waypoints = {}
+--============== Grid Patrol Waypoints ==============
+local function getGridWaypoints(stepSize)
+    stepSize = stepSize or 100  -- ទំហំក្រឡា 100 studs
     local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
+    local minX, maxX, minZ, maxZ = -500, 500, -500, 500  -- ប្រសិនបើរក Map មិនឃើញ
+    
     if mapModel and mapModel:IsA("Model") then
-        local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
+        local found = false
+        minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
         for _, part in pairs(mapModel:GetDescendants()) do
             if part:IsA("BasePart") then
+                found = true
                 minX = math.min(minX, part.Position.X)
                 maxX = math.max(maxX, part.Position.X)
                 minZ = math.min(minZ, part.Position.Z)
                 maxZ = math.max(maxZ, part.Position.Z)
             end
         end
-        if minX ~= math.huge then
-            local center = Vector3.new((minX+maxX)/2, 0, (minZ+maxZ)/2)
-            waypoints = {
-                Vector3.new(minX, 0, minZ),
-                Vector3.new(maxX, 0, minZ),
-                Vector3.new(minX, 0, maxZ),
-                Vector3.new(maxX, 0, maxZ),
-                center
-            }
-            return waypoints
+        if not found then return {} end
+    end
+    
+    local waypoints = {}
+    for x = minX, maxX, stepSize do
+        for z = minZ, maxZ, stepSize do
+            table.insert(waypoints, Vector3.new(x, 0, z))
         end
     end
-    return {
-        Vector3.new(-500, 0, -500),
-        Vector3.new(500, 0, -500),
-        Vector3.new(-500, 0, 500),
-        Vector3.new(500, 0, 500),
-        Vector3.new(0, 0, 0)
-    }
+    return waypoints
 end
 
 --============== GUI ==============
 local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeFullMapFarm") then CoreGui:FindFirstChild("EvadeFullMapFarm"):Destroy() end
+    if CoreGui:FindFirstChild("EvadeGridFarm") then CoreGui:FindFirstChild("EvadeGridFarm"):Destroy() end
 
     local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeFullMapFarm"
+    gui.Name = "EvadeGridFarm"
     gui.IgnoreGuiInset = true
 
     local toggleBtn = Instance.new("ImageButton", gui)
@@ -140,7 +135,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ FULL MAP BUBBLE FARM (SPEED 60)"
+    title.Text = "⚡ GRID PATROL BUBBLE FARM"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -159,7 +154,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកល្បាតពេញផែនទី (Teleport ភ្លាមៗ)"
+    autoLoopBtn.Text = "🔥 បើកល្បាតក្រឡា (គ្របដណ្ដប់គ្រប់កន្លែង)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -193,7 +188,7 @@ local function createGUI(imageAsset)
     local floatConnection
     local safeHeight = 100
     local isAttacking = false
-    local tweenSpeed = 60  -- ល្បឿនហោះទៅ Bubble (តាមស្នើសុំ)
+    local tweenSpeed = 60  -- ល្បឿនហោះទៅ Bubble
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -252,7 +247,7 @@ local function createGUI(imageAsset)
             startFloating(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
             autoLoopBtn.Text = "⏹️ ឈប់ដំណើរការ"
-            local waypoints = getMapWaypoints()
+            local waypoints = getGridWaypoints(100)  -- ក្រឡា 100 studs
             local currentWaypoint = 1
 
             task.spawn(function()
@@ -260,15 +255,16 @@ local function createGUI(imageAsset)
                     local char = LocalPlayer.Character
                     local root = char and char:FindFirstChild("HumanoidRootPart")
                     if not root then task.wait(0.1) continue end
+                    if #waypoints == 0 then task.wait(0.5) continue end
 
-                    -- ល្បាតទៅចំណុចបន្ទាប់ (Teleport ភ្លាមៗ)
+                    -- ល្បាតទៅចំណុចក្រឡាបន្ទាប់ (Teleport ភ្លាមៗ)
                     local targetPos = waypoints[currentWaypoint]
-                    hintLabel.Text = "ស្ថានភាព៖ 📡 ល្បាត -> ចំណុច " .. currentWaypoint .. "/" .. #waypoints
+                    hintLabel.Text = "ស្ថានភាព៖ 📡 ល្បាត -> ក្រឡា " .. currentWaypoint .. "/" .. #waypoints
                     hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
                     root.CFrame = CFrame.new(targetPos.X, safeHeight, targetPos.Z)
-                    task.wait(0.2) -- រង់ចាំឲ្យផែនទីផ្ទុក
+                    task.wait(0.15) -- រង់ចាំឲ្យផែនទីផ្ទុក
 
-                    -- ស្កេនរក Bubble ក្នុងតំបន់ដែលទើបផ្ទុក
+                    -- ស្កេន Bubble ក្នុងតំបន់ដែលទើបផ្ទុក
                     local targets = scanFullMap()
                     if #targets > 0 then
                         isAttacking = true
@@ -282,7 +278,6 @@ local function createGUI(imageAsset)
                         for _, target in ipairs(targets) do
                             if not isLooping then break end
                             if target.part and target.part.Parent then
-                                -- ហោះយ៉ាងរលូនទៅ Bubble (ល្បឿន 60)
                                 smoothFlyTo(target.part.Position)
                                 ensureCollect(target.part)
                                 if target.type == "revive" and target.prompt then
@@ -291,20 +286,19 @@ local function createGUI(imageAsset)
                             end
                         end
 
-                        -- ត្រឡប់ទៅកម្ពស់សុវត្ថិភាព
                         smoothFlyTo(Vector3.new(root.Position.X, safeHeight, root.Position.Z))
                         isAttacking = false
                     end
 
-                    -- បន្តទៅចំណុចល្បាតបន្ទាប់
+                    -- បន្តទៅក្រឡាបន្ទាប់
                     currentWaypoint = currentWaypoint % #waypoints + 1
-                    task.wait(0.1) -- កុំឲ្យលឿនពេក
+                    task.wait(0.1)
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកល្បាតពេញផែនទី (Teleport ភ្លាមៗ)"
+            autoLoopBtn.Text = "🔥 បើកល្បាតក្រឡា (គ្របដណ្ដប់គ្រប់កន្លែង)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
