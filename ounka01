@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (SPEED 100 + PULL ALL BUBBLES)
+-- EVADE: Spiral Farm (FIXED CIRCLE PATROL + SPEED 100)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -110,8 +110,8 @@ local function createGUI(imageAsset)
     toggleStroke.Thickness = 3
 
     local mainFrame = Instance.new("Frame", gui)
-    mainFrame.Size = UDim2.new(0, 420, 0, 300)  -- ពង្រីកកម្ពស់បន្តិចដើម្បីដាក់ប៊ូតុងថ្មី
-    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -150)
+    mainFrame.Size = UDim2.new(0, 420, 0, 250)  -- ទំហំដើមវិញ
+    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
     mainFrame.BackgroundTransparency = 1
     mainFrame.BorderSizePixel = 0
     mainFrame.Visible = true
@@ -131,7 +131,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL FARM (STICK & PULL)"
+    title.Text = "⚡ SPIRAL FARM (FIXED CIRCLE)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -156,20 +156,9 @@ local function createGUI(imageAsset)
     autoLoopBtn.TextSize = 13
     Instance.new("UICorner", autoLoopBtn).CornerRadius = UDim.new(0, 10)
 
-    -- ប៊ូតុងទាញ Bubble ទាំងអស់
-    local pullBtn = Instance.new("TextButton", mainFrame)
-    pullBtn.Size = UDim2.new(1, -40, 0, 45)
-    pullBtn.Position = UDim2.new(0, 20, 0, 130)
-    pullBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
-    pullBtn.Text = "🧲 ទាញ Bubble ទាំងអស់មក"
-    pullBtn.TextColor3 = Color3.new(1,1,1)
-    pullBtn.Font = Enum.Font.GothamBold
-    pullBtn.TextSize = 13
-    Instance.new("UICorner", pullBtn).CornerRadius = UDim.new(0, 10)
-
     local hintLabel = Instance.new("TextLabel", mainFrame)
     hintLabel.Size = UDim2.new(1, -40, 0, 30)
-    hintLabel.Position = UDim2.new(0, 20, 0, 190)
+    hintLabel.Position = UDim2.new(0, 20, 0, 130)
     hintLabel.BackgroundTransparency = 1
     hintLabel.Text = "ស្ថានភាព៖ រង់ចាំការបញ្ជា..."
     hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -190,11 +179,11 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (SPEED 100 & STICK) ==============
+    --============== LOGIC (SPEED 100, FIXED CIRCLE PATROL) ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
-    local tweenSpeed = 100   -- <-- កែត្រឹមនេះ
+    local tweenSpeed = 100   -- ល្បឿនហោះ 100
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -249,37 +238,6 @@ local function createGUI(imageAsset)
         until not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) or tick() > timeout
     end
 
-    -- ✅ មុខងារទាញ Bubble ទាំងអស់មកតួអង្គ
-    local function pullAllBubbles()
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not root then
-            hintLabel.Text = "គ្មានតួអង្គទេ!"
-            hintLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-            return
-        end
-
-        local targets = scanFullMap()
-        if #targets == 0 then
-            hintLabel.Text = "មិនមាន Bubble ដើម្បីទាញទេ"
-            hintLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
-            return
-        end
-
-        local count = 0
-        for _, t in ipairs(targets) do
-            if t.part and t.part.Parent then
-                pcall(function()
-                    t.part.CFrame = root.CFrame * CFrame.new(0, 5, 0)  -- ទាញមកលើក្បាលបន្តិច
-                    count = count + 1
-                end)
-            end
-        end
-
-        hintLabel.Text = "✅ បានទាញ " .. count .. " Bubble មកកាន់អ្នក"
-        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-    end
-
     local function toggleAutoLoop()
         isLooping = not isLooping
         if isLooping then
@@ -291,6 +249,7 @@ local function createGUI(imageAsset)
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
+                -- រកកណ្ដាលផែនទី
                 local centerX, centerZ = 0, 0
                 local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
                 if mapModel and mapModel:IsA("Model") then
@@ -309,22 +268,23 @@ local function createGUI(imageAsset)
                     end
                 end
 
-                local radius = 20
+                -- ការកំណត់រង្វង់ថេរ (មិនពង្រីក)
+                local patrolRadius = 100   -- អ្នកអាចប្ដូរកាំនេះតាមចិត្ត
                 local angle = 0
-                local angleStep = 25
-                local radiusGrowth = 15
-                local maxRadius = 600
+                local angleStep = 30      -- ដឺក្រេក្នុងមួយជំហាន (លឿនឬយឺត)
 
                 while isLooping do
                     local rad = math.rad(angle)
-                    local x = centerX + math.cos(rad) * radius
-                    local z = centerZ + math.sin(rad) * radius
+                    local x = centerX + math.cos(rad) * patrolRadius
+                    local z = centerZ + math.sin(rad) * patrolRadius
                     local targetPos = Vector3.new(x, safeHeight, z)
 
-                    hintLabel.Text = "ស្ថានភាព៖ 🌀 ហោះរកទីតាំងថ្មី"
+                    hintLabel.Text = "ស្ថានភាព៖ 🌀 ល្បាតជុំវិញកន្លែង"
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     smoothFlyTo(targetPos)
 
+                    -- មកដល់ចំណុចហើយ ស្កេន Bubble
+                    if not isLooping then break end
                     local targets = scanFullMap()
                     if #targets > 0 then
                         hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងប្រមូល " .. #targets .. " Bubble!"
@@ -355,25 +315,21 @@ local function createGUI(imageAsset)
                         end
                     end
 
+                    -- ផ្លាស់មុំ ប៉ុន្តែកាំនៅដដែល
                     angle = (angle + angleStep) % 360
-                    radius = radius + radiusGrowth
-                    if radius > maxRadius then
-                        radius = 20
-                    end
                     task.wait(0.1)
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកការប្រមូល មកកក Bubble"
+            autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
     end
 
     autoLoopBtn.MouseButton1Down:Connect(toggleAutoLoop)
-    pullBtn.MouseButton1Down:Connect(pullAllBubbles)  -- ភ្ជាប់ប៊ូតុងទាញ
     makeDraggable(mainFrame)
 end
 
