@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Back-and-Forth Patrol (SIMPLE LINE)
+-- EVADE: Cross Patrol (Forward-Back + Left-Right)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -123,7 +123,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⬅️➡️ BACK-FORTH SIMPLE"
+    title.Text = "➕ CROSS PATROL (4 DIR)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -171,13 +171,13 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC ==============
+    --============== LOGIC (CROSS PATROL) ==============
     local isLooping = false
     local floatConnection
-    local safeHeight = 40          -- កម្ពស់ហោះ
+    local safeHeight = 40          -- កម្ពស់ហោះ (អាចកែបាន)
     local tweenSpeed = 250         -- ល្បឿន
-    local stickTimeout = 0.9         -- ពេលត្រាំ Bubble
-    local patrolDistance = 100     -- <--- ចម្ងាយទៅមុខ (អាចប្ដូរលេខនេះ)
+    local stickTimeout = 2         -- ពេលត្រាំ Bubble
+    local patrolDistance = 100     -- ចម្ងាយទៅមុខ/ឆ្វេង/ស្ដាំ (អាចកែបាន)
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -238,21 +238,29 @@ local function createGUI(imageAsset)
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
-                -- យកទីតាំងបច្ចុប្បន្នជាចំណុចចាប់ផ្ដើម
-                local startPos = root.Position
-                local goingForward = true
+                -- យកទីតាំងបច្ចុប្បន្នជាចំណុចកណ្ដាល
+                local centerPos = root.Position
 
+                -- លំដាប់ទិស៖ មុខ -> ក្រោយ -> ស្ដាំ -> ក្រោយ -> ឆ្វេង -> ក្រោយ -> ហើយធ្វើដដែល
+                local directions = {
+                    {name = "មុខ", offset = Vector3.new(patrolDistance, 0, 0)},
+                    {name = "កណ្ដាល", offset = Vector3.new(0, 0, 0)},
+                    {name = "ស្ដាំ", offset = Vector3.new(0, 0, patrolDistance)},
+                    {name = "កណ្ដាល", offset = Vector3.new(0, 0, 0)},
+                    {name = "ឆ្វេង", offset = Vector3.new(0, 0, -patrolDistance)},
+                    {name = "កណ្ដាល", offset = Vector3.new(0, 0, 0)},
+                }
+
+                local dirIndex = 1
                 while isLooping do
-                    local targetPos
-                    if goingForward then
-                        targetPos = startPos + Vector3.new(patrolDistance, 0, 0)
-                    else
-                        targetPos = startPos
-                    end
+                    local currentDir = directions[dirIndex]
+                    local targetPos = centerPos + currentDir.offset
+                    -- កំណត់កម្ពស់ហោះ
+                    targetPos = Vector3.new(targetPos.X, safeHeight, targetPos.Z)
 
-                    hintLabel.Text = goingForward and "➡️ ទៅមុខ" or "⬅️ ថយក្រោយ"
+                    hintLabel.Text = "🧭 ល្បាត៖ " .. currentDir.name
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-                    smoothFlyTo(Vector3.new(targetPos.X, safeHeight, targetPos.Z))
+                    smoothFlyTo(targetPos)
 
                     -- ស្កេន Bubble រាល់ពេលទៅដល់ចំណុច
                     if not isLooping then break end
@@ -287,7 +295,8 @@ local function createGUI(imageAsset)
                         end
                     end
 
-                    goingForward = not goingForward
+                    -- ប្ដូរទៅទិសបន្ទាប់
+                    dirIndex = dirIndex % #directions + 1
                     task.wait(0.1)
                 end
             end)
