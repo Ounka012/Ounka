@@ -1,7 +1,7 @@
---[[
-    EVADE: Summer Event Auto Farm (100M Sky Radar Edition)
-    ហោះកម្ពស់ ១០០ ម៉ែត្រ, ចុះស៊ីមួយគ្រាប់ឡើងវិញភ្លាមៗ + ប្រព័ន្ធរ៉ាដាស្កេនពេញ Map
---]]
+-- ==============================================================================
+-- ស្គ្រីប: EVADE Auto Farm (សុវត្ថិភាពកម្ពស់ ១០០ ម៉ែត្រ + ឆាបស៊ីល្បឿនលឿន)
+-- លក្ខណៈពិសេស: កូដស្រឡះងាយស្រួលមើល មិនញ៉ាំញ៉ៃ និងស៊ី Bubble បានច្រើន
+-- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -10,203 +10,186 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
-local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
-local FILE_NAME = "bg.jpg"
+-- កម្ពស់សុវត្ថិភាពដែលបងចង់បាន
+local SAFE_HEIGHT = 100 
 
+-- អថេរសម្រាប់គ្រប់គ្រងដំណើរការ
+local isLooping = false
+local floatConnection = nil
+local isAttacking = false
+
+-- ==============================================================================
+-- ផ្នែកទី ១៖ អនុគមន៍ (Functions) សំខាន់ៗ
+-- ==============================================================================
+
+-- ១. អនុគមន៍សម្រាប់ធ្វើឱ្យផ្ទាំង UI អាចចាប់អូសបាន (Draggable)
 local function makeDraggable(guiObject)
     local dragging, startPos, objPos
     guiObject.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; startPos = input.Position; objPos = guiObject.Position
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            startPos = input.Position
+            objPos = guiObject.Position
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - startPos
-            guiObject.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
+            guiObject.Position = UDim2.new(
+                objPos.X.Scale, objPos.X.Offset + delta.X, 
+                objPos.Y.Scale, objPos.Y.Offset + delta.Y
+            )
         end
     end)
     guiObject.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = false
         end
     end)
 end
 
+-- ២. អនុគមន៍សម្រាប់ពិនិត្យថាតើវត្ថុនោះជា Bubble ឬអត់
 local function getValidTarget(obj)
-    if not obj then return nil, nil end
+    if not obj then return nil end
     local name = obj.Name:lower()
 
-    if name:find("bubble") or name:find("bubblepart") or name:find("token") then
-        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
-        if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart, "item" end
-        if obj:IsA("Model") then 
-            local p = obj:FindFirstChildWhichIsA("BasePart")
-            if p then return p, "item" end
+    -- ស្វែងរកវត្ថុដែលមានឈ្មោះ bubble ឬ token
+    if name:find("bubble") or name:find("token") then
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then 
+            return obj 
+        elseif obj:IsA("Model") and obj.PrimaryPart then 
+            return obj.PrimaryPart 
         end
+    end
+    return nil
+end
+
+-- ៣. អនុគមន៍សម្រាប់ស្កេនរក Bubble ទាំងអស់នៅលើ Map
+local function scanFullMap()
+    local bubbleList = {}
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        local targetPart = getValidTarget(obj)
+        if targetPart then
+            table.insert(bubbleList, { part = targetPart })
+        end
+    end
+    return bubbleList
+end
+
+-- ៤. អនុគមន៍សម្រាប់បង្ខំតួអង្គឱ្យអណ្តែតនៅកម្ពស់ ១០០ ម៉ែត្រ
+local function toggleFloating(enable)
+    if floatConnection then 
+        floatConnection:Disconnect() 
+        floatConnection = nil 
     end
     
-    if obj:IsA("ProximityPrompt") and obj.Parent then
-        local action = obj.ActionText:lower()
-        if action:find("revive") or name:find("revive") or action:find("carry") then
-            return obj.Parent, "revive"
-        end
-    end
-    return nil, nil
-end
-
-local function scanFullMap()
-    local list = {}
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        local part, tType = getValidTarget(obj)
-        if part and part:IsA("BasePart") then
-            table.insert(list, {part = part, type = tType, prompt = (tType == "revive" and obj or nil)})
-        end
-    end
-    return list
-end
-
-local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeSummerFarm") then CoreGui:FindFirstChild("EvadeSummerFarm"):Destroy() end
-
-    local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeSummerFarm"
-    gui.IgnoreGuiInset = true
-
-    local toggleBtn = Instance.new("ImageButton", gui)
-    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
-    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    toggleBtn.Image = imageAsset or ""
-    toggleBtn.ScaleType = Enum.ScaleType.Crop
-    toggleBtn.Draggable = true
-    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
-    local toggleStroke = Instance.new("UIStroke", toggleBtn)
-    toggleStroke.Thickness = 3
-
-    local mainFrame = Instance.new("Frame", gui)
-    mainFrame.Size = UDim2.new(0, 420, 0, 250)
-    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
-    mainFrame.BackgroundTransparency = 1
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Visible = true
-    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
-    local mainStroke = Instance.new("UIStroke", mainFrame)
-    mainStroke.Thickness = 3
-
-    local bg = Instance.new("ImageLabel", mainFrame)
-    bg.Size = UDim2.new(1,0,1,0)
-    bg.BackgroundTransparency = 1
-    bg.Image = imageAsset or ""
-    bg.ScaleType = Enum.ScaleType.Stretch
-    bg.ImageTransparency = 0.3
-    bg.ZIndex = -1
-    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
-
-    local title = Instance.new("TextLabel", mainFrame)
-    title.Size = UDim2.new(1,0,0,45)
-    title.BackgroundTransparency = 1
-    title.Text = "☁️ EVADE: 100M RADAR AUTO"
-    title.Font = Enum.Font.GothamBlack
-    title.TextSize = 14
-    title.TextColor3 = Color3.new(1,1,1)
-
-    local closeBtn = Instance.new("TextButton", mainFrame)
-    closeBtn.Size = UDim2.new(0,35,0,35)
-    closeBtn.Position = UDim2.new(1,-45,0,10)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(200,40,40)
-    closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.new(1,1,1)
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 14
-    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
-
-    local autoLoopBtn = Instance.new("TextButton", mainFrame)
-    autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
-    autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
-    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធហោះស្កេនកម្ពស់ ១០០ ម៉ែត្រ"
-    autoLoopBtn.TextColor3 = Color3.new(1,1,1)
-    autoLoopBtn.Font = Enum.Font.GothamBold
-    autoLoopBtn.TextSize = 13
-    Instance.new("UICorner", autoLoopBtn).CornerRadius = UDim.new(0, 10)
-
-    local hintLabel = Instance.new("TextLabel", mainFrame)
-    hintLabel.Size = UDim2.new(1, -40, 0, 30)
-    hintLabel.Position = UDim2.new(0, 20, 0, 130)
-    hintLabel.BackgroundTransparency = 1
-    hintLabel.Text = "ស្ថានភាព៖ រង់ចាំការបញ្ជា..."
-    hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    hintLabel.Font = Enum.Font.Gotham
-    hintLabel.TextSize = 12
-
-    task.spawn(function()
-        local hue = 0
-        while gui.Parent do
-            hue = (hue + 0.03) % 1
-            title.TextColor3 = Color3.fromHSV(hue, 1, 1)
-            mainStroke.Color = Color3.fromHSV(hue, 1, 1)
-            toggleStroke.Color = Color3.fromHSV((hue+0.3)%1, 1, 1)
-            task.wait(0.04)
-        end
-    end)
-
-    toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
-    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
-
-    local isLooping = false
-    local floatConnection
-    local skyHeight = 100 -- កម្ពស់ ១០០ ម៉ែត្រ
-    local isAttacking = false
-
-    local function startFloating(enable)
-        if floatConnection then floatConnection:Disconnect() floatConnection = nil end
-        if enable then
-            floatConnection = RunService.Stepped:Connect(function()
-                local char = LocalPlayer.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                if root and not isAttacking then
-                    root.Velocity = Vector3.new(0, 0, 0)
-                    local currentPos = root.Position
-                    root.CFrame = CFrame.new(currentPos.X, skyHeight, currentPos.Z)
-                end
-                if char then
-                    for _, part in pairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then part.CanCollide = false end
+    if enable then
+        floatConnection = RunService.Stepped:Connect(function()
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            
+            -- បើមិនកំពុងចុះស៊ីគ្រាប់ទេ ឱ្យនៅអណ្តែតស្ងៀម
+            if root and not isAttacking then
+                root.Velocity = Vector3.new(0, 0, 0)
+                root.CFrame = CFrame.new(root.Position.X, SAFE_HEIGHT, root.Position.Z)
+            end
+            
+            -- បិទការប៉ះទង្គិច (NoClip) ដើម្បីកុំឱ្យទាក់ជាប់ជញ្ជាំង
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then 
+                        part.CanCollide = false 
                     end
                 end
-            end)
-        end
+            end
+        end)
+    end
+end
+
+-- ==============================================================================
+-- ផ្នែកទី ២៖ ការបង្កើតផ្ទាំងបញ្ជា (UI Creation)
+-- ==============================================================================
+
+local function createCleanGUI()
+    -- លុបផ្ទាំងចាស់ចោលបើសិនជាមាន
+    if CoreGui:FindFirstChild("EvadeCleanUI") then 
+        CoreGui:FindFirstChild("EvadeCleanUI"):Destroy() 
     end
 
-    local function hitSingleTarget(targetPos)
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        
-        isAttacking = true
-        local oldX, oldZ = root.Position.X, root.Position.Z
-        
-        -- ចុះទៅបុកស៊ីមួយប៉ប្រិចភ្នែក
-        root.CFrame = CFrame.new(targetPos)
-        root.Velocity = Vector3.new(0,0,0)
-        task.wait(0.04) 
-        
-        -- ឡើងមកកម្ពស់ ១០០ ម៉ែត្រវិញភ្លាមៗ
-        root.CFrame = CFrame.new(oldX, skyHeight, oldZ)
-        isAttacking = false
-    end
+    -- បង្កើតផ្ទាំង ScreenGui ថ្មី
+    local gui = Instance.new("ScreenGui", CoreGui)
+    gui.Name = "EvadeCleanUI"
 
-    local function toggleAutoLoop()
+    -- ផ្ទាំងផ្ទៃខាងក្រោយ
+    local mainFrame = Instance.new("Frame", gui)
+    mainFrame.Size = UDim2.new(0, 350, 0, 150)
+    mainFrame.Position = UDim2.new(0.5, -175, 0.5, -75)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    mainFrame.BorderSizePixel = 0
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+    
+    -- ស៊ុមពណ៌ជុំវិញផ្ទាំង
+    local stroke = Instance.new("UIStroke", mainFrame)
+    stroke.Thickness = 2
+    stroke.Color = Color3.fromRGB(0, 150, 255)
+
+    -- ចំណងជើង
+    local title = Instance.new("TextLabel", mainFrame)
+    title.Size = UDim2.new(1, 0, 0, 40)
+    title.BackgroundTransparency = 1
+    title.Text = "🛡️ Auto Farm (១០០ ម៉ែត្រ)"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 16
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+    -- ប៊ូតុង បិទ (X)
+    local closeBtn = Instance.new("TextButton", mainFrame)
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -35, 0, 5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.Text = "X"
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
+
+    -- ប៊ូតុង បើកដំណើរការ (Start)
+    local actionBtn = Instance.new("TextButton", mainFrame)
+    actionBtn.Size = UDim2.new(1, -40, 0, 45)
+    actionBtn.Position = UDim2.new(0, 20, 0, 50)
+    actionBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    actionBtn.Text = "🚀 ចាប់ផ្តើមស្កេន និងស៊ី"
+    actionBtn.Font = Enum.Font.GothamBold
+    actionBtn.TextSize = 14
+    actionBtn.TextColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", actionBtn).CornerRadius = UDim.new(0, 8)
+
+    -- អត្ថបទបង្ហាញស្ថានភាពខាងក្រោម
+    local statusLabel = Instance.new("TextLabel", mainFrame)
+    statusLabel.Size = UDim2.new(1, 0, 0, 30)
+    statusLabel.Position = UDim2.new(0, 0, 0, 110)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "ស្ថានភាព៖ សម្រាក..."
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.TextSize = 13
+    statusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+
+    makeDraggable(mainFrame)
+
+    -- ==============================================================================
+    -- ផ្នែកទី ៣៖ ដំណើរការនៃកូដកណ្តាល (Main Logic Loop)
+    -- ==============================================================================
+    
+    actionBtn.MouseButton1Down:Connect(function()
         isLooping = not isLooping
 
         if isLooping then
-            startFloating(true)
-            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
-            autoLoopBtn.Text = "⏹️ ឈប់ហោះអណ្តែត"
+            toggleFloating(true)
+            actionBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 40)
+            actionBtn.Text = "⏹️ បញ្ឈប់"
 
             task.spawn(function()
-                local scanTick = tick()
+                local scanTimer = tick()
+
                 while isLooping do
                     local char = LocalPlayer.Character
                     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -214,36 +197,49 @@ local function createGUI(imageAsset)
                     if root then
                         local targets = scanFullMap()
                         
+                        -- ប្រសិនបើមាន Bubble លេចឡើងនៅលើ Map
                         if #targets > 0 then
+                            isAttacking = true 
+                            
+                            -- រៀបចម្ងាយ Bubble ឱ្យស៊ីពីជិតទៅឆ្ងាយ
                             table.sort(targets, function(a, b)
                                 return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
                             end)
                             
-                            local closest = targets[1]
-                            if closest.part and closest.part.Parent then
-                                hintLabel.Text = "ស្ថានភាព៖ ⚡ ចុះស៊ីគ្រាប់រួចហោះឡើង ១០០ម វិញ..."
-                                hintLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
-                                
-                                hitSingleTarget(closest.part.Position)
-                                
-                                if closest.type == "revive" and closest.prompt then
-                                    pcall(function() fireproximityprompt(closest.prompt, 1) end)
+                            statusLabel.Text = "ស្ថានភាព៖ 🔥 ចុះទៅឆាបស៊ី (Chain Hit)..."
+                            statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+                            
+                            -- លោតទៅស៊ី Bubble ជាប់ៗគ្នាអតិបរមា ១០ គ្រាប់ក្នុង ១ ជុំ
+                            for i, target in ipairs(targets) do
+                                if not isLooping then break end
+                                if target.part and target.part.Parent then
+                                    -- Teleport ចុះទៅស៊ីគ្រាប់
+                                    root.CFrame = CFrame.new(target.part.Position)
+                                    root.Velocity = Vector3.new(0, 0, 0)
+                                    task.wait(0.02) -- ចំណាយពេលត្រឹមតែ 0.02 វិនាទីក្នុងមួយគ្រាប់
                                 end
+                                
+                                if i >= 10 then break end
                             end
+                            
+                            -- ពេលស៊ីចប់ ១០ គ្រាប់ វានឹងស្ទុះហោះមក ១០០ ម៉ែត្រវិញភ្លាមៗ
+                            isAttacking = false 
+                            task.wait(0.2) 
                         else
-                            -- បើកប្រព័ន្ធលោតទីតាំងល្បាតរាល់ ១.៥ វិនាទី បើរក Bubble មិនឃើញ
-                            if tick() - scanTick > 1.5 then
-                                scanTick = tick()
-                                hintLabel.Text = "ស្ថានភាព៖ 📡 ហោះលោតទីតាំងស្កេនរកតំបន់ថ្មីៗ..."
-                                hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
+                            -- ប្រសិនបើរាវរកមិនឃើញ Bubble ទេ (ដោយសារនៅខ្ពស់ពេក Map អត់ Load)
+                            -- រាល់ ១.៥ វិនាទី វានឹង Teleport ទៅតាមតួអង្គអ្នកលេងផ្សេង ដើម្បីឱ្យ Map វា Load ចេញ Bubble មក
+                            if tick() - scanTimer > 1.5 then
+                                scanTimer = tick()
+                                statusLabel.Text = "ស្ថានភាព៖ 📡 លោតតាមដានអ្នកលេងផ្សេងដើម្បីស្កេន..."
+                                statusLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
                                 
                                 local allPlayers = Players:GetPlayers()
-                                local randomPlayer = allPlayers[math.random(1, #allPlayers)]
+                                local randomTarget = allPlayers[math.random(1, #allPlayers)]
                                 
-                                if randomPlayer and randomPlayer.Character and randomPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                                    local pPos = randomPlayer.Character.HumanoidRootPart.Position
-                                    -- លោតទៅលើក្បាល Player ផ្សេងកម្ពស់ ១០០ម ដើម្បី Load Map
-                                    root.CFrame = CFrame.new(pPos.X, skyHeight, pPos.Z)
+                                if randomTarget and randomTarget ~= LocalPlayer and randomTarget.Character and randomTarget.Character:FindFirstChild("HumanoidRootPart") then
+                                    local pPos = randomTarget.Character.HumanoidRootPart.Position
+                                    -- Teleport ទៅតាមពីលើក្បាលគេកម្ពស់ ១០០ម 
+                                    root.CFrame = CFrame.new(pPos.X, SAFE_HEIGHT, pPos.Z)
                                 end
                             end
                         end
@@ -252,22 +248,22 @@ local function createGUI(imageAsset)
                 end
             end)
         else
-            startFloating(false)
-            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🚀 បើកប្រព័ន្ធហោះស្កេនកម្ពស់ ១០០ ម៉ែត្រ"
-            hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
-            hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            -- ពេលចុចបញ្ឈប់
+            toggleFloating(false)
+            actionBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+            actionBtn.Text = "🚀 ចាប់ផ្តើមស្កេន និងស៊ី"
+            statusLabel.Text = "ស្ថានភាព៖ សម្រាក..."
+            statusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
         end
-    end
+    end)
 
-    autoLoopBtn.MouseButton1Down:Connect(toggleAutoLoop)
-    makeDraggable(mainFrame)
+    -- បិទផ្ទាំង GUI ទាំងស្រុង
+    closeBtn.MouseButton1Down:Connect(function()
+        isLooping = false
+        toggleFloating(false)
+        gui:Destroy()
+    end)
 end
 
-local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
-if ok and response and response.StatusCode == 200 then
-    writefile(FILE_NAME, response.Body)
-    createGUI(getcustomasset(FILE_NAME))
-else
-    createGUI("")
-end
+-- ដំណើរការបង្កើតផ្ទាំង GUI
+createCleanGUI()
