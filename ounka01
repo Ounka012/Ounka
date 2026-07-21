@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Circular Local Bubble Farm (Stay in One Area)
+-- EVADE: Spiral Farm (Detects ALL Bubbles)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -33,17 +33,41 @@ local function makeDraggable(guiObject)
     end)
 end
 
+-- កំណែថ្មី៖ ឆ្លាតជាងមុន រក Bubble គ្រប់ប្រភេទ
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
-    if name:find("bubble") or name:find("bubblepart") or name:find("token") then
+    local parent = obj.Parent
+    local parentName = parent and parent.Name:lower() or ""
+    local grandParent = parent and parent.Parent
+    local grandParentName = grandParent and grandParent.Name:lower() or ""
+
+    -- ពិនិត្យផ្នែកខ្លួនឯង
+    if name:find("bubble") or name:find("token") then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
         if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart, "item" end
-        if obj:IsA("Model") then 
+    end
+
+    -- ប្រសិនបើជា Model (ឬផ្នែកដែលមាន Parent មានឈ្មោះ Bubble)
+    if parent and (parentName:find("bubble") or parentName:find("token")) then
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
+        if obj:IsA("Model") then
             local p = obj:FindFirstChildWhichIsA("BasePart")
             if p then return p, "item" end
         end
     end
+
+    -- ប្រសិនបើ Parent របស់ Parent មានឈ្មោះ Bubble (ឧ. Model > Folder > Part)
+    if grandParent and (grandParentName:find("bubble") or grandParentName:find("token")) then
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
+    end
+
+    -- ប្រសិនបើជា Handle ហើយ Parent ជា Model ដែលមានឈ្មោះ Bubble
+    if name == "handle" and parent and (parentName:find("bubble") or parentName:find("token")) then
+        if obj:IsA("BasePart") then return obj, "item" end
+    end
+
+    -- Revive Prompt (មិនផ្លាស់ប្តូរ)
     if obj:IsA("ProximityPrompt") and obj.Parent then
         local action = obj.ActionText:lower()
         if action:find("revive") or name:find("revive") or action:find("carry") then
@@ -64,41 +88,12 @@ local function scanFullMap()
     return list
 end
 
--- រកចំណុចកណ្ដាលនៃ Bubble (ឬប្រើចំណុចកណ្ដាលផែនទី)
-local function getCenterOfBubbles()
-    local bubbles = scanFullMap()
-    if #bubbles > 0 then
-        local sumX, sumZ, count = 0, 0, 0
-        for _, b in ipairs(bubbles) do
-            sumX = sumX + b.part.Position.X
-            sumZ = sumZ + b.part.Position.Z
-            count = count + 1
-        end
-        return Vector3.new(sumX / count, 0, sumZ / count)
-    end
-    -- បើគ្មាន Bubble ប្រើកណ្ដាលផែនទី
-    local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
-    if mapModel then
-        local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
-        for _, part in pairs(mapModel:GetDescendants()) do
-            if part:IsA("BasePart") then
-                minX = math.min(minX, part.Position.X)
-                maxX = math.max(maxX, part.Position.X)
-                minZ = math.min(minZ, part.Position.Z)
-                maxZ = math.max(maxZ, part.Position.Z)
-            end
-        end
-        return Vector3.new((minX+maxX)/2, 0, (minZ+maxZ)/2)
-    end
-    return Vector3.new(0, 0, 0)
-end
-
 --============== GUI ==============
 local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeCircleFarm") then CoreGui:FindFirstChild("EvadeCircleFarm"):Destroy() end
+    if CoreGui:FindFirstChild("EvadeSpiralFarm") then CoreGui:FindFirstChild("EvadeSpiralFarm"):Destroy() end
 
     local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeCircleFarm"
+    gui.Name = "EvadeSpiralFarm"
     gui.IgnoreGuiInset = true
 
     local toggleBtn = Instance.new("ImageButton", gui)
@@ -134,7 +129,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ CIRCLE PATROL (BUBBLE ZONE)"
+    title.Text = "⚡ SPIRAL (រកឃើញទាំងអស់)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -153,7 +148,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើករបៀបហោះវង់ (ប្រមូល Bubble ក្នុងតំបន់)"
+    autoLoopBtn.Text = "🔥 បើក Spiral (ឥឡូវរកឃើញច្រើន)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -182,14 +177,12 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (Circular Patrol) ==============
+    --============== LOGIC (Spiral) ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
     local isAttacking = false
     local tweenSpeed = 60
-    local patrolRadius = 150  -- កាំនៃរង្វង់
-    local patrolSteps = 8     -- ចំនួនចំណុចក្នុងរង្វង់មួយជុំ
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -250,29 +243,40 @@ local function createGUI(imageAsset)
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
-                -- រកចំណុចកណ្ដាល Bubble ដំបូង
-                local center = getCenterOfBubbles()
+                local centerX, centerZ = 0, 0
+                local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
+                if mapModel and mapModel:IsA("Model") then
+                    local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
+                    for _, part in pairs(mapModel:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            minX = math.min(minX, part.Position.X)
+                            maxX = math.max(maxX, part.Position.X)
+                            minZ = math.min(minZ, part.Position.Z)
+                            maxZ = math.max(maxZ, part.Position.Z)
+                        end
+                    end
+                    if minX ~= math.huge then
+                        centerX = (minX + maxX) / 2
+                        centerZ = (minZ + maxZ) / 2
+                    end
+                end
+
+                local radius = 20
                 local angle = 0
-                local lastCenterUpdate = tick()
+                local angleStep = 25
+                local radiusGrowth = 15
+                local maxRadius = 600
 
                 while isLooping do
-                    -- រៀងរាល់ 5 វិនាទី ធ្វើបច្ចុប្បន្នភាពចំណុចកណ្ដាល (ប្រសិនបើ Bubble រើ)
-                    if tick() - lastCenterUpdate > 5 then
-                        center = getCenterOfBubbles()
-                        lastCenterUpdate = tick()
-                    end
+                    local rad = math.rad(angle)
+                    local x = centerX + math.cos(rad) * radius
+                    local z = centerZ + math.sin(rad) * radius
+                    local targetPos = Vector3.new(x, safeHeight, z)
 
-                    -- គណនាចំណុចបន្ទាប់នៅលើរង្វង់
-                    local radians = math.rad(angle)
-                    local offset = Vector3.new(math.cos(radians) * patrolRadius, 0, math.sin(radians) * patrolRadius)
-                    local targetPos = center + offset
-                    local flyPos = Vector3.new(targetPos.X, safeHeight, targetPos.Z)
-
-                    hintLabel.Text = "ស្ថានភាព៖ 🛩️ ហោះវង់... (កាំ "..patrolRadius..")"
+                    hintLabel.Text = "ស្ថានភាព៖ 🌀 Spiral (រកឃើញច្រើនជាងមុន)"
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-                    smoothFlyTo(flyPos)
+                    smoothFlyTo(targetPos)
 
-                    -- ស្កេន Bubble នៅត្រង់នេះ
                     local targets = scanFullMap()
                     if #targets > 0 then
                         isAttacking = true
@@ -294,20 +298,20 @@ local function createGUI(imageAsset)
                             end
                         end
                         isAttacking = false
-                    else
-                        hintLabel.Text = "ស្ថានភាព៖ 📡 រកមិនឃើញ Bubble នៅតំបន់នេះ"
-                        hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
                     end
 
-                    -- បន្តទៅចំណុចបន្ទាប់លើរង្វង់
-                    angle = (angle + (360 / patrolSteps)) % 360
+                    angle = (angle + angleStep) % 360
+                    radius = radius + radiusGrowth
+                    if radius > maxRadius then
+                        radius = 20
+                    end
                     task.wait(0.2)
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើករបៀបហោះវង់ (ប្រមូល Bubble ក្នុងតំបន់)"
+            autoLoopBtn.Text = "🔥 បើក Spiral (ឥឡូវរកឃើញច្រើន)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
