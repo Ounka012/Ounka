@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (STICK UNTIL COLLECTED)
+-- EVADE: Spiral Farm (SPEED OPTIMIZED - STICK UNTIL COLLECTED)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -131,7 +131,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL FARM (STICK & COLLECT)"
+    title.Text = "⚡ SPIRAL FARM (SPEED BOOST)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -165,6 +165,7 @@ local function createGUI(imageAsset)
     hintLabel.Font = Enum.Font.Gotham
     hintLabel.TextSize = 12
 
+    -- ពណ៌ស្រស់ឆើត
     task.spawn(function()
         local hue = 0
         while gui.Parent do
@@ -179,140 +180,130 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (SPEED 250 & STICK) ==============
+    --============== LOGIC (OPTIMIZED) ==============
     local isLooping = false
-    local floatConnection
-    local safeHeight = 100
-    local tweenSpeed = 250 
+    local safeHeight = 100          -- កម្ពស់ហោះ
+    local tweenSpeed = 1000         -- បង្កើនពី 250 មក 1000 (អាចកែបាន)
+    local stickTimeout = 1          -- ពេលអតិបរមាត្រាំជាប់ Bubble (មុន 3 វិ.)
 
-    local function smoothFlyTo(targetPos)
+    -- ផ្លាស់ទីភ្លាមៗបើចម្ងាយខ្លី បើឆ្ងាយប្រើ Tween លឿន
+    local function fastMoveTo(targetPos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
         local distance = (root.Position - targetPos).Magnitude
-        local duration = distance / tweenSpeed
-        if duration < 0.05 then duration = 0.05 end 
-        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-        local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
-        tween:Play()
-        task.wait(duration)
-    end
+        if distance < 0.5 then return end  -- ជិតហើយមិនចាំបាច់ធ្វើអ្វី
 
-    local function startFloating(enable)
-        if floatConnection then floatConnection:Disconnect(); floatConnection = nil end
-        if enable then
-            floatConnection = RunService.Stepped:Connect(function()
-                local char = LocalPlayer.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                if root then
-                    root.Velocity = Vector3.new(0,0,0)
-                    root.CanCollide = true
-                    for _, part in pairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") and part ~= root then
-                            part.CanCollide = false
-                        end
-                    end
-                end
-            end)
+        -- បើចម្ងាយតិចជាង 50 studs ប្រើ CFrame តែម្ដង (លឿនបំផុត)
+        if distance < 50 then
+            root.CFrame = CFrame.new(targetPos)
+        else
+            local duration = distance / tweenSpeed
+            if duration < 0.05 then duration = 0.05 end
+            local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+            local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
+            tween:Play()
+            tween.Completed:Wait()  -- រង់ចាំឲ្យ Tween ចប់
         end
     end
 
-    -- កន្លែងកែប្រែ៖ ធ្វើឲ្យវាត្រាំជាប់ Bubble រហូតដល់ស៊ីបាន!
+    -- ត្រាំជាប់ Bubble រហូតដល់បាត់ ឬអស់ពេល (ឆាប់រហ័ស)
     local function ensureCollect(bubblePart)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
-        
-        -- កំណត់ពេលអតិបរមាត្រឹម ៣ វិនាទី បើវាមិនបាត់ក្នុងពេល ៣ វិនាទីទេ គឺវាគាំងហើយ ត្រូវរំលងវាចោល
-        local timeout = tick() + 3 
-        
-        repeat
-            if not isLooping then break end -- បើចុចឈប់ ឲ្យវាឈប់ភ្លាម
-            
-            -- បង្ខំឲ្យតួអង្គទម្លាក់ខ្លួនចំកណ្ដាល Bubble ជាប់រហូត
+
+        local timeout = tick() + stickTimeout
+
+        -- ប្រើ Heartbeat ជំនួស task.wait(0.05) ដើម្បីធ្វើឲ្យការតាមដានទាន់ពេល
+        local heartbeatConnection
+        heartbeatConnection = RunService.Heartbeat:Connect(function()
+            if not isLooping then
+                heartbeatConnection:Disconnect()
+                return
+            end
+
+            -- ពិនិត្យថា Bubble បាត់ឬអត់
+            if not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) then
+                heartbeatConnection:Disconnect()
+                return
+            end
+
+            -- អស់ពេល -> បោះបង់ Bubble នេះ
+            if tick() > timeout then
+                heartbeatConnection:Disconnect()
+                return
+            end
+
+            -- បង្ខំទីតាំងតួអង្គឲ្យនៅកណ្ដាល Bubble
             root.Velocity = Vector3.new(0, 0, 0)
             root.CFrame = bubblePart.CFrame
-            
-            -- បាញ់សញ្ញាបញ្ឆោតថាប៉ះជារឿយៗ
+
+            -- ព្យាយាមបាញ់ Touch បើអាច
             if firetouchinterest then
                 pcall(function() firetouchinterest(root, bubblePart, 0) end)
                 pcall(function() firetouchinterest(root, bubblePart, 1) end)
             end
-            
-            task.wait(0.05) -- រង់ចាំ Server ឆ្លើយតប
-            
-        -- វានឹងឈប់នៅពេលដែល Bubble នោះបាត់ពីផែនទី (ស៊ីចូល) ឬអស់ម៉ោង ៣ វិនាទី
-        until not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) or tick() > timeout
+        end)
+
+        -- រង់ចាំរហូតដល់ heartbeat ត្រូវបានផ្ដាច់
+        while heartbeatConnection.Connected and isLooping do
+            task.wait(0.05)  -- គ្រាន់តែ yield ដើម្បីកុំឲ្យស៊ី CPU
+        end
     end
 
     local function toggleAutoLoop()
         isLooping = not isLooping
         if isLooping then
-            startFloating(true)
+            -- មិនចាំបាច់មាន float loop ទៀតទេ
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
             autoLoopBtn.Text = "⏹️ ឈប់"
             task.spawn(function()
-                local char = LocalPlayer.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                if not root then return end
-
-                local centerX, centerZ = 0, 0
-                local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
-                if mapModel and mapModel:IsA("Model") then
-                    local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
-                    for _, part in pairs(mapModel:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            minX = math.min(minX, part.Position.X)
-                            maxX = math.max(maxX, part.Position.X)
-                            minZ = math.min(minZ, part.Position.Z)
-                            maxZ = math.max(maxZ, part.Position.Z)
-                        end
-                    end
-                    if minX ~= math.huge then
-                        centerX = (minX + maxX) / 2
-                        centerZ = (minZ + maxZ) / 2
-                    end
-                end
-
-                local radius = 20
-                local angle = 0
-                local angleStep = 25
-                local radiusGrowth = 15
-                local maxRadius = 600
-
                 while isLooping do
-                    local rad = math.rad(angle)
-                    local x = centerX + math.cos(rad) * radius
-                    local z = centerZ + math.sin(rad) * radius
-                    local targetPos = Vector3.new(x, safeHeight, z)
+                    local char = LocalPlayer.Character
+                    local root = char and char:FindFirstChild("HumanoidRootPart")
+                    if not root then
+                        task.wait(0.5)
+                        continue
+                    end
 
-                    hintLabel.Text = "ស្ថានភាព៖ 🌀 ហោះរកទីតាំងថ្មី"
-                    hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-                    smoothFlyTo(targetPos)
-
+                    -- ស្កេន Bubble
                     local targets = scanFullMap()
-                    if #targets > 0 then
-                        hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងប្រមូល " .. #targets .. " Bubble!"
-                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
+                    if #targets == 0 then
+                        hintLabel.Text = "ស្ថានភាព៖ 🔍 រកមិនឃើញ Bubble"
+                        hintLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+                        task.wait(0.5)
+                        continue
+                    end
 
-                        table.sort(targets, function(a,b)
-                            return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
-                        end)
+                    hintLabel.Text = "ស្ថានភាព៖ 🫧 រកឃើញ " .. #targets .. " Bubble"
+                    hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
 
-                        -- ព្យាយាមប្រមូលពីចម្ងាយ (ប្រសិនបើ Exploit គាំទ្រ)
-                        if firetouchinterest then
-                            for _, target in ipairs(targets) do
-                                if target.part and target.part.Parent then
-                                    pcall(function() firetouchinterest(root, target.part, 0) end)
-                                    pcall(function() firetouchinterest(root, target.part, 1) end)
-                                end
+                    -- តម្រៀបតាមចម្ងាយ
+                    table.sort(targets, function(a, b)
+                        return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
+                    end)
+
+                    -- ព្យាយាមប្រមូលពីចម្ងាយម្ដងសិន (ប្រើ firetouchinterest)
+                    if firetouchinterest then
+                        for _, target in ipairs(targets) do
+                            if target.part and target.part.Parent then
+                                pcall(function() firetouchinterest(root, target.part, 0) end)
+                                pcall(function() firetouchinterest(root, target.part, 1) end)
                             end
                         end
+                    end
 
-                        for _, target in ipairs(targets) do
+                    -- បើនៅសល់ Bubble សូមហោះទៅយកម្ដងមួយ
+                    for _, target in ipairs(targets) do
+                        if not isLooping then break end
+                        if target.part and target.part.Parent then
+                            hintLabel.Text = "ស្ថានភាព៖ ✈️ ហោះទៅ Bubble..."
+                            hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+                            fastMoveTo(target.part.Position)
+
                             if not isLooping then break end
                             if target.part and target.part.Parent then
-                                smoothFlyTo(target.part.Position)
-                                ensureCollect(target.part) -- វាឈប់ត្រឹមហ្នឹងទាល់តែស៊ីបាន ទើបដើរទៅជួរក្រោមទៀត
+                                ensureCollect(target.part)
                                 if target.type == "revive" and target.prompt then
                                     pcall(function() fireproximityprompt(target.prompt, 1) end)
                                 end
@@ -320,16 +311,10 @@ local function createGUI(imageAsset)
                         end
                     end
 
-                    angle = (angle + angleStep) % 360
-                    radius = radius + radiusGrowth
-                    if radius > maxRadius then
-                        radius = 20
-                    end
-                    task.wait(0.1)
+                    task.wait(0.1)  -- សម្រាកបន្តិចមុនស្កេនម្ដងទៀត
                 end
             end)
         else
-            startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
             autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
