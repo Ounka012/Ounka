@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Smooth Grid Patrol (No Backtracking, Continuous Movement)
+-- EVADE: Circular Local Bubble Farm (Stay in One Area)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -64,40 +64,41 @@ local function scanFullMap()
     return list
 end
 
---============== Grid Waypoints ==============
-local function getGridWaypoints(stepSize)
-    stepSize = stepSize or 100
+-- រកចំណុចកណ្ដាលនៃ Bubble (ឬប្រើចំណុចកណ្ដាលផែនទី)
+local function getCenterOfBubbles()
+    local bubbles = scanFullMap()
+    if #bubbles > 0 then
+        local sumX, sumZ, count = 0, 0, 0
+        for _, b in ipairs(bubbles) do
+            sumX = sumX + b.part.Position.X
+            sumZ = sumZ + b.part.Position.Z
+            count = count + 1
+        end
+        return Vector3.new(sumX / count, 0, sumZ / count)
+    end
+    -- បើគ្មាន Bubble ប្រើកណ្ដាលផែនទី
     local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
-    local minX, maxX, minZ, maxZ = -500, 500, -500, 500
-    if mapModel and mapModel:IsA("Model") then
-        local found = false
-        minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
+    if mapModel then
+        local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
         for _, part in pairs(mapModel:GetDescendants()) do
             if part:IsA("BasePart") then
-                found = true
                 minX = math.min(minX, part.Position.X)
                 maxX = math.max(maxX, part.Position.X)
                 minZ = math.min(minZ, part.Position.Z)
                 maxZ = math.max(maxZ, part.Position.Z)
             end
         end
-        if not found then return {} end
+        return Vector3.new((minX+maxX)/2, 0, (minZ+maxZ)/2)
     end
-    local waypoints = {}
-    for x = minX, maxX, stepSize do
-        for z = minZ, maxZ, stepSize do
-            table.insert(waypoints, Vector3.new(x, 0, z))
-        end
-    end
-    return waypoints
+    return Vector3.new(0, 0, 0)
 end
 
 --============== GUI ==============
 local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeSmoothGrid") then CoreGui:FindFirstChild("EvadeSmoothGrid"):Destroy() end
+    if CoreGui:FindFirstChild("EvadeCircleFarm") then CoreGui:FindFirstChild("EvadeCircleFarm"):Destroy() end
 
     local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeSmoothGrid"
+    gui.Name = "EvadeCircleFarm"
     gui.IgnoreGuiInset = true
 
     local toggleBtn = Instance.new("ImageButton", gui)
@@ -133,7 +134,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SMOOTH GRID PATROL"
+    title.Text = "⚡ CIRCLE PATROL (BUBBLE ZONE)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -152,7 +153,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកដំណើរការ (ហោះតគ្នាមិនថយក្រោយ)"
+    autoLoopBtn.Text = "🔥 បើករបៀបហោះវង់ (ប្រមូល Bubble ក្នុងតំបន់)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -181,12 +182,14 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC ==============
+    --============== LOGIC (Circular Patrol) ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
     local isAttacking = false
     local tweenSpeed = 60
+    local patrolRadius = 150  -- កាំនៃរង្វង់
+    local patrolSteps = 8     -- ចំនួនចំណុចក្នុងរង្វង់មួយជុំ
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -242,22 +245,32 @@ local function createGUI(imageAsset)
             startFloating(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
             autoLoopBtn.Text = "⏹️ ឈប់"
-            local waypoints = getGridWaypoints(100)
-            local currentWaypoint = 1
-
             task.spawn(function()
-                while isLooping do
-                    local char = LocalPlayer.Character
-                    local root = char and char:FindFirstChild("HumanoidRootPart")
-                    if not root then task.wait(0.1) continue end
-                    if #waypoints == 0 then task.wait(0.5) continue end
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if not root then return end
 
-                    -- ហោះតម្រង់ទៅចំណុចល្បាតបន្ទាប់ (នៅកម្ពស់ safeHeight)
-                    local nextPatrol = waypoints[currentWaypoint]
-                    local targetPos = Vector3.new(nextPatrol.X, safeHeight, nextPatrol.Z)
-                    hintLabel.Text = "ស្ថានភាព៖ 🛩️ ធ្វើដំណើរទៅក្រឡា " .. currentWaypoint .. "/" .. #waypoints
+                -- រកចំណុចកណ្ដាល Bubble ដំបូង
+                local center = getCenterOfBubbles()
+                local angle = 0
+                local lastCenterUpdate = tick()
+
+                while isLooping do
+                    -- រៀងរាល់ 5 វិនាទី ធ្វើបច្ចុប្បន្នភាពចំណុចកណ្ដាល (ប្រសិនបើ Bubble រើ)
+                    if tick() - lastCenterUpdate > 5 then
+                        center = getCenterOfBubbles()
+                        lastCenterUpdate = tick()
+                    end
+
+                    -- គណនាចំណុចបន្ទាប់នៅលើរង្វង់
+                    local radians = math.rad(angle)
+                    local offset = Vector3.new(math.cos(radians) * patrolRadius, 0, math.sin(radians) * patrolRadius)
+                    local targetPos = center + offset
+                    local flyPos = Vector3.new(targetPos.X, safeHeight, targetPos.Z)
+
+                    hintLabel.Text = "ស្ថានភាព៖ 🛩️ ហោះវង់... (កាំ "..patrolRadius..")"
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-                    smoothFlyTo(targetPos)
+                    smoothFlyTo(flyPos)
 
                     -- ស្កេន Bubble នៅត្រង់នេះ
                     local targets = scanFullMap()
@@ -280,23 +293,21 @@ local function createGUI(imageAsset)
                                 end
                             end
                         end
-
-                        -- បន្ទាប់ពីស៊ីអស់ កុំឡើងវិញ យើងនឹងហោះទៅចំណុចបន្ទាប់ភ្លាមៗ (វដ្ដថ្មីចាប់ផ្ដើម)
                         isAttacking = false
                     else
-                        hintLabel.Text = "ស្ថានភាព៖ 📡 គ្មាន Bubble នៅទីនេះ"
+                        hintLabel.Text = "ស្ថានភាព៖ 📡 រកមិនឃើញ Bubble នៅតំបន់នេះ"
                         hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
                     end
 
-                    -- បន្តទៅចំណុចបន្ទាប់ (វានឹងហោះទៅភ្លាមៗនៅពេលចាប់ផ្ដើម loop ថ្មី)
-                    currentWaypoint = currentWaypoint % #waypoints + 1
-                    task.wait(0.1)
+                    -- បន្តទៅចំណុចបន្ទាប់លើរង្វង់
+                    angle = (angle + (360 / patrolSteps)) % 360
+                    task.wait(0.2)
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកដំណើរការ (ហោះតគ្នាមិនថយក្រោយ)"
+            autoLoopBtn.Text = "🔥 បើករបៀបហោះវង់ (ប្រមូល Bubble ក្នុងតំបន់)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
