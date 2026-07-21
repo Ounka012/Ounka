@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (HEIGHT 40 + STABLE)
+-- EVADE: by ounka
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -272,7 +272,7 @@ local function createGUI(imageAsset)
                 local angle = 0
                 local angleStep = 25
                 local radiusGrowth = 15
-                local maxRadius = 100
+                local maxRadius = 200
 
                 while isLooping do
                     local rad = math.rad(angle)
