@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Grid Patrol Bubble Farm (Short Jumps, Full Coverage)
+-- EVADE: Smooth Grid Patrol (No Backtracking, Continuous Movement)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -64,12 +64,11 @@ local function scanFullMap()
     return list
 end
 
---============== Grid Patrol Waypoints ==============
+--============== Grid Waypoints ==============
 local function getGridWaypoints(stepSize)
-    stepSize = stepSize or 100  -- ទំហំក្រឡា 100 studs
+    stepSize = stepSize or 100
     local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
-    local minX, maxX, minZ, maxZ = -500, 500, -500, 500  -- ប្រសិនបើរក Map មិនឃើញ
-    
+    local minX, maxX, minZ, maxZ = -500, 500, -500, 500
     if mapModel and mapModel:IsA("Model") then
         local found = false
         minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
@@ -84,7 +83,6 @@ local function getGridWaypoints(stepSize)
         end
         if not found then return {} end
     end
-    
     local waypoints = {}
     for x = minX, maxX, stepSize do
         for z = minZ, maxZ, stepSize do
@@ -96,10 +94,10 @@ end
 
 --============== GUI ==============
 local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeGridFarm") then CoreGui:FindFirstChild("EvadeGridFarm"):Destroy() end
+    if CoreGui:FindFirstChild("EvadeSmoothGrid") then CoreGui:FindFirstChild("EvadeSmoothGrid"):Destroy() end
 
     local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeGridFarm"
+    gui.Name = "EvadeSmoothGrid"
     gui.IgnoreGuiInset = true
 
     local toggleBtn = Instance.new("ImageButton", gui)
@@ -135,7 +133,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ GRID PATROL BUBBLE FARM"
+    title.Text = "⚡ SMOOTH GRID PATROL"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -154,7 +152,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកល្បាតក្រឡា (គ្របដណ្ដប់គ្រប់កន្លែង)"
+    autoLoopBtn.Text = "🔥 បើកដំណើរការ (ហោះតគ្នាមិនថយក្រោយ)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -188,7 +186,7 @@ local function createGUI(imageAsset)
     local floatConnection
     local safeHeight = 100
     local isAttacking = false
-    local tweenSpeed = 60  -- ល្បឿនហោះទៅ Bubble
+    local tweenSpeed = 60
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -211,9 +209,6 @@ local function createGUI(imageAsset)
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if root then
                     root.Velocity = Vector3.new(0,0,0)
-                    if not isAttacking then
-                        root.CFrame = CFrame.new(root.Position.X, safeHeight, root.Position.Z)
-                    end
                     root.CanCollide = true
                     for _, part in pairs(char:GetDescendants()) do
                         if part:IsA("BasePart") and part ~= root then
@@ -246,8 +241,8 @@ local function createGUI(imageAsset)
         if isLooping then
             startFloating(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
-            autoLoopBtn.Text = "⏹️ ឈប់ដំណើរការ"
-            local waypoints = getGridWaypoints(100)  -- ក្រឡា 100 studs
+            autoLoopBtn.Text = "⏹️ ឈប់"
+            local waypoints = getGridWaypoints(100)
             local currentWaypoint = 1
 
             task.spawn(function()
@@ -257,14 +252,14 @@ local function createGUI(imageAsset)
                     if not root then task.wait(0.1) continue end
                     if #waypoints == 0 then task.wait(0.5) continue end
 
-                    -- ល្បាតទៅចំណុចក្រឡាបន្ទាប់ (Teleport ភ្លាមៗ)
-                    local targetPos = waypoints[currentWaypoint]
-                    hintLabel.Text = "ស្ថានភាព៖ 📡 ល្បាត -> ក្រឡា " .. currentWaypoint .. "/" .. #waypoints
-                    hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
-                    root.CFrame = CFrame.new(targetPos.X, safeHeight, targetPos.Z)
-                    task.wait(0.15) -- រង់ចាំឲ្យផែនទីផ្ទុក
+                    -- ហោះតម្រង់ទៅចំណុចល្បាតបន្ទាប់ (នៅកម្ពស់ safeHeight)
+                    local nextPatrol = waypoints[currentWaypoint]
+                    local targetPos = Vector3.new(nextPatrol.X, safeHeight, nextPatrol.Z)
+                    hintLabel.Text = "ស្ថានភាព៖ 🛩️ ធ្វើដំណើរទៅក្រឡា " .. currentWaypoint .. "/" .. #waypoints
+                    hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+                    smoothFlyTo(targetPos)
 
-                    -- ស្កេន Bubble ក្នុងតំបន់ដែលទើបផ្ទុក
+                    -- ស្កេន Bubble នៅត្រង់នេះ
                     local targets = scanFullMap()
                     if #targets > 0 then
                         isAttacking = true
@@ -286,11 +281,14 @@ local function createGUI(imageAsset)
                             end
                         end
 
-                        smoothFlyTo(Vector3.new(root.Position.X, safeHeight, root.Position.Z))
+                        -- បន្ទាប់ពីស៊ីអស់ កុំឡើងវិញ យើងនឹងហោះទៅចំណុចបន្ទាប់ភ្លាមៗ (វដ្ដថ្មីចាប់ផ្ដើម)
                         isAttacking = false
+                    else
+                        hintLabel.Text = "ស្ថានភាព៖ 📡 គ្មាន Bubble នៅទីនេះ"
+                        hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
                     end
 
-                    -- បន្តទៅក្រឡាបន្ទាប់
+                    -- បន្តទៅចំណុចបន្ទាប់ (វានឹងហោះទៅភ្លាមៗនៅពេលចាប់ផ្ដើម loop ថ្មី)
                     currentWaypoint = currentWaypoint % #waypoints + 1
                     task.wait(0.1)
                 end
@@ -298,7 +296,7 @@ local function createGUI(imageAsset)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកល្បាតក្រឡា (គ្របដណ្ដប់គ្រប់កន្លែង)"
+            autoLoopBtn.Text = "🔥 បើកដំណើរការ (ហោះតគ្នាមិនថយក្រោយ)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
