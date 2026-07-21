@@ -272,7 +272,7 @@ local function createGUI(imageAsset)
                 local angle = 0
                 local angleStep = 100
                 local radiusGrowth = 100
-                local maxRadius = 200
+                local maxRadius = 50
 
                 while isLooping do
                     local rad = math.rad(angle)
