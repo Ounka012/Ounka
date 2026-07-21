@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: by ounka
+-- EVADE: Back-and-Forth Patrol (SIMPLE LINE)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -33,33 +33,28 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- រក Bubble គ្រប់ប្រភេទ (មិនចាប់យកអ្នកលេងដទៃ)
+-- រក Bubble គ្រប់ប្រភេទ
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
-    
     if obj:IsA("ProximityPrompt") and obj.Parent then
         local action = obj.ActionText:lower()
         if action:find("revive") or name:find("revive") or action:find("carry") then
             return obj.Parent, "revive"
         end
     end
-
     local ancestor = obj:FindFirstAncestorOfClass("Model")
     if ancestor and ancestor:FindFirstChildOfClass("Humanoid") then
         return nil, nil 
     end
-
     local parent = obj.Parent
     local parentName = parent and parent.Name:lower() or ""
     local grandParent = parent and parent.Parent
     local grandParentName = grandParent and grandParent.Name:lower() or ""
-
     if name:find("bubble") or name:find("token") then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
         if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart, "item" end
     end
-
     if parent and (parentName:find("bubble") or parentName:find("token")) then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
         if obj:IsA("Model") then
@@ -67,15 +62,12 @@ local function getValidTarget(obj)
             if p then return p, "item" end
         end
     end
-
     if grandParent and (grandParentName:find("bubble") or grandParentName:find("token")) then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
     end
-
     if name == "handle" and parent and (parentName:find("bubble") or parentName:find("token")) then
         if obj:IsA("BasePart") then return obj, "item" end
     end
-
     return nil, nil
 end
 
@@ -99,39 +91,39 @@ local function createGUI(imageAsset)
     gui.IgnoreGuiInset = true
 
     local toggleBtn = Instance.new("ImageButton", gui)
-    toggleBtn.Size = UDim2.new(0, 855, 0, 955)
-    toggleBtn.Position = UDim2.new(0, 20, 00.5, -27)
+    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
+    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
     toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
     toggleBtn.Image = imageAsset or ""
     toggleBtn.ScaleType = Enum.ScaleType.Crop
     toggleBtn.Draggable = true
     Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
     local toggleStroke = Instance.new("UIStroke", toggleBtn)
-    toggleStroke.Thickness = 30
+    toggleStroke.Thickness = 3
 
     local mainFrame = Instance.new("Frame", gui)
     mainFrame.Size = UDim2.new(0, 420, 0, 250)
     mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
-    mainFrame.BackgroundTransparency = 10
-    mainFrame.BorderSizePixel = 09
+    mainFrame.BackgroundTransparency = 1
+    mainFrame.BorderSizePixel = 0
     mainFrame.Visible = true
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
     local mainStroke = Instance.new("UIStroke", mainFrame)
-    mainStroke.Thickness = 30
+    mainStroke.Thickness = 3
 
     local bg = Instance.new("ImageLabel", mainFrame)
     bg.Size = UDim2.new(1,0,1,0)
-    bg.BackgroundTransparency = 10
+    bg.BackgroundTransparency = 1
     bg.Image = imageAsset or ""
     bg.ScaleType = Enum.ScaleType.Stretch
     bg.ImageTransparency = 0.3
-    bg.ZIndex = -10
+    bg.ZIndex = -1
     Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
 
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ by ounka "
+    title.Text = "⬅️➡️ BACK-FORTH SIMPLE"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -147,26 +139,26 @@ local function createGUI(imageAsset)
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
 
     local autoLoopBtn = Instance.new("TextButton", mainFrame)
-    autoLoopBtn.Size = UDim2.new(1, -40, 0, 945)
-    autoLoopBtn.Position = UDim2.new(0, 120, 0, 70)
+    autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
+    autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
     autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
-    autoLoopBtn.TextSize = 1000
+    autoLoopBtn.TextSize = 13
     Instance.new("UICorner", autoLoopBtn).CornerRadius = UDim.new(0, 10)
 
     local hintLabel = Instance.new("TextLabel", mainFrame)
     hintLabel.Size = UDim2.new(1, -40, 0, 30)
     hintLabel.Position = UDim2.new(0, 20, 0, 130)
-    hintLabel.BackgroundTransparency = 90
+    hintLabel.BackgroundTransparency = 1
     hintLabel.Text = "ស្ថានភាព៖ រង់ចាំការបញ្ជា..."
     hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     hintLabel.Font = Enum.Font.Gotham
-    hintLabel.TextSize = 60
+    hintLabel.TextSize = 12
 
     task.spawn(function()
-        local hue = 88
+        local hue = 0
         while gui.Parent do
             hue = (hue + 0.03) % 1
             title.TextColor3 = Color3.fromHSV(hue, 1, 1)
@@ -179,12 +171,13 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (SPEED 250 + HEIGHT 40) ==============
+    --============== LOGIC ==============
     local isLooping = false
     local floatConnection
-    local safeHeight = 30    -- <-- បានកែមកត្រឹម 40
-    local tweenSpeed = 100
-    local stickTimeout = 80
+    local safeHeight = 40          -- កម្ពស់ហោះ
+    local tweenSpeed = 250         -- ល្បឿន
+    local stickTimeout = 2         -- ពេលត្រាំ Bubble
+    local patrolDistance = 100     -- <--- ចម្ងាយទៅមុខ (អាចប្ដូរលេខនេះ)
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -221,20 +214,15 @@ local function createGUI(imageAsset)
     local function ensureCollect(bubblePart)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
-        
         local timeout = tick() + stickTimeout 
-        
         repeat
             if not isLooping then break end
-            
             root.Velocity = Vector3.new(0, 0, 0)
             root.CFrame = bubblePart.CFrame
-            
             if firetouchinterest then
                 pcall(function() firetouchinterest(root, bubblePart, 0) end)
                 pcall(function() firetouchinterest(root, bubblePart, 1) end)
             end
-            
             task.wait(0.05)
         until not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) or tick() > timeout
     end
@@ -250,43 +238,27 @@ local function createGUI(imageAsset)
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
-                local centerX, centerZ = 0, 0
-                local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
-                if mapModel and mapModel:IsA("Model") then
-                    local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
-                    for _, part in pairs(mapModel:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            minX = math.min(minX, part.Position.X)
-                            maxX = math.max(maxX, part.Position.X)
-                            minZ = math.min(minZ, part.Position.Z)
-                            maxZ = math.max(maxZ, part.Position.Z)
-                        end
-                    end
-                    if minX ~= math.huge then
-                        centerX = (minX + maxX) / 2
-                        centerZ = (minZ + maxZ) / 2
-                    end
-                end
-
-                local radius = 100
-                local angle = 0
-                local angleStep = 100
-                local radiusGrowth = 100
-                local maxRadius = 50
+                -- យកទីតាំងបច្ចុប្បន្នជាចំណុចចាប់ផ្ដើម
+                local startPos = root.Position
+                local goingForward = true
 
                 while isLooping do
-                    local rad = math.rad(angle)
-                    local x = centerX + math.cos(rad) * radius
-                    local z = centerZ + math.sin(rad) * radius
-                    local targetPos = Vector3.new(x, safeHeight, z)
+                    local targetPos
+                    if goingForward then
+                        targetPos = startPos + Vector3.new(patrolDistance, 0, 0)
+                    else
+                        targetPos = startPos
+                    end
 
-                    hintLabel.Text = "ស្ថានភាព៖ 🌀 ហោះរក..."
+                    hintLabel.Text = goingForward and "➡️ ទៅមុខ" or "⬅️ ថយក្រោយ"
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-                    smoothFlyTo(targetPos)
+                    smoothFlyTo(Vector3.new(targetPos.X, safeHeight, targetPos.Z))
 
+                    -- ស្កេន Bubble រាល់ពេលទៅដល់ចំណុច
+                    if not isLooping then break end
                     local targets = scanFullMap()
                     if #targets > 0 then
-                        hintLabel.Text = "🫧 ប្រមូល " .. #targets .. " Bubble!"
+                        hintLabel.Text = "🫧 ប្រមូល " .. #targets .. " Bubble"
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
 
                         table.sort(targets, function(a,b)
@@ -294,38 +266,34 @@ local function createGUI(imageAsset)
                         end)
 
                         if firetouchinterest then
-                            for _, target in ipairs(targets) do
-                                if target.part and target.part.Parent then
-                                    pcall(function() firetouchinterest(root, target.part, 0) end)
-                                    pcall(function() firetouchinterest(root, target.part, 1) end)
+                            for _, t in ipairs(targets) do
+                                if t.part and t.part.Parent then
+                                    pcall(function() firetouchinterest(root, t.part, 0) end)
+                                    pcall(function() firetouchinterest(root, t.part, 1) end)
                                 end
                             end
                         end
 
-                        for _, target in ipairs(targets) do
+                        for _, t in ipairs(targets) do
                             if not isLooping then break end
-                            if target.part and target.part.Parent then
-                                smoothFlyTo(target.part.Position)
+                            if t.part and t.part.Parent then
+                                smoothFlyTo(t.part.Position)
                                 if not isLooping then break end
-                                ensureCollect(target.part)
-                                if target.type == "revive" and target.prompt then
-                                    pcall(function() fireproximityprompt(target.prompt, 1) end)
+                                ensureCollect(t.part)
+                                if t.type == "revive" and t.prompt then
+                                    pcall(function() fireproximityprompt(t.prompt, 1) end)
                                 end
                             end
                         end
                     end
 
-                    angle = (angle + angleStep) % 360
-                    radius = radius + radiusGrowth
-                    if radius > maxRadius then
-                        radius = 200
-                    end
+                    goingForward = not goingForward
                     task.wait(0.1)
                 end
             end)
         else
             startFloating(false)
-            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(1, 180, 255)
+            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
             autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
