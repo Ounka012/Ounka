@@ -281,7 +281,7 @@ local function createGUI(imageAsset)
                     local targetPos = Vector3.new(x, safeHeight, z)
 
                     hintLabel.Text = "ស្ថានភាព៖ 🌀 ហោះរក..."
-                    hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+                    hintLabel.TextColor3 = Color3.fromRGB(300, 200, 255)
                     smoothFlyTo(targetPos)
 
                     local targets = scanFullMap()
