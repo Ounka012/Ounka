@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Auto Farm (Full Map Patrol + Fast Scan + Guaranteed Collect)
+-- EVADE: Full Map Bubble Farm (Patrol Speed 60)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -64,13 +64,11 @@ local function scanFullMap()
     return list
 end
 
---============== បង្កើតចំណុចល្បាតគ្រប់ជ្រុងផែនទី ==============
+--============== ចំណុចល្បាតពេញផែនទី ==============
 local function getMapWaypoints()
     local waypoints = {}
-    -- ព្យាយាមរក Map model
     local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
     if mapModel and mapModel:IsA("Model") then
-        -- គណនាព្រំដែនពី BaseParts ទាំងអស់ក្នុង Map
         local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
         for _, part in pairs(mapModel:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -81,7 +79,6 @@ local function getMapWaypoints()
             end
         end
         if minX ~= math.huge then
-            -- បង្កើត 5 ចំណុច: ជ្រុង 4 + កណ្ដាល
             local center = Vector3.new((minX+maxX)/2, 0, (minZ+maxZ)/2)
             waypoints = {
                 Vector3.new(minX, 0, minZ),
@@ -93,7 +90,6 @@ local function getMapWaypoints()
             return waypoints
         end
     end
-    -- បើរកមិនឃើញ Map ប្រើចំណុចស្តង់ដារ
     return {
         Vector3.new(-500, 0, -500),
         Vector3.new(500, 0, -500),
@@ -144,7 +140,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ FULL MAP BUBBLE FARM"
+    title.Text = "⚡ FULL MAP BUBBLE FARM (SPEED 60)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -197,7 +193,7 @@ local function createGUI(imageAsset)
     local floatConnection
     local safeHeight = 100
     local isAttacking = false
-    local tweenSpeed = 300  -- លឿនជាងមុន
+    local tweenSpeed = 60  -- ល្បឿនហោះទៅ Bubble (តាមស្នើសុំ)
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -286,7 +282,7 @@ local function createGUI(imageAsset)
                         for _, target in ipairs(targets) do
                             if not isLooping then break end
                             if target.part and target.part.Parent then
-                                -- ហោះយ៉ាងលឿនទៅ Bubble
+                                -- ហោះយ៉ាងរលូនទៅ Bubble (ល្បឿន 60)
                                 smoothFlyTo(target.part.Position)
                                 ensureCollect(target.part)
                                 if target.type == "revive" and target.prompt then
