@@ -351,7 +351,7 @@ local function createGUI(imageAsset)
     makeDraggable(mainFrame)
 end
 
---============== ទាញយករូបភាព ==============
+--============== ទាញយករូបភាពល ==============
 local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
 if ok and response and response.StatusCode == 200 then
     writefile(FILE_NAME, response.Body)
