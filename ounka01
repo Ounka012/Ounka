@@ -176,7 +176,7 @@ local function createGUI(imageAsset)
     local floatConnection
     local safeHeight = 40          -- កម្ពស់ហោះ (អាចកែបាន)
     local tweenSpeed = 250         -- ល្បឿន
-    local stickTimeout = 1         -- ពេលត្រាំ Bubble
+    local stickTimeout = 0.7         -- ពេលត្រាំ Bubble
     local patrolDistance = 100     -- ចម្ងាយទៅមុខ/ឆ្វេង/ស្ដាំ (អាចកែបាន)
 
     local function smoothFlyTo(targetPos)
