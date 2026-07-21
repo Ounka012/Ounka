@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (AUTO PULL + FAST COLLECT)
+-- EVADE: Spiral Farm (ULTRA FAST COLLECT)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -131,7 +131,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL FARM (AUTO PULL)"
+    title.Text = "⚡ SPIRAL FARM (SPEED 500)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -179,24 +179,30 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC ==============
+    --============== LOGIC (SPEED 500 + QUICK COLLECT) ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
-    local tweenSpeed = 250
-    local stickTimeout = 0.5
+    local tweenSpeed = 500   -- ល្បឿនលឿន (កែជា 250 បើចង់)
+    local stickTimeout = 0.1 -- តោងត្រឹម 0.1 វិនាទី
 
-    local function smoothFlyTo(targetPos)
+    local function fastFlyTo(targetPos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
         local distance = (root.Position - targetPos).Magnitude
+        if distance < 1 then return end
+        -- បើចម្ងាយខ្លី ប្រើ CFrame ភ្លាម
+        if distance < 10 then
+            root.CFrame = CFrame.new(targetPos)
+            return
+        end
         local duration = distance / tweenSpeed
-        if duration < 0.05 then duration = 0.05 end 
+        if duration < 0.05 then duration = 0.05 end
         local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
         local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
         tween:Play()
-        task.wait(duration)
+        tween.Completed:Wait()
     end
 
     local function startFloating(enable)
@@ -218,14 +224,14 @@ local function createGUI(imageAsset)
         end
     end
 
-    -- ប្រមូល Bubble មួយៗយ៉ាងរហ័ស (ត្រាំជាប់រយៈពេលខ្លី)
+    -- ប្រមូល Bubble មួយយ៉ាងរហ័ស
     local function quickCollect(bubblePart, prompt)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
         local timeout = tick() + stickTimeout
         repeat
             if not isLooping then return end
-            root.Velocity = Vector3.new(0,0,0)
+            root.Velocity = Vector3.new(0, 0, 0)
             root.CFrame = bubblePart.CFrame
             if firetouchinterest then
                 pcall(function() firetouchinterest(root, bubblePart, 0) end)
@@ -234,43 +240,8 @@ local function createGUI(imageAsset)
             if prompt and fireproximityprompt then
                 pcall(function() fireproximityprompt(prompt, 1) end)
             end
-            task.wait(0.05)
+            task.wait(0.03)  -- រង់ចាំខ្លីណាស់
         until not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) or tick() > timeout
-    end
-
-    -- ទាញ Bubble ទាំងអស់មកតួអង្គ រួចប្រមូលពួកវា
-    local function pullAllAndCollect(targets)
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-
-        -- ទាញ Bubble មកលើក្បាលបន្តិច (5 studs ពីលើ)
-        local basePos = root.CFrame * CFrame.new(0, 5, 0)
-        local offset = Vector3.new(0, 0, 0)
-        local spacing = 5 -- ចន្លោះរវាង Bubble ដើម្បីកុំឲ្យជាន់គ្នា
-        local i = 0
-
-        for _, t in ipairs(targets) do
-            if t.part and t.part.Parent then
-                pcall(function()
-                    -- ដាក់ពួកវាជាជួរផ្ដេកជុំវិញ
-                    t.part.CFrame = basePos * CFrame.new(offset)
-                    offset = offset + Vector3.new(spacing, 0, 0)
-                    if (i+1) % 5 == 0 then
-                        offset = Vector3.new(0, 0, offset.Z + spacing)
-                    end
-                    i = i + 1
-                end)
-            end
-        end
-
-        -- ប្រមូល Bubble ទាំងអស់ដែលទាញមក (រង់ចាំបន្តិចឲ្យ Server ទទួលស្គាល់)
-        task.wait(0.1)
-        for _, t in ipairs(targets) do
-            if t.part and t.part.Parent then
-                quickCollect(t.part, t.prompt)
-            end
-        end
     end
 
     local function toggleAutoLoop()
@@ -306,26 +277,48 @@ local function createGUI(imageAsset)
                 local angle = 0
                 local angleStep = 25
                 local radiusGrowth = 15
-                local maxRadius = 100
+                local maxRadius = 600  -- ប្ដូរជា 100 បើចង់តែជុំវិញ
 
                 while isLooping do
+                    -- ហោះទៅចំណុចវង់
                     local rad = math.rad(angle)
                     local x = centerX + math.cos(rad) * radius
                     local z = centerZ + math.sin(rad) * radius
                     local targetPos = Vector3.new(x, safeHeight, z)
-
-                    hintLabel.Text = "🌀 ហោះល្បាត..."
+                    hintLabel.Text = "🌀 ហោះរក..."
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-                    smoothFlyTo(targetPos)
+                    fastFlyTo(targetPos)
 
-                    -- ស្កេន Bubble ហើយទាញយកទាំងអស់
+                    -- ស្កេន Bubble ទាំងអស់
                     local targets = scanFullMap()
                     if #targets > 0 then
-                        hintLabel.Text = "🫧 ទាញយក " .. #targets .. " Bubble..."
+                        hintLabel.Text = "🫧 ប្រមូល " .. #targets .. " Bubble!"
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
-                        pullAllAndCollect(targets)
-                        hintLabel.Text = "✅ ប្រមូលរួច"
-                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+
+                        -- តម្រៀបតាមចម្ងាយ
+                        table.sort(targets, function(a,b)
+                            return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
+                        end)
+
+                        -- បាញ់ Touch ពីចម្ងាយប្រសិនបើអាច
+                        if firetouchinterest then
+                            for _, t in ipairs(targets) do
+                                if t.part and t.part.Parent then
+                                    pcall(function() firetouchinterest(root, t.part, 0) end)
+                                    pcall(function() firetouchinterest(root, t.part, 1) end)
+                                end
+                            end
+                        end
+
+                        -- ប្រមូលពួកវាម្ដងមួយយ៉ាងលឿន
+                        for _, t in ipairs(targets) do
+                            if not isLooping then break end
+                            if t.part and t.part.Parent then
+                                fastFlyTo(t.part.Position)
+                                if not isLooping then break end
+                                quickCollect(t.part, t.prompt)
+                            end
+                        end
                     end
 
                     angle = (angle + angleStep) % 360
