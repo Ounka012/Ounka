@@ -176,8 +176,8 @@ local function createGUI(imageAsset)
     local floatConnection
     local safeHeight = 40          -- កម្ពស់ហោះ
     local tweenSpeed = 250         -- ល្បឿន
-    local stickTimeout = 2         -- ពេលត្រាំ Bubble
-    local patrolDistance = 100     -- <--- ចម្ងាយទៅមុខ (អាចប្ដូរលេខនេះ)
+    local stickTimeout = 1        -- ពេលត្រាំ Bubble
+    local patrolDistance = 200     -- <--- ចម្ងាយទៅមុខ (អាចប្ដូរលេខនេះ)
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
