@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (Detects ALL Bubbles)
+-- EVADE: Spiral Farm (Speed 100, Detects ALL Bubbles)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -33,7 +33,7 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- កំណែថ្មី៖ ឆ្លាតជាងមុន រក Bubble គ្រប់ប្រភេទ
+-- រក Bubble គ្រប់ប្រភេទ (ជួសជុលឲ្យឃើញច្រើន)
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
@@ -67,7 +67,7 @@ local function getValidTarget(obj)
         if obj:IsA("BasePart") then return obj, "item" end
     end
 
-    -- Revive Prompt (មិនផ្លាស់ប្តូរ)
+    -- Revive Prompt
     if obj:IsA("ProximityPrompt") and obj.Parent then
         local action = obj.ActionText:lower()
         if action:find("revive") or name:find("revive") or action:find("carry") then
@@ -129,7 +129,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL (រកឃើញទាំងអស់)"
+    title.Text = "⚡ SPIRAL FARM (SPEED 100)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -148,7 +148,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើក Spiral (ឥឡូវរកឃើញច្រើន)"
+    autoLoopBtn.Text = "🔥 បើក Spiral (ល្បឿន 100)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -177,12 +177,12 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (Spiral) ==============
+    --============== LOGIC (Spiral, Speed 100) ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
     local isAttacking = false
-    local tweenSpeed = 60
+    local tweenSpeed = 100  -- ល្បឿនហោះទៅ Bubble
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -273,7 +273,7 @@ local function createGUI(imageAsset)
                     local z = centerZ + math.sin(rad) * radius
                     local targetPos = Vector3.new(x, safeHeight, z)
 
-                    hintLabel.Text = "ស្ថានភាព៖ 🌀 Spiral (រកឃើញច្រើនជាងមុន)"
+                    hintLabel.Text = "ស្ថានភាព៖ 🌀 Spiral (ល្បឿន 100)"
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     smoothFlyTo(targetPos)
 
@@ -311,7 +311,7 @@ local function createGUI(imageAsset)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើក Spiral (ឥឡូវរកឃើញច្រើន)"
+            autoLoopBtn.Text = "🔥 បើក Spiral (ល្បឿន 100)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
