@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Auto Farm (១០០ម + មុខងារអណ្តែតហោះកៀរស៊ី Tweening)
+-- EVADE: Auto Farm (១០០ម + អណ្តែតហោះ + ស៊ីជាប់ប្រាកដ)
 --========================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -8,7 +8,7 @@ local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService") -- បន្ថែមមុខងារ Tween
+local TweenService = game:GetService("TweenService")
 
 local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 local FILE_NAME = "bg.jpg"
@@ -36,7 +36,6 @@ end
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
-
     if name:find("bubble") or name:find("bubblepart") or name:find("token") then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
         if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart, "item" end
@@ -45,7 +44,6 @@ local function getValidTarget(obj)
             if p then return p, "item" end
         end
     end
-    
     if obj:IsA("ProximityPrompt") and obj.Parent then
         local action = obj.ActionText:lower()
         if action:find("revive") or name:find("revive") or action:find("carry") then
@@ -106,7 +104,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ EVADE: AUTO FARM (១០០ ម៉ែត្រ)"
+    title.Text = "⚡ EVADE: AUTO FARM (ស៊ីជាប់)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -125,7 +123,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកមុខងារអណ្តែតហោះ (កៀរយកទាំងអស់)"
+    autoLoopBtn.Text = "🔥 បើកមុខងារអណ្តែតហោះស៊ីជាប់"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -158,24 +156,23 @@ local function createGUI(imageAsset)
     local floatConnection
     local safeHeight = 100
     local isAttacking = false
-    local tweenSpeed = 180 -- ល្បឿនអណ្តែត (កំណត់ 180 ដើម្បីលឿនតែស៊ីចូល)
+    local tweenSpeed = 180
 
-    -- អនុគមន៍សម្រាប់អណ្តែតហោះទៅរកគោលដៅ (Tween Movement)
+    -- ហោះអណ្តែតយឺតៗទៅគោលដៅ
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
-        
         local distance = (root.Position - targetPos).Magnitude
         local duration = distance / tweenSpeed
-        if duration < 0.1 then duration = 0.1 end -- កុំឱ្យលឿនពេកកក
-        
+        if duration < 0.15 then duration = 0.15 end
         local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
         local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
         tween:Play()
-        task.wait(duration) -- រង់ចាំឱ្យហោះដល់
+        task.wait(duration)
     end
 
+    -- អណ្តែតស្ងៀម
     local function startFloating(enable)
         if floatConnection then floatConnection:Disconnect() floatConnection = nil end
         if enable then
@@ -183,26 +180,43 @@ local function createGUI(imageAsset)
                 local char = LocalPlayer.Character
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if root then
-                    root.Velocity = Vector3.new(0, 0, 0) -- ទប់កុំឱ្យធ្លាក់
+                    root.Velocity = Vector3.new(0,0,0)
                     if not isAttacking then
-                        -- បើមិនកំពុងស៊ីទេ ឱ្យនៅស្ងៀមកម្ពស់ ១០០ម
-                        local currentPos = root.Position
-                        root.CFrame = CFrame.new(currentPos.X, safeHeight, currentPos.Z)
+                        root.CFrame = CFrame.new(root.Position.X, safeHeight, root.Position.Z)
                     end
-                end
-                -- បិទមិនឱ្យបុកជញ្ជាំងពេលអណ្តែតហោះ
-                if char then
+                    root.CanCollide = true  -- ទុក root បុកបានជានិច្ច
                     for _, part in pairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then part.CanCollide = false end
+                        if part:IsA("BasePart") and part ~= root then
+                            part.CanCollide = false
+                        end
                     end
                 end
             end)
         end
     end
 
+    -- មុខងារជំនួយឲ្យស៊ីជាប់ (ព្យាយាមប៉ះរហូតបាន)
+    local function ensureCollect(bubblePart)
+        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not root or not bubblePart or not bubblePart.Parent then return end
+        local timeout = tick() + 1.0
+        repeat
+            -- បើមាន firetouchinterest ជួយបាញ់
+            if firetouchinterest then
+                pcall(function() firetouchinterest(root, bubblePart, 0) end)
+                task.wait(0.02)
+                pcall(function() firetouchinterest(root, bubblePart, 1) end)
+            end
+            -- រំកិលបន្តិច
+            root.CFrame = root.CFrame * CFrame.new(1, 0, 0)
+            task.wait(0.03)
+            root.CFrame = CFrame.new(bubblePart.Position)
+            task.wait(0.05)
+        until not bubblePart.Parent or tick() > timeout
+    end
+
     local function toggleAutoLoop()
         isLooping = not isLooping
-
         if isLooping then
             startFloating(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
@@ -213,63 +227,53 @@ local function createGUI(imageAsset)
                 while isLooping do
                     local char = LocalPlayer.Character
                     local root = char and char:FindFirstChild("HumanoidRootPart")
-                    
-                    if root then
-                        local targets = scanFullMap()
-                        
-                        if #targets > 0 then
-                            isAttacking = true 
-                            
-                            -- តម្រៀប Bubble តាមចម្ងាយ
-                            table.sort(targets, function(a, b)
-                                return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
-                            end)
-                            
-                            hintLabel.Text = "ស្ថានភាព៖ 🔥 កំពុងអណ្តែតហោះកៀរស៊ីទាំងអស់..."
-                            hintLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
-                            
-                            -- ហោះកៀរយក Bubble ទាំងអស់ដែលវាឃើញដោយរលូន (Smooth Tween)
-                            for i, target in ipairs(targets) do
-                                if not isLooping then break end
-                                if target.part and target.part.Parent then
-                                    
-                                    -- ហោះអណ្តែតសំដៅទៅរក Bubble នីមួយៗ
-                                    smoothFlyTo(target.part.Position)
-                                    
-                                    -- បន្ថែម Touch Injection ដើម្បីធានា ១០០%
-                                    if firetouchinterest then
-                                        firetouchinterest(root, target.part, 0)
-                                        task.wait(0.01)
-                                        firetouchinterest(root, target.part, 1)
-                                    end
-                                    
-                                    if target.type == "revive" and target.prompt then
-                                        pcall(function() fireproximityprompt(target.prompt, 1) end)
-                                    end
+                    if not root then task.wait(0.1) continue end
+
+                    local targets = scanFullMap()
+                    if #targets > 0 then
+                        isAttacking = true
+                        hintLabel.Text = "ស្ថានភាព៖ 🔥 កំពុងហោះស៊ី " .. #targets .. " គ្រាប់"
+                        hintLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+
+                        table.sort(targets, function(a, b)
+                            return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
+                        end)
+
+                        for i, target in ipairs(targets) do
+                            if not isLooping then break end
+                            if target.part and target.part.Parent then
+                                -- ហោះទៅ Bubble
+                                smoothFlyTo(target.part.Position)
+                                -- បញ្ជាក់ថាស៊ីជាប់
+                                ensureCollect(target.part)
+                                -- Revive បើមាន
+                                if target.type == "revive" and target.prompt then
+                                    pcall(function() fireproximityprompt(target.prompt, 1) end)
                                 end
                             end
-                            
-                            -- ពេលស៊ីអស់ ហោះត្រលប់មកកម្ពស់ ១០០ម៉ែត្រវិញ
-                            hintLabel.Text = "ស្ថានភាព៖ 🚀 ហោះឡើងមក ១០០ម វិញ..."
-                            hintLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-                            smoothFlyTo(Vector3.new(root.Position.X, safeHeight, root.Position.Z))
-                            
-                            isAttacking = false
-                            task.wait(0.5) 
-                        else
-                            if tick() - scanTick > 1.5 then
-                                scanTick = tick()
-                                hintLabel.Text = "ស្ថានភាព៖ 📡 លោតស្វែងរកទីតាំងថ្មី..."
-                                hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
-                                
-                                local allPlayers = Players:GetPlayers()
-                                local randomPlayer = allPlayers[math.random(1, #allPlayers)]
-                                
-                                if randomPlayer and randomPlayer ~= LocalPlayer and randomPlayer.Character and randomPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                                    local pPos = randomPlayer.Character.HumanoidRootPart.Position
-                                    -- ហោះលោតទៅកម្ពស់ ១០០ម ពីលើអ្នកផ្សេង
-                                    root.CFrame = CFrame.new(pPos.X, safeHeight, pPos.Z)
+                        end
+
+                        -- ត្រឡប់ទៅកម្ពស់សុវត្ថិភាព
+                        hintLabel.Text = "ស្ថានភាព៖ 🚀 ហោះឡើង ១០០ម"
+                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+                        smoothFlyTo(Vector3.new(root.Position.X, safeHeight, root.Position.Z))
+                        isAttacking = false
+                        task.wait(0.3)
+                    else
+                        if tick() - scanTick > 1.5 then
+                            scanTick = tick()
+                            hintLabel.Text = "ស្ថានភាព៖ 📡 លោតរកទីតាំងផ្សេង"
+                            hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
+                            local others = {}
+                            for _, plr in pairs(Players:GetPlayers()) do
+                                if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                                    table.insert(others, plr)
                                 end
+                            end
+                            if #others > 0 then
+                                local randPlr = others[math.random(1, #others)]
+                                local pos = randPlr.Character.HumanoidRootPart.Position
+                                root.CFrame = CFrame.new(pos.X, safeHeight, pos.Z)
                             end
                         end
                     end
@@ -279,7 +283,7 @@ local function createGUI(imageAsset)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកមុខងារអណ្តែតហោះ (កៀរយកទាំងអស់)"
+            autoLoopBtn.Text = "🔥 បើកមុខងារអណ្តែតហោះស៊ីជាប់"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
