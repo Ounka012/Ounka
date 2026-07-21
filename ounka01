@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (SUPER FAST MAX COLLECTION)
+-- EVADE: Spiral Farm (SUPER FAST & SAFE COLLECT)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -124,7 +124,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL FARM (SUPER FAST 350)"
+    title.Text = "⚡ SPIRAL FARM (SPEED 250 - SAFE)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -143,7 +143,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើក Spiral (ល្បឿន 350)"
+    autoLoopBtn.Text = "🔥 បើក Spiral (ល្បឿន 250)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -172,12 +172,12 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (SPEED 350) ==============
+    --============== LOGIC (SPEED 250 - SAFE COLLECT) ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
     local isAttacking = false
-    local tweenSpeed = 350  -- កែប្រែល្បឿនឲ្យលឿនខ្លាំង (ពីមុន 100)
+    local tweenSpeed = 250  -- ល្បឿនសាកសម បង្ការបញ្ហា Server ដឹងមិនទាន់
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -185,7 +185,7 @@ local function createGUI(imageAsset)
         if not root then return end
         local distance = (root.Position - targetPos).Magnitude
         local duration = distance / tweenSpeed
-        if duration < 0.05 then duration = 0.05 end -- កុំឲ្យវាគាំងបើនៅជិតពេក
+        if duration < 0.05 then duration = 0.05 end 
         local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
         local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
         tween:Play()
@@ -214,14 +214,18 @@ local function createGUI(imageAsset)
     local function ensureCollect(bubblePart)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
-        local timeout = tick() + 0.15 -- កាត់បន្ថយពេលរង់ចាំពី 0.5s មកត្រឹម 0.15s ដើម្បីកុំឲ្យស្អិត
+        
+        -- រង់ចាំ 0.25s ឲ្យ Server ហ្គេមដឹងថាយើងបានមកដល់ និងប៉ះ Bubble មែន
+        local timeout = tick() + 0.25 
         repeat
             if firetouchinterest then
                 pcall(function() firetouchinterest(root, bubblePart, 0) end)
                 pcall(function() firetouchinterest(root, bubblePart, 1) end)
             end
-            root.CFrame = CFrame.new(bubblePart.Position)
-            task.wait(0.01) -- លោតឲ្យលឿនជាងមុន
+            
+            -- ទម្លាក់តួអង្គឲ្យចំកណ្ដាល Bubble តែម្ដង
+            root.CFrame = bubblePart.CFrame
+            task.wait(0.02) 
         until not bubblePart.Parent or tick() > timeout
     end
 
@@ -266,21 +270,21 @@ local function createGUI(imageAsset)
                     local z = centerZ + math.sin(rad) * radius
                     local targetPos = Vector3.new(x, safeHeight, z)
 
-                    hintLabel.Text = "ស្ថានភាព៖ 🌀 Spiral (ល្បឿន 350)"
+                    hintLabel.Text = "ស្ថានភាព៖ 🌀 Spiral (ល្បឿន 250)"
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     smoothFlyTo(targetPos)
 
                     local targets = scanFullMap()
                     if #targets > 0 then
                         isAttacking = true
-                        hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងប្រមូល " .. #targets .. " Bubble យ៉ាងលឿន!"
+                        hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងប្រមូល " .. #targets .. " Bubble!"
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
 
                         table.sort(targets, function(a,b)
                             return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
                         end)
 
-                        -- បន្ថែមថ្មី៖ ព្យាយាមប្រមូល Bubble ទាំងអស់ក្នុងពេលតែមួយពីចម្ងាយ មុនពេលហោះទៅជិត
+                        -- ព្យាយាមប្រមូលពីចម្ងាយ (ប្រសិនបើ Exploit គាំទ្រ)
                         if firetouchinterest then
                             for _, target in ipairs(targets) do
                                 if target.part and target.part.Parent then
@@ -308,13 +312,13 @@ local function createGUI(imageAsset)
                     if radius > maxRadius then
                         radius = 20
                     end
-                    task.wait(0.1) -- កាត់បន្ថយការរង់ចាំនៅទីនេះផងដែរ
+                    task.wait(0.1)
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើក Spiral (ល្បឿន 350)"
+            autoLoopBtn.Text = "🔥 បើក Spiral (ល្បឿន 250)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
