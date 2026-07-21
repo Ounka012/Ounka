@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (ULTRA FAST COLLECT)
+-- EVADE: Spiral Farm (BALANCED: COLLECTS ALL + NOT STUCK)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -33,7 +33,7 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- រក Bubble គ្រប់ប្រភេទ
+-- រក Bubble គ្រប់ប្រភេទ (មិនចាប់យកអ្នកលេងដទៃ)
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
@@ -131,7 +131,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL FARM (SPEED 500)"
+    title.Text = "⚡ SPIRAL FARM (STABLE COLLECT)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -179,30 +179,24 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (SPEED 500 + QUICK COLLECT) ==============
+    --============== LOGIC (SPEED 250 + RELIABLE STICK) ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
-    local tweenSpeed = 500   -- ល្បឿនលឿន (កែជា 250 បើចង់)
-    local stickTimeout = 0.1 -- តោងត្រឹម 0.1 វិនាទី
+    local tweenSpeed = 250   -- ល្បឿនដើម
+    local stickTimeout = 2   -- រង់ចាំ ២ វិនាទី (មិនយូរពេក តែប្រាកដថាស៊ីបាន)
 
-    local function fastFlyTo(targetPos)
+    local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
         local distance = (root.Position - targetPos).Magnitude
-        if distance < 1 then return end
-        -- បើចម្ងាយខ្លី ប្រើ CFrame ភ្លាម
-        if distance < 10 then
-            root.CFrame = CFrame.new(targetPos)
-            return
-        end
         local duration = distance / tweenSpeed
-        if duration < 0.05 then duration = 0.05 end
+        if duration < 0.05 then duration = 0.05 end 
         local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
         local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
         tween:Play()
-        tween.Completed:Wait()
+        task.wait(duration)
     end
 
     local function startFloating(enable)
@@ -224,23 +218,25 @@ local function createGUI(imageAsset)
         end
     end
 
-    -- ប្រមូល Bubble មួយយ៉ាងរហ័ស
-    local function quickCollect(bubblePart, prompt)
+    -- ត្រាំជាប់រហូតដល់ស៊ីបាន ឬអស់ពេល ២ វិនាទី
+    local function ensureCollect(bubblePart)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
-        local timeout = tick() + stickTimeout
+        
+        local timeout = tick() + stickTimeout 
+        
         repeat
-            if not isLooping then return end
+            if not isLooping then break end
+            
             root.Velocity = Vector3.new(0, 0, 0)
             root.CFrame = bubblePart.CFrame
+            
             if firetouchinterest then
                 pcall(function() firetouchinterest(root, bubblePart, 0) end)
                 pcall(function() firetouchinterest(root, bubblePart, 1) end)
             end
-            if prompt and fireproximityprompt then
-                pcall(function() fireproximityprompt(prompt, 1) end)
-            end
-            task.wait(0.03)  -- រង់ចាំខ្លីណាស់
+            
+            task.wait(0.05)
         until not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) or tick() > timeout
     end
 
@@ -255,6 +251,7 @@ local function createGUI(imageAsset)
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
+                -- រកចំណុចកណ្ដាលផែនទី
                 local centerX, centerZ = 0, 0
                 local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
                 if mapModel and mapModel:IsA("Model") then
@@ -277,17 +274,17 @@ local function createGUI(imageAsset)
                 local angle = 0
                 local angleStep = 25
                 local radiusGrowth = 15
-                local maxRadius = 600  -- ប្ដូរជា 100 បើចង់តែជុំវិញ
+                local maxRadius = 100   -- កាំអតិបរមា 100
 
                 while isLooping do
-                    -- ហោះទៅចំណុចវង់
                     local rad = math.rad(angle)
                     local x = centerX + math.cos(rad) * radius
                     local z = centerZ + math.sin(rad) * radius
                     local targetPos = Vector3.new(x, safeHeight, z)
-                    hintLabel.Text = "🌀 ហោះរក..."
+
+                    hintLabel.Text = "ស្ថានភាព៖ 🌀 ហោះរក..."
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-                    fastFlyTo(targetPos)
+                    smoothFlyTo(targetPos)
 
                     -- ស្កេន Bubble ទាំងអស់
                     local targets = scanFullMap()
@@ -295,28 +292,28 @@ local function createGUI(imageAsset)
                         hintLabel.Text = "🫧 ប្រមូល " .. #targets .. " Bubble!"
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
 
-                        -- តម្រៀបតាមចម្ងាយ
                         table.sort(targets, function(a,b)
                             return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
                         end)
 
-                        -- បាញ់ Touch ពីចម្ងាយប្រសិនបើអាច
                         if firetouchinterest then
-                            for _, t in ipairs(targets) do
-                                if t.part and t.part.Parent then
-                                    pcall(function() firetouchinterest(root, t.part, 0) end)
-                                    pcall(function() firetouchinterest(root, t.part, 1) end)
+                            for _, target in ipairs(targets) do
+                                if target.part and target.part.Parent then
+                                    pcall(function() firetouchinterest(root, target.part, 0) end)
+                                    pcall(function() firetouchinterest(root, target.part, 1) end)
                                 end
                             end
                         end
 
-                        -- ប្រមូលពួកវាម្ដងមួយយ៉ាងលឿន
-                        for _, t in ipairs(targets) do
+                        for _, target in ipairs(targets) do
                             if not isLooping then break end
-                            if t.part and t.part.Parent then
-                                fastFlyTo(t.part.Position)
+                            if target.part and target.part.Parent then
+                                smoothFlyTo(target.part.Position)
                                 if not isLooping then break end
-                                quickCollect(t.part, t.prompt)
+                                ensureCollect(target.part)   -- រង់ចាំស៊ីរហូតដល់បាន
+                                if target.type == "revive" and target.prompt then
+                                    pcall(function() fireproximityprompt(target.prompt, 1) end)
+                                end
                             end
                         end
                     end
