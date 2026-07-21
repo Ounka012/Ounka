@@ -1,0 +1,347 @@
+--========================================================
+-- EVADE: Spiral Farm (FAST + NPC PROTECTION)
+--========================================================
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
+local FILE_NAME = "bg.jpg"
+
+--============== ជំនួយ ==============
+local function makeDraggable(guiObject)
+    local dragging, startPos, objPos
+    guiObject.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; startPos = input.Position; objPos = guiObject.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - startPos
+            guiObject.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
+        end
+    end)
+    guiObject.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+-- រក Bubble គ្រប់ប្រភេទ (មិនចាប់យកអ្នកលេងដទៃ)
+local function getValidTarget(obj)
+    if not obj then return nil, nil end
+    local name = obj.Name:lower()
+    
+    if obj:IsA("ProximityPrompt") and obj.Parent then
+        local action = obj.ActionText:lower()
+        if action:find("revive") or name:find("revive") or action:find("carry") then
+            return obj.Parent, "revive"
+        end
+    end
+
+    local ancestor = obj:FindFirstAncestorOfClass("Model")
+    if ancestor and ancestor:FindFirstChildOfClass("Humanoid") then
+        return nil, nil 
+    end
+
+    local parent = obj.Parent
+    local parentName = parent and parent.Name:lower() or ""
+    local grandParent = parent and parent.Parent
+    local grandParentName = grandParent and grandParent.Name:lower() or ""
+
+    if name:find("bubble") or name:find("token") then
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
+        if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart, "item" end
+    end
+
+    if parent and (parentName:find("bubble") or parentName:find("token")) then
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
+        if obj:IsA("Model") then
+            local p = obj:FindFirstChildWhichIsA("BasePart")
+            if p then return p, "item" end
+        end
+    end
+
+    if grandParent and (grandParentName:find("bubble") or grandParentName:find("token")) then
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
+    end
+
+    if name == "handle" and parent and (parentName:find("bubble") or parentName:find("token")) then
+        if obj:IsA("BasePart") then return obj, "item" end
+    end
+
+    return nil, nil
+end
+
+local function scanFullMap()
+    local list = {}
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        local part, tType = getValidTarget(obj)
+        if part and part:IsA("BasePart") then
+            table.insert(list, {part = part, type = tType, prompt = (tType == "revive" and obj or nil)})
+        end
+    end
+    return list
+end
+
+--============== GUI ==============
+local function createGUI(imageAsset)
+    if CoreGui:FindFirstChild("EvadeSpiralFarm") then CoreGui:FindFirstChild("EvadeSpiralFarm"):Destroy() end
+
+    local gui = Instance.new("ScreenGui", CoreGui)
+    gui.Name = "EvadeSpiralFarm"
+    gui.IgnoreGuiInset = true
+
+    local toggleBtn = Instance.new("ImageButton", gui)
+    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
+    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    toggleBtn.Image = imageAsset or ""
+    toggleBtn.ScaleType = Enum.ScaleType.Crop
+    toggleBtn.Draggable = true
+    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
+    local toggleStroke = Instance.new("UIStroke", toggleBtn)
+    toggleStroke.Thickness = 3
+
+    local mainFrame = Instance.new("Frame", gui)
+    mainFrame.Size = UDim2.new(0, 420, 0, 250)
+    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
+    mainFrame.BackgroundTransparency = 1
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Visible = true
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
+    local mainStroke = Instance.new("UIStroke", mainFrame)
+    mainStroke.Thickness = 3
+
+    local bg = Instance.new("ImageLabel", mainFrame)
+    bg.Size = UDim2.new(1,0,1,0)
+    bg.BackgroundTransparency = 1
+    bg.Image = imageAsset or ""
+    bg.ScaleType = Enum.ScaleType.Stretch
+    bg.ImageTransparency = 0.3
+    bg.ZIndex = -1
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
+
+    local title = Instance.new("TextLabel", mainFrame)
+    title.Size = UDim2.new(1,0,0,45)
+    title.BackgroundTransparency = 1
+    title.Text = "⚡ SPIRAL FARM (SAFE + SPEED)"
+    title.Font = Enum.Font.GothamBlack
+    title.TextSize = 14
+    title.TextColor3 = Color3.new(1,1,1)
+
+    local closeBtn = Instance.new("TextButton", mainFrame)
+    closeBtn.Size = UDim2.new(0,35,0,35)
+    closeBtn.Position = UDim2.new(1,-45,0,10)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200,40,40)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.new(1,1,1)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 14
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
+
+    local autoLoopBtn = Instance.new("TextButton", mainFrame)
+    autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
+    autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
+    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+    autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
+    autoLoopBtn.TextColor3 = Color3.new(1,1,1)
+    autoLoopBtn.Font = Enum.Font.GothamBold
+    autoLoopBtn.TextSize = 13
+    Instance.new("UICorner", autoLoopBtn).CornerRadius = UDim.new(0, 10)
+
+    local hintLabel = Instance.new("TextLabel", mainFrame)
+    hintLabel.Size = UDim2.new(1, -40, 0, 30)
+    hintLabel.Position = UDim2.new(0, 20, 0, 130)
+    hintLabel.BackgroundTransparency = 1
+    hintLabel.Text = "ស្ថានភាព៖ រង់ចាំការបញ្ជា..."
+    hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    hintLabel.Font = Enum.Font.Gotham
+    hintLabel.TextSize = 12
+
+    -- ពណ៌ស្រស់ឆើត
+    task.spawn(function()
+        local hue = 0
+        while gui.Parent do
+            hue = (hue + 0.03) % 1
+            title.TextColor3 = Color3.fromHSV(hue, 1, 1)
+            mainStroke.Color = Color3.fromHSV(hue, 1, 1)
+            toggleStroke.Color = Color3.fromHSV((hue+0.3)%1, 1, 1)
+            task.wait(0.04)
+        end
+    end)
+
+    toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
+    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
+
+    --============== LOGIC (OPTIMIZED + NPC IMMUNE) ==============
+    local isLooping = false
+    local tweenSpeed = 1000
+    local stickTimeout = 1
+    local floatConnection      -- សម្រាប់ការពារ NPC
+
+    local function fastMoveTo(targetPos)
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        local distance = (root.Position - targetPos).Magnitude
+        if distance < 0.5 then return end
+
+        if distance < 50 then
+            root.CFrame = CFrame.new(targetPos)
+        else
+            local duration = distance / tweenSpeed
+            if duration < 0.05 then duration = 0.05 end
+            local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+            local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
+            tween:Play()
+            tween.Completed:Wait()
+        end
+    end
+
+    local function ensureCollect(bubblePart)
+        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not root or not bubblePart or not bubblePart.Parent then return end
+
+        local timeout = tick() + stickTimeout
+        local heartbeatConnection
+        heartbeatConnection = RunService.Heartbeat:Connect(function()
+            if not isLooping then
+                heartbeatConnection:Disconnect()
+                return
+            end
+
+            if not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) then
+                heartbeatConnection:Disconnect()
+                return
+            end
+
+            if tick() > timeout then
+                heartbeatConnection:Disconnect()
+                return
+            end
+
+            root.Velocity = Vector3.new(0, 0, 0)
+            root.CFrame = bubblePart.CFrame
+
+            if firetouchinterest then
+                pcall(function() firetouchinterest(root, bubblePart, 0) end)
+                pcall(function() firetouchinterest(root, bubblePart, 1) end)
+            end
+        end)
+
+        while heartbeatConnection.Connected and isLooping do
+            task.wait(0.05)
+        end
+    end
+
+    -- ✅ ប្រព័ន្ធការពារ NPC (យកមកវិញ)
+    local function startFloating(enable)
+        if floatConnection then
+            floatConnection:Disconnect()
+            floatConnection = nil
+        end
+        if enable then
+            floatConnection = RunService.Stepped:Connect(function()
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    root.Velocity = Vector3.new(0,0,0)
+                    root.CanCollide = true  -- root ត្រូវការ collide ដើម្បីកុំឲ្យធ្លាក់ដី
+                    -- បិទការប៉ះទង្គិចសម្រាប់ផ្នែកផ្សេងទៀត (ដៃ ជើង ក្បាល) ដើម្បីកុំឲ្យ NPC វ៉ៃជាប់
+                    for _, part in pairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") and part ~= root then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        end
+    end
+
+    local function toggleAutoLoop()
+        isLooping = not isLooping
+        if isLooping then
+            startFloating(true)   -- បើកប្រព័ន្ធការពារ
+            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
+            autoLoopBtn.Text = "⏹️ ឈប់"
+            task.spawn(function()
+                while isLooping do
+                    local char = LocalPlayer.Character
+                    local root = char and char:FindFirstChild("HumanoidRootPart")
+                    if not root then
+                        task.wait(0.5)
+                        continue
+                    end
+
+                    local targets = scanFullMap()
+                    if #targets == 0 then
+                        hintLabel.Text = "ស្ថានភាព៖ 🔍 រកមិនឃើញ Bubble"
+                        hintLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+                        task.wait(0.5)
+                        continue
+                    end
+
+                    hintLabel.Text = "ស្ថានភាព៖ 🫧 រកឃើញ " .. #targets .. " Bubble"
+                    hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
+
+                    table.sort(targets, function(a, b)
+                        return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
+                    end)
+
+                    if firetouchinterest then
+                        for _, target in ipairs(targets) do
+                            if target.part and target.part.Parent then
+                                pcall(function() firetouchinterest(root, target.part, 0) end)
+                                pcall(function() firetouchinterest(root, target.part, 1) end)
+                            end
+                        end
+                    end
+
+                    for _, target in ipairs(targets) do
+                        if not isLooping then break end
+                        if target.part and target.part.Parent then
+                            hintLabel.Text = "ស្ថានភាព៖ ✈️ ហោះទៅ Bubble..."
+                            hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+                            fastMoveTo(target.part.Position)
+
+                            if not isLooping then break end
+                            if target.part and target.part.Parent then
+                                ensureCollect(target.part)
+                                if target.type == "revive" and target.prompt then
+                                    pcall(function() fireproximityprompt(target.prompt, 1) end)
+                                end
+                            end
+                        end
+                    end
+
+                    task.wait(0.1)
+                end
+            end)
+        else
+            startFloating(false)  -- បិទប្រព័ន្ធការពារ
+            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+            autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
+            hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
+            hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    end
+
+    autoLoopBtn.MouseButton1Down:Connect(toggleAutoLoop)
+    makeDraggable(mainFrame)
+end
+
+--============== ទាញយករូបភាព ==============
+local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
+if ok and response and response.StatusCode == 200 then
+    writefile(FILE_NAME, response.Body)
+    createGUI(getcustomasset(FILE_NAME))
+else
+    createGUI("")
+end
