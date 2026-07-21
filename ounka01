@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (GROUND PATROL + SPEED 100)
+-- EVADE: Spiral Farm (FAST FLY + NO STUCK)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -33,7 +33,7 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- រក Bubble គ្រប់ប្រភេទ (មិនចាប់យកអ្នកលេងដទៃ)
+-- រក Bubble គ្រប់ប្រភេទ
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
@@ -90,22 +90,6 @@ local function scanFullMap()
     return list
 end
 
--- រកកម្ពស់ដីនៅកូអរដោនេ X, Z ដោយ Raycast ចុះក្រោម
-local function getGroundHeight(x, z)
-    local rayOrigin = Vector3.new(x, 500, z)   -- ចាប់ពីលើ
-    local rayDirection = Vector3.new(0, -1000, 0)
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
-    
-    local result = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-    if result then
-        return result.Position.Y
-    else
-        return 0  -- បើរកមិនឃើញ ប្រើ 0
-    end
-end
-
 --============== GUI ==============
 local function createGUI(imageAsset)
     if CoreGui:FindFirstChild("EvadeSpiralFarm") then CoreGui:FindFirstChild("EvadeSpiralFarm"):Destroy() end
@@ -147,7 +131,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL FARM (GROUND MODE)"
+    title.Text = "⚡ SPIRAL FARM (FAST & SMOOTH)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -195,12 +179,14 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (GROUND MOVEMENT + SPEED 100) ==============
+    --============== LOGIC (SPEED 250 + QUICK STICK) ==============
     local isLooping = false
     local floatConnection
-    local tweenSpeed = 100   -- ល្បឿនលើដី (អាចប្ដូរជា 250 បើចង់ដូចស្គ្រីបដើម)
+    local safeHeight = 100
+    local tweenSpeed = 250   -- ល្បឿនដើម
+    local stickTimeout = 0.5 -- រង់ចាំត្រឹម 0.5 វិនាទី បើមិនបានស៊ីក៏រំលង
 
-    local function smoothMoveTo(targetPos)
+    local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
@@ -236,7 +222,7 @@ local function createGUI(imageAsset)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
         
-        local timeout = tick() + 3 
+        local timeout = tick() + stickTimeout 
         
         repeat
             if not isLooping then break end
@@ -264,7 +250,6 @@ local function createGUI(imageAsset)
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
-                -- រកចំណុចកណ្ដាលផែនទី
                 local centerX, centerZ = 0, 0
                 local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
                 if mapModel and mapModel:IsA("Model") then
@@ -293,20 +278,15 @@ local function createGUI(imageAsset)
                     local rad = math.rad(angle)
                     local x = centerX + math.cos(rad) * radius
                     local z = centerZ + math.sin(rad) * radius
-                    
-                    -- រកកម្ពស់ដី ហើយកំណត់គោលដៅលើដី (បូក 3 studs)
-                    local groundY = getGroundHeight(x, z)
-                    local targetPos = Vector3.new(x, groundY + 3, z)
+                    local targetPos = Vector3.new(x, safeHeight, z)
 
-                    hintLabel.Text = "ស្ថានភាព៖ 🚶 ល្បាតលើដី..."
+                    hintLabel.Text = "ស្ថានភាព៖ 🌀 ហោះរកទីតាំង"
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-                    smoothMoveTo(targetPos)
+                    smoothFlyTo(targetPos)
 
-                    -- ស្កេន Bubble
-                    if not isLooping then break end
                     local targets = scanFullMap()
                     if #targets > 0 then
-                        hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងប្រមូល " .. #targets .. " Bubble!"
+                        hintLabel.Text = "ស្ថានភាព៖ 🫧 ប្រមូល " .. #targets .. " Bubble!"
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
 
                         table.sort(targets, function(a,b)
@@ -325,12 +305,8 @@ local function createGUI(imageAsset)
                         for _, target in ipairs(targets) do
                             if not isLooping then break end
                             if target.part and target.part.Parent then
-                                -- ផ្លាស់ទីទៅ Bubble លើដី (ប្រើកម្ពស់ដីក្បែរ Bubble)
-                                local bubbleX = target.part.Position.X
-                                local bubbleZ = target.part.Position.Z
-                                local groundAtBubble = getGroundHeight(bubbleX, bubbleZ)
-                                smoothMoveTo(Vector3.new(bubbleX, groundAtBubble + 3, bubbleZ))
-                                ensureCollect(target.part)
+                                smoothFlyTo(target.part.Position)
+                                ensureCollect(target.part) -- ឥឡូវរង់ចាំត្រឹម 0.5 វិនាទី
                                 if target.type == "revive" and target.prompt then
                                     pcall(function() fireproximityprompt(target.prompt, 1) end)
                                 end
