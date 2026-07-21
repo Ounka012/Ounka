@@ -183,8 +183,8 @@ local function createGUI(imageAsset)
     local isLooping = false
     local floatConnection
     local safeHeight = 30    -- <-- បានកែមកត្រឹម 40
-    local tweenSpeed = 250
-    local stickTimeout = 2
+    local tweenSpeed = 100
+    local stickTimeout = 80
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
