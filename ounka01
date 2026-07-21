@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Auto Farm (រក្សាទម្រង់កូដដើមទាំងស្រុង + កម្ពស់ ១០០ម)
+-- EVADE: Auto Farm (កម្ពស់ ១០០ម + ល្បឿនស៊ីអំណោយផលដល់ Server)
 --========================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -9,11 +9,9 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
--- រូបភាពផ្ទៃខាងក្រោយដើមរបស់កូដ
 local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 local FILE_NAME = "bg.jpg"
 
--- អនុគមន៍សម្រាប់អូសផ្ទាំង UI ចុះឡើង
 local function makeDraggable(guiObject)
     local dragging, startPos, objPos
     guiObject.InputBegan:Connect(function(input)
@@ -34,7 +32,6 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- អនុគមន៍ស្វែងរក Bubble និង Token (កូដដើម)
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
@@ -57,7 +54,6 @@ local function getValidTarget(obj)
     return nil, nil
 end
 
--- អនុគមន៍ស្កេនទូទាំង Map (កូដដើម)
 local function scanFullMap()
     local list = {}
     for _, obj in pairs(Workspace:GetDescendants()) do
@@ -69,9 +65,6 @@ local function scanFullMap()
     return list
 end
 
---========================================================
--- ការបង្កើតផ្ទាំង UI (រក្សារូបភាព និងពណ៌ដើមទាំងអស់)
---========================================================
 local function createGUI(imageAsset)
     if CoreGui:FindFirstChild("EvadeSummerFarm") then CoreGui:FindFirstChild("EvadeSummerFarm"):Destroy() end
 
@@ -79,7 +72,6 @@ local function createGUI(imageAsset)
     gui.Name = "EvadeSummerFarm"
     gui.IgnoreGuiInset = true
 
-    -- ប៊ូតុងតូចសម្រាប់បិទ/បើកផ្ទាំងធំ
     local toggleBtn = Instance.new("ImageButton", gui)
     toggleBtn.Size = UDim2.new(0, 55, 0, 55)
     toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
@@ -91,7 +83,6 @@ local function createGUI(imageAsset)
     local toggleStroke = Instance.new("UIStroke", toggleBtn)
     toggleStroke.Thickness = 3
 
-    -- ផ្ទាំងផ្ទៃខាងក្រោយធំ
     local mainFrame = Instance.new("Frame", gui)
     mainFrame.Size = UDim2.new(0, 420, 0, 250)
     mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
@@ -102,7 +93,6 @@ local function createGUI(imageAsset)
     local mainStroke = Instance.new("UIStroke", mainFrame)
     mainStroke.Thickness = 3
 
-    -- រូបភាព Background ដើម
     local bg = Instance.new("ImageLabel", mainFrame)
     bg.Size = UDim2.new(1,0,1,0)
     bg.BackgroundTransparency = 1
@@ -112,7 +102,6 @@ local function createGUI(imageAsset)
     bg.ZIndex = -1
     Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
 
-    -- ចំណងជើងមានពណ៌ RGB ដើម
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
@@ -121,7 +110,6 @@ local function createGUI(imageAsset)
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
 
-    -- ប៊ូតុងបិទ (X)
     local closeBtn = Instance.new("TextButton", mainFrame)
     closeBtn.Size = UDim2.new(0,35,0,35)
     closeBtn.Position = UDim2.new(1,-45,0,10)
@@ -132,18 +120,16 @@ local function createGUI(imageAsset)
     closeBtn.TextSize = 14
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
 
-    -- ប៊ូតុងដំណើរការ (Auto Loop)
     local autoLoopBtn = Instance.new("TextButton", mainFrame)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធឆាបស៊ីល្បឿនលឿន (កម្ពស់ ១០០ម)"
+    autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធហោះស៊ី (ល្បឿនមធ្យម)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
     Instance.new("UICorner", autoLoopBtn).CornerRadius = UDim.new(0, 10)
 
-    -- អត្ថបទបង្ហាញស្ថានភាព
     local hintLabel = Instance.new("TextLabel", mainFrame)
     hintLabel.Size = UDim2.new(1, -40, 0, 30)
     hintLabel.Position = UDim2.new(0, 20, 0, 130)
@@ -153,7 +139,6 @@ local function createGUI(imageAsset)
     hintLabel.Font = Enum.Font.Gotham
     hintLabel.TextSize = 12
 
-    -- ប្រព័ន្ធប្តូរពណ៌ RGB (កូដដើម)
     task.spawn(function()
         local hue = 0
         while gui.Parent do
@@ -168,15 +153,11 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --========================================================
-    -- ប្រព័ន្ធដំណើរការកូដ (កម្ពស់ ១០០ម + Chain Looting)
-    --========================================================
     local isLooping = false
     local floatConnection
-    local safeHeight = 100 -- កំណត់កម្ពស់ដល់ ១០០ ម៉ែត្រ
+    local safeHeight = 100
     local isAttacking = false
 
-    -- ធ្វើឱ្យតួអង្គអណ្តែតនៅកម្ពស់ ១០០ម
     local function startFloating(enable)
         if floatConnection then floatConnection:Disconnect() floatConnection = nil end
         if enable then
@@ -214,38 +195,38 @@ local function createGUI(imageAsset)
                     if root then
                         local targets = scanFullMap()
                         
-                        -- បើឃើញ Bubble វានឹងចុះទៅស៊ី
                         if #targets > 0 then
                             isAttacking = true 
                             
-                            -- រៀប Bubble តាមចម្ងាយ (ជិតទៅឆ្ងាយ)
                             table.sort(targets, function(a, b)
                                 return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
                             end)
                             
-                            hintLabel.Text = "ស្ថានភាព៖ 🔥 កំពុងចុះឆាបស៊ីបន្តបន្ទាប់គ្នា..."
+                            hintLabel.Text = "ស្ថានភាព៖ 🔥 កំពុងចុះស៊ី (ទុកពេលឱ្យ Server ស្គាល់)..."
                             hintLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
                             
-                            -- ស៊ីជាប់ៗគ្នាអតិបរមា ១០ គ្រាប់ រួចទើបហោះមក ១០០ម វិញ
+                            -- កំណត់ត្រឹម ៥ គ្រាប់ ដើម្បីកុំឱ្យលឿនពេក ហ្គេមអាចចាប់អត់ទាន់
                             for i, target in ipairs(targets) do
                                 if not isLooping then break end
                                 if target.part and target.part.Parent then
+                                    -- Teleport ទៅចំកន្លែង Bubble
                                     root.CFrame = CFrame.new(target.part.Position)
                                     root.Velocity = Vector3.new(0,0,0)
-                                    task.wait(0.02)
+                                    
+                                    -- **ចំណុចសំខាន់៖** ទុកពេល ០.២ វិនាទី ដើម្បីឱ្យប៉ះចូលកាបូបពិតប្រាកដ
+                                    task.wait(0.2)
                                     
                                     if target.type == "revive" and target.prompt then
                                         pcall(function() fireproximityprompt(target.prompt, 1) end)
+                                        task.wait(0.3) -- សម្រាប់ Revive ត្រូវចាំយូរបន្តិច
                                     end
                                 end
-                                if i >= 10 then break end
+                                if i >= 5 then break end 
                             end
                             
                             isAttacking = false
-                            task.wait(0.2)
+                            task.wait(0.5) -- សម្រាកកន្លះវិនាទី មុននឹងហោះចុះមកស៊ីបន្ត ដើម្បីការពារការគាំង
                         else
-                            -- ដោយសារនៅកម្ពស់ ១០០ម ហ្គេមអត់ Load Bubble ទេ 
-                            -- ដូច្នេះវានឹងលោតទៅពីលើក្បាលអ្នកលេងផ្សេងរាល់ ១.៥ វិនាទី ដើម្បីឱ្យលេច Bubble មក
                             if tick() - scanTick > 1.5 then
                                 scanTick = tick()
                                 hintLabel.Text = "ស្ថានភាព៖ 📡 ហោះតាមដានអ្នកលេងផ្សេងដើម្បីស្កេនរក..."
@@ -261,13 +242,13 @@ local function createGUI(imageAsset)
                             end
                         end
                     end
-                    task.wait(0.01)
+                    task.wait(0.05)
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធឆាបស៊ីល្បឿនលឿន (កម្ពស់ ១០០ម)"
+            autoLoopBtn.Text = "🔥 បើកប្រព័ន្ធហោះស៊ី (ល្បឿនមធ្យម)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
@@ -277,9 +258,6 @@ local function createGUI(imageAsset)
     makeDraggable(mainFrame)
 end
 
---========================================================
--- ទាញយករូបភាព Background (កូដដើម)
---========================================================
 local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
 if ok and response and response.StatusCode == 200 then
     writefile(FILE_NAME, response.Body)
