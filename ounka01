@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (BALANCED: COLLECTS ALL + NOT STUCK)
+-- EVADE: Spiral Farm (HEIGHT 40 + STABLE)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -131,7 +131,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL FARM (STABLE COLLECT)"
+    title.Text = "⚡ SPIRAL FARM (HEIGHT 40)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -179,12 +179,12 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (SPEED 250 + RELIABLE STICK) ==============
+    --============== LOGIC (SPEED 250 + HEIGHT 40) ==============
     local isLooping = false
     local floatConnection
-    local safeHeight = 100
-    local tweenSpeed = 250   -- ល្បឿនដើម
-    local stickTimeout = 2   -- រង់ចាំ ២ វិនាទី (មិនយូរពេក តែប្រាកដថាស៊ីបាន)
+    local safeHeight = 40    -- <-- បានកែមកត្រឹម 40
+    local tweenSpeed = 250
+    local stickTimeout = 2
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -218,7 +218,6 @@ local function createGUI(imageAsset)
         end
     end
 
-    -- ត្រាំជាប់រហូតដល់ស៊ីបាន ឬអស់ពេល ២ វិនាទី
     local function ensureCollect(bubblePart)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
@@ -251,7 +250,6 @@ local function createGUI(imageAsset)
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
-                -- រកចំណុចកណ្ដាលផែនទី
                 local centerX, centerZ = 0, 0
                 local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
                 if mapModel and mapModel:IsA("Model") then
@@ -274,7 +272,7 @@ local function createGUI(imageAsset)
                 local angle = 0
                 local angleStep = 25
                 local radiusGrowth = 15
-                local maxRadius = 100   -- កាំអតិបរមា 100
+                local maxRadius = 100
 
                 while isLooping do
                     local rad = math.rad(angle)
@@ -286,7 +284,6 @@ local function createGUI(imageAsset)
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     smoothFlyTo(targetPos)
 
-                    -- ស្កេន Bubble ទាំងអស់
                     local targets = scanFullMap()
                     if #targets > 0 then
                         hintLabel.Text = "🫧 ប្រមូល " .. #targets .. " Bubble!"
@@ -310,7 +307,7 @@ local function createGUI(imageAsset)
                             if target.part and target.part.Parent then
                                 smoothFlyTo(target.part.Position)
                                 if not isLooping then break end
-                                ensureCollect(target.part)   -- រង់ចាំស៊ីរហូតដល់បាន
+                                ensureCollect(target.part)
                                 if target.type == "revive" and target.prompt then
                                     pcall(function() fireproximityprompt(target.prompt, 1) end)
                                 end
