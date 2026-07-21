@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: SPIRAL FARM (ANTI-BAN + IMAGE, NO KEY)
+-- EVADE: SPIRAL FARM (ANTI-BAN + IMAGE, NO KEY) [FIXED]
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -32,6 +32,7 @@ local function makeDraggable(guiObject)
     end)
 end
 
+-- ✅ បានកែរួច៖ រក Bubble បានទោះគ្មាន PrimaryPart
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
@@ -55,7 +56,11 @@ local function getValidTarget(obj)
 
     if name:find("bubble") or name:find("token") then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
-        if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart, "item" end
+        if obj:IsA("Model") then
+            -- 🔥 ការកែសម្រួល៖ យក PrimaryPart បើមាន បើគ្មាន រក BasePart ណាមួយ
+            local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+            if part then return part, "item" end
+        end
     end
 
     if parent and (parentName:find("bubble") or parentName:find("token")) then
