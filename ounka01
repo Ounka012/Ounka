@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Back-and-Forth Patrol (LINEAR + HEIGHT 40)
+-- EVADE: Spiral Farm (AUTO PULL + FAST COLLECT)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -37,24 +37,29 @@ end
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
+    
     if obj:IsA("ProximityPrompt") and obj.Parent then
         local action = obj.ActionText:lower()
         if action:find("revive") or name:find("revive") or action:find("carry") then
             return obj.Parent, "revive"
         end
     end
+
     local ancestor = obj:FindFirstAncestorOfClass("Model")
     if ancestor and ancestor:FindFirstChildOfClass("Humanoid") then
         return nil, nil 
     end
+
     local parent = obj.Parent
     local parentName = parent and parent.Name:lower() or ""
     local grandParent = parent and parent.Parent
     local grandParentName = grandParent and grandParent.Name:lower() or ""
+
     if name:find("bubble") or name:find("token") then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
         if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart, "item" end
     end
+
     if parent and (parentName:find("bubble") or parentName:find("token")) then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
         if obj:IsA("Model") then
@@ -62,12 +67,15 @@ local function getValidTarget(obj)
             if p then return p, "item" end
         end
     end
+
     if grandParent and (grandParentName:find("bubble") or grandParentName:find("token")) then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
     end
+
     if name == "handle" and parent and (parentName:find("bubble") or parentName:find("token")) then
         if obj:IsA("BasePart") then return obj, "item" end
     end
+
     return nil, nil
 end
 
@@ -123,7 +131,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ BACK-FORTH PATROL (LINEAR)"
+    title.Text = "⚡ SPIRAL FARM (AUTO PULL)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -171,13 +179,12 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (LINEAR BACK-AND-FORTH + HEIGHT 40) ==============
+    --============== LOGIC ==============
     local isLooping = false
     local floatConnection
-    local safeHeight = 40        -- កម្ពស់ហោះ (អាចកែបាន)
-    local tweenSpeed = 250       -- ល្បឿនហោះ
-    local stickTimeout = 2       -- ពេលត្រាំជាប់ Bubble
-    local patrolDistance = 100   -- <--- លេខនេះ! ចម្ងាយដើរទៅមុខ-ថយក្រោយ (studs)
+    local safeHeight = 100
+    local tweenSpeed = 250
+    local stickTimeout = 0.5
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -211,20 +218,59 @@ local function createGUI(imageAsset)
         end
     end
 
-    local function ensureCollect(bubblePart)
+    -- ប្រមូល Bubble មួយៗយ៉ាងរហ័ស (ត្រាំជាប់រយៈពេលខ្លី)
+    local function quickCollect(bubblePart, prompt)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
-        local timeout = tick() + stickTimeout 
+        local timeout = tick() + stickTimeout
         repeat
-            if not isLooping then break end
-            root.Velocity = Vector3.new(0, 0, 0)
+            if not isLooping then return end
+            root.Velocity = Vector3.new(0,0,0)
             root.CFrame = bubblePart.CFrame
             if firetouchinterest then
                 pcall(function() firetouchinterest(root, bubblePart, 0) end)
                 pcall(function() firetouchinterest(root, bubblePart, 1) end)
             end
+            if prompt and fireproximityprompt then
+                pcall(function() fireproximityprompt(prompt, 1) end)
+            end
             task.wait(0.05)
         until not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) or tick() > timeout
+    end
+
+    -- ទាញ Bubble ទាំងអស់មកតួអង្គ រួចប្រមូលពួកវា
+    local function pullAllAndCollect(targets)
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+
+        -- ទាញ Bubble មកលើក្បាលបន្តិច (5 studs ពីលើ)
+        local basePos = root.CFrame * CFrame.new(0, 5, 0)
+        local offset = Vector3.new(0, 0, 0)
+        local spacing = 5 -- ចន្លោះរវាង Bubble ដើម្បីកុំឲ្យជាន់គ្នា
+        local i = 0
+
+        for _, t in ipairs(targets) do
+            if t.part and t.part.Parent then
+                pcall(function()
+                    -- ដាក់ពួកវាជាជួរផ្ដេកជុំវិញ
+                    t.part.CFrame = basePos * CFrame.new(offset)
+                    offset = offset + Vector3.new(spacing, 0, 0)
+                    if (i+1) % 5 == 0 then
+                        offset = Vector3.new(0, 0, offset.Z + spacing)
+                    end
+                    i = i + 1
+                end)
+            end
+        end
+
+        -- ប្រមូល Bubble ទាំងអស់ដែលទាញមក (រង់ចាំបន្តិចឲ្យ Server ទទួលស្គាល់)
+        task.wait(0.1)
+        for _, t in ipairs(targets) do
+            if t.part and t.part.Parent then
+                quickCollect(t.part, t.prompt)
+            end
+        end
     end
 
     local function toggleAutoLoop()
@@ -238,7 +284,6 @@ local function createGUI(imageAsset)
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
-                -- រកកណ្ដាលផែនទី
                 local centerX, centerZ = 0, 0
                 local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
                 if mapModel and mapModel:IsA("Model") then
@@ -257,55 +302,37 @@ local function createGUI(imageAsset)
                     end
                 end
 
-                local movingForward = true   -- ទិសដៅចាប់ផ្ដើម
-                while isLooping do
-                    local targetX
-                    if movingForward then
-                        targetX = centerX + patrolDistance
-                    else
-                        targetX = centerX - patrolDistance
-                    end
-                    local targetPos = Vector3.new(targetX, safeHeight, centerZ)
+                local radius = 20
+                local angle = 0
+                local angleStep = 25
+                local radiusGrowth = 15
+                local maxRadius = 100
 
-                    hintLabel.Text = "↔️ ដើរល្បាតទៅ " .. (movingForward and "មុខ" or "ក្រោយ")
+                while isLooping do
+                    local rad = math.rad(angle)
+                    local x = centerX + math.cos(rad) * radius
+                    local z = centerZ + math.sin(rad) * radius
+                    local targetPos = Vector3.new(x, safeHeight, z)
+
+                    hintLabel.Text = "🌀 ហោះល្បាត..."
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     smoothFlyTo(targetPos)
 
-                    -- ពេលដល់ចំណុចចុង ស្កេន Bubble
-                    if not isLooping then break end
+                    -- ស្កេន Bubble ហើយទាញយកទាំងអស់
                     local targets = scanFullMap()
                     if #targets > 0 then
-                        hintLabel.Text = "🫧 ប្រមូល " .. #targets .. " Bubble!"
+                        hintLabel.Text = "🫧 ទាញយក " .. #targets .. " Bubble..."
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
-
-                        table.sort(targets, function(a,b)
-                            return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
-                        end)
-
-                        if firetouchinterest then
-                            for _, t in ipairs(targets) do
-                                if t.part and t.part.Parent then
-                                    pcall(function() firetouchinterest(root, t.part, 0) end)
-                                    pcall(function() firetouchinterest(root, t.part, 1) end)
-                                end
-                            end
-                        end
-
-                        for _, t in ipairs(targets) do
-                            if not isLooping then break end
-                            if t.part and t.part.Parent then
-                                smoothFlyTo(t.part.Position)
-                                if not isLooping then break end
-                                ensureCollect(t.part)
-                                if t.type == "revive" and t.prompt then
-                                    pcall(function() fireproximityprompt(t.prompt, 1) end)
-                                end
-                            end
-                        end
+                        pullAllAndCollect(targets)
+                        hintLabel.Text = "✅ ប្រមូលរួច"
+                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
                     end
 
-                    -- ត្រឡប់ទិសដៅ
-                    movingForward = not movingForward
+                    angle = (angle + angleStep) % 360
+                    radius = radius + radiusGrowth
+                    if radius > maxRadius then
+                        radius = 20
+                    end
                     task.wait(0.1)
                 end
             end)
