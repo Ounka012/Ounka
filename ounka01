@@ -1,7 +1,6 @@
 --========================================================
--- EVADE: Auto Farm (១០០ម + អណ្តែតហោះ + ស៊ីជាប់ប្រាកដ)
+-- EVADE: Auto Farm (Full Map Patrol + Fast Scan + Guaranteed Collect)
 --========================================================
-
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
@@ -13,6 +12,7 @@ local TweenService = game:GetService("TweenService")
 local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 local FILE_NAME = "bg.jpg"
 
+--============== ជំនួយ ==============
 local function makeDraggable(guiObject)
     local dragging, startPos, objPos
     guiObject.InputBegan:Connect(function(input)
@@ -64,11 +64,51 @@ local function scanFullMap()
     return list
 end
 
+--============== បង្កើតចំណុចល្បាតគ្រប់ជ្រុងផែនទី ==============
+local function getMapWaypoints()
+    local waypoints = {}
+    -- ព្យាយាមរក Map model
+    local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
+    if mapModel and mapModel:IsA("Model") then
+        -- គណនាព្រំដែនពី BaseParts ទាំងអស់ក្នុង Map
+        local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
+        for _, part in pairs(mapModel:GetDescendants()) do
+            if part:IsA("BasePart") then
+                minX = math.min(minX, part.Position.X)
+                maxX = math.max(maxX, part.Position.X)
+                minZ = math.min(minZ, part.Position.Z)
+                maxZ = math.max(maxZ, part.Position.Z)
+            end
+        end
+        if minX ~= math.huge then
+            -- បង្កើត 5 ចំណុច: ជ្រុង 4 + កណ្ដាល
+            local center = Vector3.new((minX+maxX)/2, 0, (minZ+maxZ)/2)
+            waypoints = {
+                Vector3.new(minX, 0, minZ),
+                Vector3.new(maxX, 0, minZ),
+                Vector3.new(minX, 0, maxZ),
+                Vector3.new(maxX, 0, maxZ),
+                center
+            }
+            return waypoints
+        end
+    end
+    -- បើរកមិនឃើញ Map ប្រើចំណុចស្តង់ដារ
+    return {
+        Vector3.new(-500, 0, -500),
+        Vector3.new(500, 0, -500),
+        Vector3.new(-500, 0, 500),
+        Vector3.new(500, 0, 500),
+        Vector3.new(0, 0, 0)
+    }
+end
+
+--============== GUI ==============
 local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeSummerFarm") then CoreGui:FindFirstChild("EvadeSummerFarm"):Destroy() end
+    if CoreGui:FindFirstChild("EvadeFullMapFarm") then CoreGui:FindFirstChild("EvadeFullMapFarm"):Destroy() end
 
     local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeSummerFarm"
+    gui.Name = "EvadeFullMapFarm"
     gui.IgnoreGuiInset = true
 
     local toggleBtn = Instance.new("ImageButton", gui)
@@ -104,7 +144,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ EVADE: AUTO FARM (ស៊ីជាប់)"
+    title.Text = "⚡ FULL MAP BUBBLE FARM"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -123,7 +163,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកមុខងារអណ្តែតហោះស៊ីជាប់"
+    autoLoopBtn.Text = "🔥 បើកល្បាតពេញផែនទី (Teleport ភ្លាមៗ)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -152,29 +192,28 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
+    --============== LOGIC ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
     local isAttacking = false
-    local tweenSpeed = 180
+    local tweenSpeed = 300  -- លឿនជាងមុន
 
-    -- ហោះអណ្តែតយឺតៗទៅគោលដៅ
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
         local distance = (root.Position - targetPos).Magnitude
         local duration = distance / tweenSpeed
-        if duration < 0.15 then duration = 0.15 end
+        if duration < 0.1 then duration = 0.1 end
         local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
         local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
         tween:Play()
         task.wait(duration)
     end
 
-    -- អណ្តែតស្ងៀម
     local function startFloating(enable)
-        if floatConnection then floatConnection:Disconnect() floatConnection = nil end
+        if floatConnection then floatConnection:Disconnect(); floatConnection = nil end
         if enable then
             floatConnection = RunService.Stepped:Connect(function()
                 local char = LocalPlayer.Character
@@ -184,7 +223,7 @@ local function createGUI(imageAsset)
                     if not isAttacking then
                         root.CFrame = CFrame.new(root.Position.X, safeHeight, root.Position.Z)
                     end
-                    root.CanCollide = true  -- ទុក root បុកបានជានិច្ច
+                    root.CanCollide = true
                     for _, part in pairs(char:GetDescendants()) do
                         if part:IsA("BasePart") and part ~= root then
                             part.CanCollide = false
@@ -195,23 +234,19 @@ local function createGUI(imageAsset)
         end
     end
 
-    -- មុខងារជំនួយឲ្យស៊ីជាប់ (ព្យាយាមប៉ះរហូតបាន)
     local function ensureCollect(bubblePart)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
-        local timeout = tick() + 1.0
+        local timeout = tick() + 0.5
         repeat
-            -- បើមាន firetouchinterest ជួយបាញ់
             if firetouchinterest then
                 pcall(function() firetouchinterest(root, bubblePart, 0) end)
                 task.wait(0.02)
                 pcall(function() firetouchinterest(root, bubblePart, 1) end)
             end
-            -- រំកិលបន្តិច
-            root.CFrame = root.CFrame * CFrame.new(1, 0, 0)
-            task.wait(0.03)
+            root.CFrame = root.CFrame * CFrame.new(1,0,0)
+            task.wait(0.02)
             root.CFrame = CFrame.new(bubblePart.Position)
-            task.wait(0.05)
         until not bubblePart.Parent or tick() > timeout
     end
 
@@ -221,32 +256,39 @@ local function createGUI(imageAsset)
             startFloating(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
             autoLoopBtn.Text = "⏹️ ឈប់ដំណើរការ"
+            local waypoints = getMapWaypoints()
+            local currentWaypoint = 1
 
             task.spawn(function()
-                local scanTick = tick()
                 while isLooping do
                     local char = LocalPlayer.Character
                     local root = char and char:FindFirstChild("HumanoidRootPart")
                     if not root then task.wait(0.1) continue end
 
+                    -- ល្បាតទៅចំណុចបន្ទាប់ (Teleport ភ្លាមៗ)
+                    local targetPos = waypoints[currentWaypoint]
+                    hintLabel.Text = "ស្ថានភាព៖ 📡 ល្បាត -> ចំណុច " .. currentWaypoint .. "/" .. #waypoints
+                    hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
+                    root.CFrame = CFrame.new(targetPos.X, safeHeight, targetPos.Z)
+                    task.wait(0.2) -- រង់ចាំឲ្យផែនទីផ្ទុក
+
+                    -- ស្កេនរក Bubble ក្នុងតំបន់ដែលទើបផ្ទុក
                     local targets = scanFullMap()
                     if #targets > 0 then
                         isAttacking = true
-                        hintLabel.Text = "ស្ថានភាព៖ 🔥 កំពុងហោះស៊ី " .. #targets .. " គ្រាប់"
-                        hintLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+                        hintLabel.Text = "ស្ថានភាព៖ 🫧 ប្រមូល " .. #targets .. " Bubble"
+                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
 
-                        table.sort(targets, function(a, b)
+                        table.sort(targets, function(a,b)
                             return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
                         end)
 
-                        for i, target in ipairs(targets) do
+                        for _, target in ipairs(targets) do
                             if not isLooping then break end
                             if target.part and target.part.Parent then
-                                -- ហោះទៅ Bubble
+                                -- ហោះយ៉ាងលឿនទៅ Bubble
                                 smoothFlyTo(target.part.Position)
-                                -- បញ្ជាក់ថាស៊ីជាប់
                                 ensureCollect(target.part)
-                                -- Revive បើមាន
                                 if target.type == "revive" and target.prompt then
                                     pcall(function() fireproximityprompt(target.prompt, 1) end)
                                 end
@@ -254,36 +296,19 @@ local function createGUI(imageAsset)
                         end
 
                         -- ត្រឡប់ទៅកម្ពស់សុវត្ថិភាព
-                        hintLabel.Text = "ស្ថានភាព៖ 🚀 ហោះឡើង ១០០ម"
-                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
                         smoothFlyTo(Vector3.new(root.Position.X, safeHeight, root.Position.Z))
                         isAttacking = false
-                        task.wait(0.3)
-                    else
-                        if tick() - scanTick > 1.5 then
-                            scanTick = tick()
-                            hintLabel.Text = "ស្ថានភាព៖ 📡 លោតរកទីតាំងផ្សេង"
-                            hintLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
-                            local others = {}
-                            for _, plr in pairs(Players:GetPlayers()) do
-                                if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                                    table.insert(others, plr)
-                                end
-                            end
-                            if #others > 0 then
-                                local randPlr = others[math.random(1, #others)]
-                                local pos = randPlr.Character.HumanoidRootPart.Position
-                                root.CFrame = CFrame.new(pos.X, safeHeight, pos.Z)
-                            end
-                        end
                     end
-                    task.wait(0.05)
+
+                    -- បន្តទៅចំណុចល្បាតបន្ទាប់
+                    currentWaypoint = currentWaypoint % #waypoints + 1
+                    task.wait(0.1) -- កុំឲ្យលឿនពេក
                 end
             end)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកមុខងារអណ្តែតហោះស៊ីជាប់"
+            autoLoopBtn.Text = "🔥 បើកល្បាតពេញផែនទី (Teleport ភ្លាមៗ)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
@@ -293,6 +318,7 @@ local function createGUI(imageAsset)
     makeDraggable(mainFrame)
 end
 
+--============== ទាញយករូបភាព ==============
 local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
 if ok and response and response.StatusCode == 200 then
     writefile(FILE_NAME, response.Body)
