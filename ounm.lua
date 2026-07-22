@@ -1,5 +1,5 @@
 --========================================================
--- GROW A GARDEN 2: CROP STEALER + RETURN HOME (IMAGE GUI)
+-- GROW A GARDEN 2: CROP STEALER (FIXED DETECTION) + GUI
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -9,11 +9,11 @@ local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"  -- អាចប្តូររូបបាន
+local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 local FILE_NAME = "bg_garden.jpg"
 
 --============== ទីតាំងផ្ទះ ==============
-local HOME_POSITION = Vector3.new(0, 10, 0)  -- កែតាមផ្ទះអ្នក
+local HOME_POSITION = Vector3.new(0, 10, 0)
 
 --============== ស្វែងរក Remote ==============
 local function findRemote(keyword)
@@ -27,7 +27,7 @@ end
 
 local harvestRemote = findRemote("harvest") or findRemote("collect") or findRemote("pick")
 if not harvestRemote then
-    warn("មិនឃើញ Remote សម្រាប់ប្រមូលផល។ ពិនិត្យឈ្មោះ Remote ដោយដៃ។")
+    warn("មិនឃើញ Remote សម្រាប់ប្រមូលផល។")
 end
 
 --============== ជំនួយ ==============
@@ -51,7 +51,6 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- ហោះទៅទីតាំង (រលូន)
 local function flyTo(targetPos)
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -59,7 +58,6 @@ local function flyTo(targetPos)
     local startPos = root.Position
     local distance = (startPos - targetPos).Magnitude
     if distance < 3 then return end
-
     local steps = math.ceil(distance / 10) + 2
     for t = 0, 1, 1 / steps do
         root.CFrame = CFrame.new(startPos:Lerp(targetPos, t))
@@ -68,37 +66,55 @@ local function flyTo(targetPos)
     root.CFrame = CFrame.new(targetPos)
 end
 
--- រកដំណាំអ្នកដទៃ
+-- ✅ រកដំណាំអ្នកដទៃ (បានកែឲ្យប្រសើរ)
 local function getOthersPlants()
     local plants = {}
     for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj.Name:lower():find("plant") then
-            local owner = obj:GetAttribute("Owner")
-            if not owner then
+        if obj:IsA("Model") then
+            -- ឆែកមើលថាមានម្ចាស់ ឬអត់ (Owner Object/Attribute)
+            local owner = nil
+            -- 1. ពិនិត្យ Attribute "Owner" (ថ្មី)
+            local attrOwner = obj:GetAttribute("Owner")
+            if attrOwner then
+                owner = tostring(attrOwner)
+            else
+                -- 2. ពិនិត្យ ObjectValue ឈ្មោះ "Owner"
                 local ownVal = obj:FindFirstChild("Owner")
-                if ownVal and ownVal:IsA("StringValue") then owner = ownVal.Value end
+                if ownVal and ownVal:IsA("ObjectValue") and ownVal.Value then
+                    owner = ownVal.Value.Name -- ឬ .UserId អាស្រ័យ
+                elseif ownVal and ownVal:IsA("StringValue") then
+                    owner = ownVal.Value
+                end
             end
-            if owner and owner ~= LocalPlayer.Name then
-                table.insert(plants, obj)
+            
+            -- ប្រសិនបើគ្មានម្ចាស់ ឬជារបស់យើង រំលង
+            if not owner or owner == LocalPlayer.Name or owner == tostring(LocalPlayer.UserId) then
+                -- ប្រសិនបើអត់ម្ចាស់ ប៉ុន្តែមានផ្លែឈើដែលអាចលួចបាន (ឧ. Fruit part)
+                -- បន្ថែមលក្ខខណ្ឌពិសេស បើចង់
+                -- ក្នុងករណីនេះយើងនឹងរំលង ព្រោះមិនដឹងថាជារបស់អ្នកដទៃ
+            else
+                -- ឆែកថាមាន BasePart ដែលអាចយោងបាន (សម្រាប់ហោះទៅ)
+                local primaryPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                if primaryPart then
+                    table.insert(plants, obj)
+                end
             end
         end
     end
     return plants
 end
 
--- លួចដំណាំមួយ
 local function stealPlant(plantModel)
     if not harvestRemote then return false end
     local primaryPart = plantModel.PrimaryPart or plantModel:FindFirstChildWhichIsA("BasePart")
     if not primaryPart then return false end
-
     flyTo(primaryPart.Position + Vector3.new(0, 5, 0))
-    harvestRemote:FireServer(plantModel)  -- អាចត្រូវកែ argument
+    harvestRemote:FireServer(plantModel)  -- អាចត្រូវការកែ argument ដូចជា FireServer(primaryPart) ជាដើម
     task.wait(0.4)
     return true
 end
 
---============== GUI (មានរូបភាព) ==============
+--============== GUI ==============
 local function createGUI(imageAsset)
     if CoreGui:FindFirstChild("GardenStealer") then
         CoreGui:FindFirstChild("GardenStealer"):Destroy()
@@ -108,7 +124,6 @@ local function createGUI(imageAsset)
     gui.Name = "GardenStealer"
     gui.IgnoreGuiInset = true
 
-    -- ប៊ូតុងតូចបិទ/បើក GUI (មានរូបភាព)
     local toggleBtn = Instance.new("ImageButton", gui)
     toggleBtn.Size = UDim2.new(0, 55, 0, 55)
     toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
@@ -120,7 +135,6 @@ local function createGUI(imageAsset)
     local toggleStroke = Instance.new("UIStroke", toggleBtn)
     toggleStroke.Thickness = 3
 
-    -- ផ្ទាំងមេ
     local mainFrame = Instance.new("Frame", gui)
     mainFrame.Size = UDim2.new(0, 420, 0, 280)
     mainFrame.Position = UDim2.new(0.5, -210, 0.5, -140)
@@ -131,7 +145,6 @@ local function createGUI(imageAsset)
     local mainStroke = Instance.new("UIStroke", mainFrame)
     mainStroke.Thickness = 3
 
-    -- ផ្ទៃខាងក្រោយជារូបភាព
     local bg = Instance.new("ImageLabel", mainFrame)
     bg.Size = UDim2.new(1,0,1,0)
     bg.BackgroundTransparency = 1
@@ -163,7 +176,7 @@ local function createGUI(imageAsset)
     stealBtn.Size = UDim2.new(1, -40, 0, 45)
     stealBtn.Position = UDim2.new(0, 20, 0, 70)
     stealBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-    stealBtn.Text = "🚜 លួចដំណាំទាំងអស់ហើយមកផ្ទះ"
+    stealBtn.Text = "🚜 លួចផ្លែឈើទាំងអស់ហើយមកផ្ទះ"
     stealBtn.TextColor3 = Color3.new(1,1,1)
     stealBtn.Font = Enum.Font.GothamBold
     stealBtn.TextSize = 13
@@ -189,7 +202,6 @@ local function createGUI(imageAsset)
     hintLabel.TextSize = 12
     hintLabel.TextWrapped = true
 
-    -- ចលនាពណ៌ដូចដើម
     task.spawn(function()
         local hue = 0
         while gui.Parent do
@@ -201,7 +213,6 @@ local function createGUI(imageAsset)
         end
     end)
 
-    --============== មុខងារ ==============
     stealBtn.MouseButton1Down:Connect(function()
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -209,23 +220,22 @@ local function createGUI(imageAsset)
             hintLabel.Text = "គ្មានតួអង្គ"
             return
         end
-        hintLabel.Text = "កំពុងស្វែងរកដំណាំគេ..."
+        hintLabel.Text = "កំពុងស្វែងរកផ្លែឈើគេ..."
         task.wait(0.1)
         local plants = getOthersPlants()
         if #plants == 0 then
-            hintLabel.Text = "គ្មានដំណាំអ្នកដទៃ"
+            hintLabel.Text = "រកមិនឃើញផ្លែឈើអ្នកដទៃទេ"
             return
         end
 
         for i, plant in ipairs(plants) do
-            hintLabel.Text = "លួច " .. plant.Name .. " (" .. i .. "/" .. #plants .. ")"
+            hintLabel.Text = "កំពុងលួច " .. plant.Name .. " (" .. i .. "/" .. #plants .. ")"
             local success = stealPlant(plant)
             if success then
-                -- ត្រឡប់មកផ្ទះ
                 flyTo(HOME_POSITION)
                 hintLabel.Text = "✅ លួចរួច មកផ្ទះ"
             else
-                hintLabel.Text = "❌ បរាជ័យលើ " .. plant.Name
+                hintLabel.Text = "❌ បរាជ័យ " .. plant.Name
             end
             task.wait(0.3)
         end
@@ -237,7 +247,7 @@ local function createGUI(imageAsset)
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if root then
             HOME_POSITION = root.Position
-            hintLabel.Text = "ផ្ទះថ្មីកំណត់ហើយ: " .. tostring(HOME_POSITION)
+            hintLabel.Text = "ផ្ទះថ្មីកំណត់: " .. tostring(HOME_POSITION)
         else
             hintLabel.Text = "រក HumanoidRootPart មិនឃើញ"
         end
@@ -251,7 +261,6 @@ local function createGUI(imageAsset)
     makeDraggable(mainFrame)
 end
 
---============== ទាញយករូបភាព ==============
 local function loadImageAndStart()
     local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
     if ok and response and response.StatusCode == 200 then
