@@ -1,14 +1,11 @@
 --========================================================
--- GROW A GARDEN 2: FAST TP STEALER (-100m UNDERGROUND)
+-- GROW A GARDEN 2: FAST TP STEALER (-100m) - MOBILE SAFE
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-
-local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg" 
-local FILE_NAME = "bg_garden_stealer.jpg"
 
 --============== ទីតាំងផ្ទះ ==============
 local HOME_POSITION = Vector3.new(0, 10, 0)
@@ -92,12 +89,11 @@ local function stealCrop(plantData)
     local primaryPart = plantData.part
     local stealPrompt = plantData.prompt
 
-    -- ដក ១០០ ម៉ែត្រតាមអ័ក្ស Y (ហោះចុះក្រោមដី ១០០ម៉ែត្រដើម្បីលាក់ខ្លួន)
+    -- ដក ១០០ ម៉ែត្រតាមអ័ក្ស Y ហោះចុះក្រោមដី
     tpTo(primaryPart.Position - Vector3.new(0, 100, 0))
     task.wait(0.2) 
 
     if stealPrompt then
-        -- Bypass ការកំណត់ចម្ងាយ ឲ្យអាចចុចលួចពីក្រោមដីបាន
         stealPrompt.RequiresLineOfSight = false
         stealPrompt.MaxActivationDistance = math.huge
 
@@ -120,8 +116,8 @@ local function stealCrop(plantData)
     return true
 end
 
---============== GUI (គ្មាន UIStroke ការពារ Error) ==============
-local function createGUI(imageAsset)
+--============== បង្កើត GUI ==============
+local function createGUI()
     if CoreGui:FindFirstChild("GardenStealer") then
         CoreGui:FindFirstChild("GardenStealer"):Destroy()
     end
@@ -130,53 +126,46 @@ local function createGUI(imageAsset)
     gui.Name = "GardenStealer"
     gui.IgnoreGuiInset = true
 
-    local toggleBtn = Instance.new("ImageButton", gui)
-    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
-    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    toggleBtn.Image = imageAsset or ""
-    toggleBtn.ScaleType = Enum.ScaleType.Crop
+    -- ប៊ូតុង Toggle ពណ៌ខៀវ
+    local toggleBtn = Instance.new("TextButton", gui)
+    toggleBtn.Size = UDim2.new(0, 50, 0, 50)
+    toggleBtn.Position = UDim2.new(0, 20, 0.5, -25)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    toggleBtn.Text = "OPEN"
+    toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    toggleBtn.Font = Enum.Font.GothamBold
     toggleBtn.Draggable = true
-    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
+    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 10)
 
     local mainFrame = Instance.new("Frame", gui)
-    mainFrame.Size = UDim2.new(0, 420, 0, 280)
-    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -140)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    mainFrame.Size = UDim2.new(0, 380, 0, 260)
+    mainFrame.Position = UDim2.new(0.5, -190, 0.5, -130)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
     mainFrame.BorderSizePixel = 0
     mainFrame.Visible = true
-    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
-
-    local bg = Instance.new("ImageLabel", mainFrame)
-    bg.Size = UDim2.new(1,0,1,0)
-    bg.BackgroundTransparency = 1
-    bg.Image = imageAsset or ""
-    bg.ScaleType = Enum.ScaleType.Stretch
-    bg.ImageTransparency = 0.3
-    bg.ZIndex = -1
-    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
 
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🌜 GARDEN STEALER (-100m UNDERGROUND)"
+    title.Text = "🌜 GARDEN STEALER (-100m)"
     title.Font = Enum.Font.GothamBlack
-    title.TextSize = 13
+    title.TextSize = 15
     title.TextColor3 = Color3.new(1,1,1)
 
     local closeBtn = Instance.new("TextButton", mainFrame)
     closeBtn.Size = UDim2.new(0,35,0,35)
-    closeBtn.Position = UDim2.new(1,-45,0,10)
+    closeBtn.Position = UDim2.new(1,-45,0,5)
     closeBtn.BackgroundColor3 = Color3.fromRGB(200,40,40)
     closeBtn.Text = "X"
     closeBtn.TextColor3 = Color3.new(1,1,1)
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 14
-    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,8)
 
     local stealBtn = Instance.new("TextButton", mainFrame)
     stealBtn.Size = UDim2.new(1, -40, 0, 45)
-    stealBtn.Position = UDim2.new(0, 20, 0, 70)
+    stealBtn.Position = UDim2.new(0, 20, 0, 60)
     stealBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
     stealBtn.Text = "⚡ លួចផ្លែឈើទាំងអស់ (ពីក្រោមដី)"
     stealBtn.TextColor3 = Color3.new(1,1,1)
@@ -186,8 +175,8 @@ local function createGUI(imageAsset)
 
     local setHomeBtn = Instance.new("TextButton", mainFrame)
     setHomeBtn.Size = UDim2.new(1, -40, 0, 35)
-    setHomeBtn.Position = UDim2.new(0, 20, 0, 130)
-    setHomeBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    setHomeBtn.Position = UDim2.new(0, 20, 0, 120)
+    setHomeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
     setHomeBtn.Text = "📍 កំណត់ទីតាំងផ្ទះបច្ចុប្បន្ន"
     setHomeBtn.TextColor3 = Color3.new(1,1,1)
     setHomeBtn.Font = Enum.Font.GothamBold
@@ -196,10 +185,10 @@ local function createGUI(imageAsset)
 
     local hintLabel = Instance.new("TextLabel", mainFrame)
     hintLabel.Size = UDim2.new(1, -40, 0, 60)
-    hintLabel.Position = UDim2.new(0, 20, 0, 180)
+    hintLabel.Position = UDim2.new(0, 20, 0, 170)
     hintLabel.BackgroundTransparency = 1
     hintLabel.Text = "ស្ថានភាព: រង់ចាំការបញ្ជា..."
-    hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    hintLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
     hintLabel.Font = Enum.Font.Gotham
     hintLabel.TextSize = 12
     hintLabel.TextWrapped = true
@@ -222,7 +211,7 @@ local function createGUI(imageAsset)
             return
         end
 
-        hintLabel.Text = "🔍 កំពុងស្វែងរកផ្លែឈើអ្នកដទៃ..."
+        hintLabel.Text = "🔍 កំពុងស្វែងរកផ្លែឈើ..."
         task.wait(0.2)
         local plants = getEnemyPlants()
 
@@ -264,15 +253,4 @@ local function createGUI(imageAsset)
     makeDraggable(mainFrame)
 end
 
---============== ទាញយករូបភាព និងចាប់ផ្ដើម ==============
-local function loadImageAndStart()
-    local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
-    if ok and response and response.StatusCode == 200 then
-        writefile(FILE_NAME, response.Body)
-        createGUI(getcustomasset(FILE_NAME))
-    else
-        createGUI("")
-    end
-end
-
-loadImageAndStart()
+createGUI()
