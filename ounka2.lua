@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: Spiral Farm (SUPER FAST & SAFE COLLECT)
+-- EVADE: Spiral Farm (STICK UNTIL COLLECTED)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -33,10 +33,23 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- រក Bubble គ្រប់ប្រភេទ
+-- រក Bubble គ្រប់ប្រភេទ (មិនចាប់យកអ្នកលេងដទៃ)
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
+    
+    if obj:IsA("ProximityPrompt") and obj.Parent then
+        local action = obj.ActionText:lower()
+        if action:find("revive") or name:find("revive") or action:find("carry") then
+            return obj.Parent, "revive"
+        end
+    end
+
+    local ancestor = obj:FindFirstAncestorOfClass("Model")
+    if ancestor and ancestor:FindFirstChildOfClass("Humanoid") then
+        return nil, nil 
+    end
+
     local parent = obj.Parent
     local parentName = parent and parent.Name:lower() or ""
     local grandParent = parent and parent.Parent
@@ -63,12 +76,6 @@ local function getValidTarget(obj)
         if obj:IsA("BasePart") then return obj, "item" end
     end
 
-    if obj:IsA("ProximityPrompt") and obj.Parent then
-        local action = obj.ActionText:lower()
-        if action:find("revive") or name:find("revive") or action:find("carry") then
-            return obj.Parent, "revive"
-        end
-    end
     return nil, nil
 end
 
@@ -124,7 +131,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL FARM (SPEED 250 - SAFE)"
+    title.Text = "⚡ SPIRAL FARM (STICK & COLLECT)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -143,7 +150,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើក Spiral (ល្បឿន 250)"
+    autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -172,12 +179,11 @@ local function createGUI(imageAsset)
     toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
 
-    --============== LOGIC (SPEED 250 - SAFE COLLECT) ==============
+    --============== LOGIC (SPEED 250 & STICK) ==============
     local isLooping = false
     local floatConnection
     local safeHeight = 100
-    local isAttacking = false
-    local tweenSpeed = 250  -- ល្បឿនសាកសម បង្ការបញ្ហា Server ដឹងមិនទាន់
+    local tweenSpeed = 250 
 
     local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
@@ -211,22 +217,31 @@ local function createGUI(imageAsset)
         end
     end
 
+    -- កន្លែងកែប្រែ៖ ធ្វើឲ្យវាត្រាំជាប់ Bubble រហូតដល់ស៊ីបាន!
     local function ensureCollect(bubblePart)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
         
-        -- រង់ចាំ 0.25s ឲ្យ Server ហ្គេមដឹងថាយើងបានមកដល់ និងប៉ះ Bubble មែន
-        local timeout = tick() + 0.25 
+        -- កំណត់ពេលអតិបរមាត្រឹម ៣ វិនាទី បើវាមិនបាត់ក្នុងពេល ៣ វិនាទីទេ គឺវាគាំងហើយ ត្រូវរំលងវាចោល
+        local timeout = tick() + 3 
+        
         repeat
+            if not isLooping then break end -- បើចុចឈប់ ឲ្យវាឈប់ភ្លាម
+            
+            -- បង្ខំឲ្យតួអង្គទម្លាក់ខ្លួនចំកណ្ដាល Bubble ជាប់រហូត
+            root.Velocity = Vector3.new(0, 0, 0)
+            root.CFrame = bubblePart.CFrame
+            
+            -- បាញ់សញ្ញាបញ្ឆោតថាប៉ះជារឿយៗ
             if firetouchinterest then
                 pcall(function() firetouchinterest(root, bubblePart, 0) end)
                 pcall(function() firetouchinterest(root, bubblePart, 1) end)
             end
             
-            -- ទម្លាក់តួអង្គឲ្យចំកណ្ដាល Bubble តែម្ដង
-            root.CFrame = bubblePart.CFrame
-            task.wait(0.02) 
-        until not bubblePart.Parent or tick() > timeout
+            task.wait(0.05) -- រង់ចាំ Server ឆ្លើយតប
+            
+        -- វានឹងឈប់នៅពេលដែល Bubble នោះបាត់ពីផែនទី (ស៊ីចូល) ឬអស់ម៉ោង ៣ វិនាទី
+        until not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) or tick() > timeout
     end
 
     local function toggleAutoLoop()
@@ -270,13 +285,12 @@ local function createGUI(imageAsset)
                     local z = centerZ + math.sin(rad) * radius
                     local targetPos = Vector3.new(x, safeHeight, z)
 
-                    hintLabel.Text = "ស្ថានភាព៖ 🌀 Spiral (ល្បឿន 250)"
+                    hintLabel.Text = "ស្ថានភាព៖ 🌀 ហោះរកទីតាំងថ្មី"
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     smoothFlyTo(targetPos)
 
                     local targets = scanFullMap()
                     if #targets > 0 then
-                        isAttacking = true
                         hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងប្រមូល " .. #targets .. " Bubble!"
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
 
@@ -298,13 +312,12 @@ local function createGUI(imageAsset)
                             if not isLooping then break end
                             if target.part and target.part.Parent then
                                 smoothFlyTo(target.part.Position)
-                                ensureCollect(target.part)
+                                ensureCollect(target.part) -- វាឈប់ត្រឹមហ្នឹងទាល់តែស៊ីបាន ទើបដើរទៅជួរក្រោមទៀត
                                 if target.type == "revive" and target.prompt then
                                     pcall(function() fireproximityprompt(target.prompt, 1) end)
                                 end
                             end
                         end
-                        isAttacking = false
                     end
 
                     angle = (angle + angleStep) % 360
@@ -318,7 +331,7 @@ local function createGUI(imageAsset)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើក Spiral (ល្បឿន 250)"
+            autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
