@@ -1,300 +1,338 @@
--- ==================== SERVICES ====================
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
+--========================================================
+-- EVADE: Spiral Farm (SUPER FAST & SAFE COLLECT)
+--========================================================
+local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
--- ==================== SETTINGS ====================
-local Settings = {
-    KillAura = false,
-    KillAuraRemote = "AttackRemote",
-    KillAuraRange = 15,
-    KillAuraDamage = 25,
-    KillAuraNPC = false,
-    KillAuraRemoteArgs = "target,damage",
+local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
+local FILE_NAME = "bg.jpg"
 
-    KillMobs = false,
-
-    KillBosses = true,               -- ✅ បើកដោយខ្លួនឯង
-    BossRemote = "",
-    BossRemoteArgs = "target,damage",
-    BossDamage = 9999,
-    BossRange = 500,
-    BossWhitelist = {}
-}
-
--- ==================== UTILITY ====================
-local function split(s, delimiter)
-    local result = {}
-    if s == "" then return result end
-    local from = 1
-    local delim_from, delim_to = string.find(s, delimiter, from, true)
-    while delim_from do
-        table.insert(result, string.sub(s, from, delim_from-1))
-        from = delim_to + 1
-        delim_from, delim_to = string.find(s, delimiter, from, true)
-    end
-    table.insert(result, string.sub(s, from))
-    return result
-end
-
--- ==================== KILL AURA ====================
-local kaConn
-
-local function getRemote()
-    if Settings.KillAuraRemote == "" then return nil end
-    local r = ReplicatedStorage:FindFirstChild(Settings.KillAuraRemote)
-    if not r then r = LocalPlayer:FindFirstChild(Settings.KillAuraRemote) end
-    if not r then
-        for _, v in Workspace:GetDescendants() do
-            if v.Name == Settings.KillAuraRemote and v:IsA("RemoteEvent") then return v end
-        end
-    end
-    return r
-end
-
-local function getTargets()
-    local t = {}
-    for _, plr in Players:GetPlayers() do
-        if plr ~= LocalPlayer and plr.Character then
-            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
-            local root = plr.Character:FindFirstChild("HumanoidRootPart")
-            if hum and root and hum.Health > 0 then
-                table.insert(t, {Humanoid = hum, RootPart = root, IsPlayer = true})
-            end
-        end
-    end
-    if Settings.KillAuraNPC then
-        for _, m in Workspace:GetDescendants() do
-            if m:IsA("Model") and not Players:GetPlayerFromCharacter(m) then
-                local hum = m:FindFirstChildOfClass("Humanoid")
-                local root = m:FindFirstChild("HumanoidRootPart")
-                if hum and root and hum.Health > 0 then
-                    table.insert(t, {Humanoid = hum, RootPart = root, IsPlayer = false})
-                end
-            end
-        end
-    end
-    return t
-end
-
-local function toggleKillAura()
-    if kaConn then kaConn:Disconnect() end
-    if Settings.KillAura then
-        kaConn = RunService.Heartbeat:Connect(function()
-            local char = LocalPlayer.Character
-            if not char then return end
-            local myRoot = char:FindFirstChild("HumanoidRootPart")
-            if not myRoot then return end
-            local targets = getTargets()
-            local remote = getRemote()
-            for _, target in pairs(targets) do
-                local dist = (myRoot.Position - target.RootPart.Position).Magnitude
-                if dist <= Settings.KillAuraRange then
-                    if target.IsPlayer then
-                        target.Humanoid:TakeDamage(Settings.KillAuraDamage)
-                    else
-                        if remote then
-                            local args = {}
-                            local argStr = Settings.KillAuraRemoteArgs:gsub("%s+", "")
-                            for _, a in pairs(split(argStr, ",")) do
-                                if a == "target" then table.insert(args, target.RootPart)
-                                elseif a == "damage" then table.insert(args, Settings.KillAuraDamage)
-                                elseif a == "humanoid" then table.insert(args, target.Humanoid) end
-                            end
-                            if #args == 0 then args = {target.RootPart, Settings.KillAuraDamage} end
-                            pcall(function() remote:FireServer(unpack(args)) end)
-                        else
-                            target.Humanoid.Health = math.max(0, target.Humanoid.Health - Settings.KillAuraDamage)
-                        end
-                    end
-                end
-            end
-        end)
-    end
-end
-
--- ==================== KILL MOBS ====================
-local kmConn
-
-local function toggleKillMobs()
-    if kmConn then kmConn:Disconnect() end
-    if Settings.KillMobs then
-        kmConn = RunService.Heartbeat:Connect(function()
-            local char = LocalPlayer.Character
-            if not char then return end
-            local root = char:FindFirstChild("HumanoidRootPart")
-            if not root then return end
-            local folder = Workspace:FindFirstChild("Mobs")
-            if not folder then return end
-            for _, mob in folder:GetChildren() do
-                local mobRoot = mob:FindFirstChild("HumanoidRootPart")
-                local mobHum = mob:FindFirstChildOfClass("Humanoid")
-                if mobRoot and mobHum and mobHum.Health > 0 then
-                    if (root.Position - mobRoot.Position).Magnitude < 25 then
-                        pcall(function()
-                            ReplicatedStorage.Events.Attack:FireServer(mobHum)
-                        end)
-                    end
-                end
-            end
-        end)
-    end
-end
-
--- ==================== KILL BOSSES (SMART VERSION) ====================
-local kbConn
-
-local function isBoss(model)
-    if not model:IsA("Model") then return false end
-    if model:GetAttribute("IsBoss") == true then return true end
-    local lower = model.Name:lower()
-    if #Settings.BossWhitelist > 0 then
-        for _, name in ipairs(Settings.BossWhitelist) do
-            if lower == name:lower() then return true end
-        end
-        return false
-    end
-    return lower:find("boss") or lower:find("monster") or lower:find("mega")
-end
-
-local function getBossTargets()
-    local t = {}
-    for _, model in Workspace:GetDescendants() do
-        if model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
-            if isBoss(model) then
-                local hum = model:FindFirstChildOfClass("Humanoid")
-                local root = model:FindFirstChild("HumanoidRootPart")
-                if hum and root and hum.Health > 0 then
-                    table.insert(t, {Humanoid = hum, RootPart = root, Model = model})
-                end
-            end
-        end
-    end
-    return t
-end
-
-local function findAttackRemotes()
-    local remotes = {}
-    local function search(parent)
-        for _, v in parent:GetChildren() do
-            if v:IsA("RemoteEvent") then
-                local n = v.Name:lower()
-                if n:find("damage") or n:find("hit") or n:find("attack") or n:find("hurt") or n:find("deal") or n:find("fire") then
-                    table.insert(remotes, v)
-                end
-            end
-            search(v)
-        end
-    end
-    search(ReplicatedStorage)
-    search(LocalPlayer)
-    return remotes
-end
-
-local function attemptDamage(boss)
-    local hum = boss.Humanoid
-    local root = boss.RootPart
-    local model = boss.Model
-    local dmg = Settings.BossDamage
-
-    if Settings.BossRemote ~= "" then
-        local remote = ReplicatedStorage:FindFirstChild(Settings.BossRemote) or LocalPlayer:FindFirstChild(Settings.BossRemote)
-        if remote then
-            local argStr = Settings.BossRemoteArgs:gsub("%s+", "")
-            local args = {}
-            for _, a in pairs(split(argStr, ",")) do
-                if a == "target" then table.insert(args, root)
-                elseif a == "damage" then table.insert(args, dmg)
-                elseif a == "humanoid" then table.insert(args, hum) end
-            end
-            if #args == 0 then args = {root, dmg} end
-            pcall(function() remote:FireServer(unpack(args)) end)
-        end
-    end
-
-    local autoRemotes = findAttackRemotes()
-    for _, remote in pairs(autoRemotes) do
-        pcall(function() remote:FireServer(root) end)
-        pcall(function() remote:FireServer(root, dmg) end)
-        pcall(function() remote:FireServer(hum, dmg) end)
-    end
-
-    pcall(function() hum.Health = math.max(0, hum.Health - dmg) end)
-    pcall(function() hum:TakeDamage(dmg) end)
-end
-
-local function toggleKillBosses()
-    if kbConn then kbConn:Disconnect() end
-    if Settings.KillBosses then
-        kbConn = RunService.Heartbeat:Connect(function()
-            local char = LocalPlayer.Character
-            if not char then return end
-            local myRoot = char:FindFirstChild("HumanoidRootPart")
-            if not myRoot then return end
-            local bosses = getBossTargets()
-            for _, boss in pairs(bosses) do
-                local dist = (myRoot.Position - boss.RootPart.Position).Magnitude
-                if dist <= Settings.BossRange then
-                    attemptDamage(boss)
-                end
-            end
-        end)
-    end
-end
-
--- ==================== GUI BUTTON (ស្រេចចិត្ត) ====================
-local function createToggleButton()
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "MyScriptUI"
-    gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 220, 0, 50)
-    btn.Position = UDim2.new(0, 10, 0, 10)
-    btn.Text = "Kill Bosses: ON"   -- ចាប់ផ្ដើមជា ON
-    btn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 18
-    btn.Parent = gui
-
-    local kbEnabled = Settings.KillBosses
-
-    local function isPositionOnButton(position)
-        local minX = btn.AbsolutePosition.X
-        local minY = btn.AbsolutePosition.Y
-        local maxX = minX + btn.AbsoluteSize.X
-        local maxY = minY + btn.AbsoluteSize.Y
-        return position.X >= minX and position.X <= maxX and position.Y >= minY and position.Y <= maxY
-    end
-
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
+--============== ជំនួយ ==============
+local function makeDraggable(guiObject)
+    local dragging, startPos, objPos
+    guiObject.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            local pos = Vector2.new(input.Position.X, input.Position.Y)
-            if isPositionOnButton(pos) then
-                kbEnabled = not kbEnabled
-                Settings.KillBosses = kbEnabled
-                toggleKillBosses()
-                if kbEnabled then
-                    btn.Text = "Kill Bosses: ON"
-                    btn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-                else
-                    btn.Text = "Kill Bosses: OFF"
-                    btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-                end
-            end
+            dragging = true; startPos = input.Position; objPos = guiObject.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - startPos
+            guiObject.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
+        end
+    end)
+    guiObject.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
         end
     end)
 end
 
--- ==================== INITIALIZATION ====================
-createToggleButton()  -- បើមិនចង់បានប៊ូតុង អាចលុបបន្ទាត់នេះចេញ
-toggleKillAura()
-toggleKillMobs()
-toggleKillBosses()
+-- រក Bubble គ្រប់ប្រភេទ
+local function getValidTarget(obj)
+    if not obj then return nil, nil end
+    local name = obj.Name:lower()
+    local parent = obj.Parent
+    local parentName = parent and parent.Name:lower() or ""
+    local grandParent = parent and parent.Parent
+    local grandParentName = grandParent and grandParent.Name:lower() or ""
 
-print("✅ Kill Bosses បើកដោយស្វ័យប្រវត្តិ! វាយបិសាច់ភ្លាមៗ")
+    if name:find("bubble") or name:find("token") then
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
+        if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart, "item" end
+    end
+
+    if parent and (parentName:find("bubble") or parentName:find("token")) then
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
+        if obj:IsA("Model") then
+            local p = obj:FindFirstChildWhichIsA("BasePart")
+            if p then return p, "item" end
+        end
+    end
+
+    if grandParent and (grandParentName:find("bubble") or grandParentName:find("token")) then
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
+    end
+
+    if name == "handle" and parent and (parentName:find("bubble") or parentName:find("token")) then
+        if obj:IsA("BasePart") then return obj, "item" end
+    end
+
+    if obj:IsA("ProximityPrompt") and obj.Parent then
+        local action = obj.ActionText:lower()
+        if action:find("revive") or name:find("revive") or action:find("carry") then
+            return obj.Parent, "revive"
+        end
+    end
+    return nil, nil
+end
+
+local function scanFullMap()
+    local list = {}
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        local part, tType = getValidTarget(obj)
+        if part and part:IsA("BasePart") then
+            table.insert(list, {part = part, type = tType, prompt = (tType == "revive" and obj or nil)})
+        end
+    end
+    return list
+end
+
+--============== GUI ==============
+local function createGUI(imageAsset)
+    if CoreGui:FindFirstChild("EvadeSpiralFarm") then CoreGui:FindFirstChild("EvadeSpiralFarm"):Destroy() end
+
+    local gui = Instance.new("ScreenGui", CoreGui)
+    gui.Name = "EvadeSpiralFarm"
+    gui.IgnoreGuiInset = true
+
+    local toggleBtn = Instance.new("ImageButton", gui)
+    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
+    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    toggleBtn.Image = imageAsset or ""
+    toggleBtn.ScaleType = Enum.ScaleType.Crop
+    toggleBtn.Draggable = true
+    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
+    local toggleStroke = Instance.new("UIStroke", toggleBtn)
+    toggleStroke.Thickness = 3
+
+    local mainFrame = Instance.new("Frame", gui)
+    mainFrame.Size = UDim2.new(0, 420, 0, 250)
+    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
+    mainFrame.BackgroundTransparency = 1
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Visible = true
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
+    local mainStroke = Instance.new("UIStroke", mainFrame)
+    mainStroke.Thickness = 3
+
+    local bg = Instance.new("ImageLabel", mainFrame)
+    bg.Size = UDim2.new(1,0,1,0)
+    bg.BackgroundTransparency = 1
+    bg.Image = imageAsset or ""
+    bg.ScaleType = Enum.ScaleType.Stretch
+    bg.ImageTransparency = 0.3
+    bg.ZIndex = -1
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
+
+    local title = Instance.new("TextLabel", mainFrame)
+    title.Size = UDim2.new(1,0,0,45)
+    title.BackgroundTransparency = 1
+    title.Text = "⚡ SPIRAL FARM (SPEED 250 - SAFE)"
+    title.Font = Enum.Font.GothamBlack
+    title.TextSize = 14
+    title.TextColor3 = Color3.new(1,1,1)
+
+    local closeBtn = Instance.new("TextButton", mainFrame)
+    closeBtn.Size = UDim2.new(0,35,0,35)
+    closeBtn.Position = UDim2.new(1,-45,0,10)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200,40,40)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.new(1,1,1)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 14
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
+
+    local autoLoopBtn = Instance.new("TextButton", mainFrame)
+    autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
+    autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
+    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+    autoLoopBtn.Text = "🔥 បើក Spiral (ល្បឿន 250)"
+    autoLoopBtn.TextColor3 = Color3.new(1,1,1)
+    autoLoopBtn.Font = Enum.Font.GothamBold
+    autoLoopBtn.TextSize = 13
+    Instance.new("UICorner", autoLoopBtn).CornerRadius = UDim.new(0, 10)
+
+    local hintLabel = Instance.new("TextLabel", mainFrame)
+    hintLabel.Size = UDim2.new(1, -40, 0, 30)
+    hintLabel.Position = UDim2.new(0, 20, 0, 130)
+    hintLabel.BackgroundTransparency = 1
+    hintLabel.Text = "ស្ថានភាព៖ រង់ចាំការបញ្ជា..."
+    hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    hintLabel.Font = Enum.Font.Gotham
+    hintLabel.TextSize = 12
+
+    task.spawn(function()
+        local hue = 0
+        while gui.Parent do
+            hue = (hue + 0.03) % 1
+            title.TextColor3 = Color3.fromHSV(hue, 1, 1)
+            mainStroke.Color = Color3.fromHSV(hue, 1, 1)
+            toggleStroke.Color = Color3.fromHSV((hue+0.3)%1, 1, 1)
+            task.wait(0.04)
+        end
+    end)
+
+    toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
+    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
+
+    --============== LOGIC (SPEED 250 - SAFE COLLECT) ==============
+    local isLooping = false
+    local floatConnection
+    local safeHeight = 100
+    local isAttacking = false
+    local tweenSpeed = 250  -- ល្បឿនសាកសម បង្ការបញ្ហា Server ដឹងមិនទាន់
+
+    local function smoothFlyTo(targetPos)
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        local distance = (root.Position - targetPos).Magnitude
+        local duration = distance / tweenSpeed
+        if duration < 0.05 then duration = 0.05 end 
+        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
+        tween:Play()
+        task.wait(duration)
+    end
+
+    local function startFloating(enable)
+        if floatConnection then floatConnection:Disconnect(); floatConnection = nil end
+        if enable then
+            floatConnection = RunService.Stepped:Connect(function()
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    root.Velocity = Vector3.new(0,0,0)
+                    root.CanCollide = true
+                    for _, part in pairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") and part ~= root then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        end
+    end
+
+    local function ensureCollect(bubblePart)
+        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not root or not bubblePart or not bubblePart.Parent then return end
+        
+        -- រង់ចាំ 0.25s ឲ្យ Server ហ្គេមដឹងថាយើងបានមកដល់ និងប៉ះ Bubble មែន
+        local timeout = tick() + 0.25 
+        repeat
+            if firetouchinterest then
+                pcall(function() firetouchinterest(root, bubblePart, 0) end)
+                pcall(function() firetouchinterest(root, bubblePart, 1) end)
+            end
+            
+            -- ទម្លាក់តួអង្គឲ្យចំកណ្ដាល Bubble តែម្ដង
+            root.CFrame = bubblePart.CFrame
+            task.wait(0.02) 
+        until not bubblePart.Parent or tick() > timeout
+    end
+
+    local function toggleAutoLoop()
+        isLooping = not isLooping
+        if isLooping then
+            startFloating(true)
+            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
+            autoLoopBtn.Text = "⏹️ ឈប់"
+            task.spawn(function()
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if not root then return end
+
+                local centerX, centerZ = 0, 0
+                local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
+                if mapModel and mapModel:IsA("Model") then
+                    local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
+                    for _, part in pairs(mapModel:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            minX = math.min(minX, part.Position.X)
+                            maxX = math.max(maxX, part.Position.X)
+                            minZ = math.min(minZ, part.Position.Z)
+                            maxZ = math.max(maxZ, part.Position.Z)
+                        end
+                    end
+                    if minX ~= math.huge then
+                        centerX = (minX + maxX) / 2
+                        centerZ = (minZ + maxZ) / 2
+                    end
+                end
+
+                local radius = 20
+                local angle = 0
+                local angleStep = 25
+                local radiusGrowth = 15
+                local maxRadius = 600
+
+                while isLooping do
+                    local rad = math.rad(angle)
+                    local x = centerX + math.cos(rad) * radius
+                    local z = centerZ + math.sin(rad) * radius
+                    local targetPos = Vector3.new(x, safeHeight, z)
+
+                    hintLabel.Text = "ស្ថានភាព៖ 🌀 Spiral (ល្បឿន 250)"
+                    hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+                    smoothFlyTo(targetPos)
+
+                    local targets = scanFullMap()
+                    if #targets > 0 then
+                        isAttacking = true
+                        hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងប្រមូល " .. #targets .. " Bubble!"
+                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
+
+                        table.sort(targets, function(a,b)
+                            return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
+                        end)
+
+                        -- ព្យាយាមប្រមូលពីចម្ងាយ (ប្រសិនបើ Exploit គាំទ្រ)
+                        if firetouchinterest then
+                            for _, target in ipairs(targets) do
+                                if target.part and target.part.Parent then
+                                    pcall(function() firetouchinterest(root, target.part, 0) end)
+                                    pcall(function() firetouchinterest(root, target.part, 1) end)
+                                end
+                            end
+                        end
+
+                        for _, target in ipairs(targets) do
+                            if not isLooping then break end
+                            if target.part and target.part.Parent then
+                                smoothFlyTo(target.part.Position)
+                                ensureCollect(target.part)
+                                if target.type == "revive" and target.prompt then
+                                    pcall(function() fireproximityprompt(target.prompt, 1) end)
+                                end
+                            end
+                        end
+                        isAttacking = false
+                    end
+
+                    angle = (angle + angleStep) % 360
+                    radius = radius + radiusGrowth
+                    if radius > maxRadius then
+                        radius = 20
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        else
+            startFloating(false)
+            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+            autoLoopBtn.Text = "🔥 បើក Spiral (ល្បឿន 250)"
+            hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
+            hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    end
+
+    autoLoopBtn.MouseButton1Down:Connect(toggleAutoLoop)
+    makeDraggable(mainFrame)
+end
+
+--============== ទាញយករូបភាព ==============
+local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
+if ok and response and response.StatusCode == 200 then
+    writefile(FILE_NAME, response.Body)
+    createGUI(getcustomasset(FILE_NAME))
+else
+    createGUI("")
+end
