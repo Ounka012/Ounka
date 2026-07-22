@@ -1,5 +1,5 @@
 --========================================================
--- GROW A GARDEN 2: CROP STEALER (FIXED DETECTION) + GUI
+-- GROW A GARDEN 2: CROP STEALER (USING PROXIMITY PROMPT)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -7,28 +7,12 @@ local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 local FILE_NAME = "bg_garden.jpg"
 
 --============== ទីតាំងផ្ទះ ==============
 local HOME_POSITION = Vector3.new(0, 10, 0)
-
---============== ស្វែងរក Remote ==============
-local function findRemote(keyword)
-    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
-        if v:IsA("RemoteEvent") and v.Name:lower():find(keyword) then
-            return v
-        end
-    end
-    return nil
-end
-
-local harvestRemote = findRemote("harvest") or findRemote("collect") or findRemote("pick")
-if not harvestRemote then
-    warn("មិនឃើញ Remote សម្រាប់ប្រមូលផល។")
-end
 
 --============== ជំនួយ ==============
 local function makeDraggable(guiObject)
@@ -66,37 +50,42 @@ local function flyTo(targetPos)
     root.CFrame = CFrame.new(targetPos)
 end
 
--- ✅ រកដំណាំអ្នកដទៃ (បានកែឲ្យប្រសើរ)
+-- រកដំណាំអ្នកដទៃ (Model ដែលមានម្ចាស់ និងមាន ProximityPrompt "Harvest")
 local function getOthersPlants()
     local plants = {}
     for _, obj in pairs(Workspace:GetDescendants()) do
         if obj:IsA("Model") then
-            -- ឆែកមើលថាមានម្ចាស់ ឬអត់ (Owner Object/Attribute)
+            -- ឆែកម្ចាស់
             local owner = nil
-            -- 1. ពិនិត្យ Attribute "Owner" (ថ្មី)
             local attrOwner = obj:GetAttribute("Owner")
             if attrOwner then
                 owner = tostring(attrOwner)
             else
-                -- 2. ពិនិត្យ ObjectValue ឈ្មោះ "Owner"
                 local ownVal = obj:FindFirstChild("Owner")
                 if ownVal and ownVal:IsA("ObjectValue") and ownVal.Value then
-                    owner = ownVal.Value.Name -- ឬ .UserId អាស្រ័យ
+                    owner = ownVal.Value.Name
                 elseif ownVal and ownVal:IsA("StringValue") then
                     owner = ownVal.Value
                 end
             end
             
-            -- ប្រសិនបើគ្មានម្ចាស់ ឬជារបស់យើង រំលង
-            if not owner or owner == LocalPlayer.Name or owner == tostring(LocalPlayer.UserId) then
-                -- ប្រសិនបើអត់ម្ចាស់ ប៉ុន្តែមានផ្លែឈើដែលអាចលួចបាន (ឧ. Fruit part)
-                -- បន្ថែមលក្ខខណ្ឌពិសេស បើចង់
-                -- ក្នុងករណីនេះយើងនឹងរំលង ព្រោះមិនដឹងថាជារបស់អ្នកដទៃ
-            else
-                -- ឆែកថាមាន BasePart ដែលអាចយោងបាន (សម្រាប់ហោះទៅ)
-                local primaryPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-                if primaryPart then
-                    table.insert(plants, obj)
+            if owner and owner ~= LocalPlayer.Name and owner ~= tostring(LocalPlayer.UserId) then
+                -- រក ProximityPrompt ដែលអាចចុចដក (ឈ្មោះ ឬ ActionText មាន "harvest")
+                local hasHarvestPrompt = false
+                for _, prompt in pairs(obj:GetDescendants()) do
+                    if prompt:IsA("ProximityPrompt") then
+                        local action = prompt.ActionText:lower()
+                        if action:find("harvest") or prompt.Name:lower():find("harvest") then
+                            hasHarvestPrompt = true
+                            break
+                        end
+                    end
+                end
+                if hasHarvestPrompt then
+                    local primaryPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                    if primaryPart then
+                        table.insert(plants, obj)
+                    end
                 end
             end
         end
@@ -104,13 +93,41 @@ local function getOthersPlants()
     return plants
 end
 
+-- លួចដំណាំដោយចុច Harvest Prompt
 local function stealPlant(plantModel)
-    if not harvestRemote then return false end
+    -- រក ProximityPrompt ដែលមាន Harvest
+    local harvestPrompt = nil
+    for _, prompt in pairs(plantModel:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") then
+            local action = prompt.ActionText:lower()
+            if action:find("harvest") or prompt.Name:lower():find("harvest") then
+                harvestPrompt = prompt
+                break
+            end
+        end
+    end
+    if not harvestPrompt then return false end
+    
     local primaryPart = plantModel.PrimaryPart or plantModel:FindFirstChildWhichIsA("BasePart")
     if not primaryPart then return false end
-    flyTo(primaryPart.Position + Vector3.new(0, 5, 0))
-    harvestRemote:FireServer(plantModel)  -- អាចត្រូវការកែ argument ដូចជា FireServer(primaryPart) ជាដើម
-    task.wait(0.4)
+
+    -- ហោះទៅជិត (ត្រូវជិតល្មមឲ្យ Prompt ដំណើរការ)
+    flyTo(primaryPart.Position + Vector3.new(0, 3, 0))
+
+    -- បញ្ជាក់ថា Prompt អាចប្រើបាន
+    if harvestPrompt.Enabled then
+        -- ក្លែងធ្វើការចុច (ចាប់ផ្ដើមសង្កត់)
+        harvestPrompt:InputHoldBegin()
+        task.wait(0.5) -- រង់ចាំរហូតដល់ដំណើរការប្រមូលផល (អាចត្រូវការពេលច្រើនជាងនេះ)
+        harvestPrompt:InputHoldEnd()
+    else
+        -- បើ Prompt មិនដំណើរការ អាចសាកបើកវាសិន
+        harvestPrompt.Enabled = true
+        task.wait(0.1)
+        harvestPrompt:InputHoldBegin()
+        task.wait(0.5)
+        harvestPrompt:InputHoldEnd()
+    end
     return true
 end
 
@@ -232,6 +249,7 @@ local function createGUI(imageAsset)
             hintLabel.Text = "កំពុងលួច " .. plant.Name .. " (" .. i .. "/" .. #plants .. ")"
             local success = stealPlant(plant)
             if success then
+                -- ត្រឡប់មកផ្ទះ
                 flyTo(HOME_POSITION)
                 hintLabel.Text = "✅ លួចរួច មកផ្ទះ"
             else
