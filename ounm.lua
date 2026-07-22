@@ -1,5 +1,5 @@
 --========================================================
--- GROW A GARDEN 2: CROP STEALER (USING PROXIMITY PROMPT)
+-- GROW A GARDEN 2: STEAL CROPS (STEAL PROMPT) + HOME
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -50,12 +50,12 @@ local function flyTo(targetPos)
     root.CFrame = CFrame.new(targetPos)
 end
 
--- រកដំណាំអ្នកដទៃ (Model ដែលមានម្ចាស់ និងមាន ProximityPrompt "Harvest")
+-- រកដំណាំអ្នកដទៃ (មានម្ចាស់ ហើយមាន ProximityPrompt "Steal")
 local function getOthersPlants()
     local plants = {}
     for _, obj in pairs(Workspace:GetDescendants()) do
         if obj:IsA("Model") then
-            -- ឆែកម្ចាស់
+            -- ពិនិត្យម្ចាស់
             local owner = nil
             local attrOwner = obj:GetAttribute("Owner")
             if attrOwner then
@@ -70,18 +70,19 @@ local function getOthersPlants()
             end
             
             if owner and owner ~= LocalPlayer.Name and owner ~= tostring(LocalPlayer.UserId) then
-                -- រក ProximityPrompt ដែលអាចចុចដក (ឈ្មោះ ឬ ActionText មាន "harvest")
-                local hasHarvestPrompt = false
+                -- រក ProximityPrompt ដែលមាន "steal" (អាចជា ActionText ឬ Name)
+                local hasStealPrompt = false
                 for _, prompt in pairs(obj:GetDescendants()) do
                     if prompt:IsA("ProximityPrompt") then
                         local action = prompt.ActionText:lower()
-                        if action:find("harvest") or prompt.Name:lower():find("harvest") then
-                            hasHarvestPrompt = true
+                        local pname = prompt.Name:lower()
+                        if action:find("steal") or pname:find("steal") then
+                            hasStealPrompt = true
                             break
                         end
                     end
                 end
-                if hasHarvestPrompt then
+                if hasStealPrompt then
                     local primaryPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
                     if primaryPart then
                         table.insert(plants, obj)
@@ -93,41 +94,38 @@ local function getOthersPlants()
     return plants
 end
 
--- លួចដំណាំដោយចុច Harvest Prompt
+-- លួចដោយចុច Prompt "Steal"
 local function stealPlant(plantModel)
-    -- រក ProximityPrompt ដែលមាន Harvest
-    local harvestPrompt = nil
+    -- រក Prompt ដែលមាន "steal"
+    local stealPrompt = nil
     for _, prompt in pairs(plantModel:GetDescendants()) do
         if prompt:IsA("ProximityPrompt") then
             local action = prompt.ActionText:lower()
-            if action:find("harvest") or prompt.Name:lower():find("harvest") then
-                harvestPrompt = prompt
+            local pname = prompt.Name:lower()
+            if action:find("steal") or pname:find("steal") then
+                stealPrompt = prompt
                 break
             end
         end
     end
-    if not harvestPrompt then return false end
+    if not stealPrompt then return false end
     
     local primaryPart = plantModel.PrimaryPart or plantModel:FindFirstChildWhichIsA("BasePart")
     if not primaryPart then return false end
 
-    -- ហោះទៅជិត (ត្រូវជិតល្មមឲ្យ Prompt ដំណើរការ)
+    -- ហោះទៅជិត (កម្ពស់ 3 studs ពីលើ ធានាថានៅក្នុងរង្វង់ Prompt)
     flyTo(primaryPart.Position + Vector3.new(0, 3, 0))
 
-    -- បញ្ជាក់ថា Prompt អាចប្រើបាន
-    if harvestPrompt.Enabled then
-        -- ក្លែងធ្វើការចុច (ចាប់ផ្ដើមសង្កត់)
-        harvestPrompt:InputHoldBegin()
-        task.wait(0.5) -- រង់ចាំរហូតដល់ដំណើរការប្រមូលផល (អាចត្រូវការពេលច្រើនជាងនេះ)
-        harvestPrompt:InputHoldEnd()
-    else
-        -- បើ Prompt មិនដំណើរការ អាចសាកបើកវាសិន
-        harvestPrompt.Enabled = true
+    -- ធ្វើឲ្យប្រាកដថា Prompt បានបើក
+    if not stealPrompt.Enabled then
+        stealPrompt.Enabled = true
         task.wait(0.1)
-        harvestPrompt:InputHoldBegin()
-        task.wait(0.5)
-        harvestPrompt:InputHoldEnd()
     end
+
+    -- ចាប់ផ្ដើមចុច (សង្កត់) រយៈពេល 0.6 វិនាទី (កែបានតាមតម្រូវការ)
+    stealPrompt:InputHoldBegin()
+    task.wait(0.6)
+    stealPrompt:InputHoldEnd()
     return true
 end
 
@@ -174,7 +172,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🌜 "
+    title.Text = "🌜 GARDEN CROP STEALER"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -249,7 +247,6 @@ local function createGUI(imageAsset)
             hintLabel.Text = "កំពុងលួច " .. plant.Name .. " (" .. i .. "/" .. #plants .. ")"
             local success = stealPlant(plant)
             if success then
-                -- ត្រឡប់មកផ្ទះ
                 flyTo(HOME_POSITION)
                 hintLabel.Text = "✅ លួចរួច មកផ្ទះ"
             else
