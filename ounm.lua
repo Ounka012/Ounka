@@ -1,5 +1,5 @@
 --========================================================
--- GROW A GARDEN 2: FAST TP STEALER (DELTA MOBILE FIX)
+-- GROW A GARDEN 2: FAST TP STEALER (-100m UNDERGROUND)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -87,33 +87,40 @@ local function getEnemyPlants()
     return plants
 end
 
---============== លួចដំណាំ (កែប្រែឲ្យលឿន) ==============
+--============== លួចដំណាំ (ដកចម្ងាយ ១០០ម៉ែត្រចុះក្រោម) ==============
 local function stealCrop(plantData)
     local primaryPart = plantData.part
     local stealPrompt = plantData.prompt
 
-    tpTo(primaryPart.Position + Vector3.new(0, 3, 0))
+    -- ដក ១០០ ម៉ែត្រតាមអ័ក្ស Y (ហោះចុះក្រោមដី ១០០ម៉ែត្រដើម្បីលាក់ខ្លួន)
+    tpTo(primaryPart.Position - Vector3.new(0, 100, 0))
     task.wait(0.2) 
 
-    if not stealPrompt.Enabled then
-        stealPrompt.Enabled = true
-        task.wait(0.1)
-    end
+    if stealPrompt then
+        -- Bypass ការកំណត់ចម្ងាយ ឲ្យអាចចុចលួចពីក្រោមដីបាន
+        stealPrompt.RequiresLineOfSight = false
+        stealPrompt.MaxActivationDistance = math.huge
 
-    if fireproximityprompt then
-        fireproximityprompt(stealPrompt, 1)
-        fireproximityprompt(stealPrompt, 0)
-    else
-        stealPrompt.HoldDuration = 0
-        stealPrompt:InputHoldBegin()
-        task.wait(0.1)
-        stealPrompt:InputHoldEnd()
+        if not stealPrompt.Enabled then
+            stealPrompt.Enabled = true
+            task.wait(0.1)
+        end
+
+        if fireproximityprompt then
+            fireproximityprompt(stealPrompt, 1)
+            fireproximityprompt(stealPrompt, 0)
+        else
+            stealPrompt.HoldDuration = 0
+            stealPrompt:InputHoldBegin()
+            task.wait(0.1)
+            stealPrompt:InputHoldEnd()
+        end
     end
     
     return true
 end
 
---============== GUI (គ្មាន UIStroke) ==============
+--============== GUI (គ្មាន UIStroke ការពារ Error) ==============
 local function createGUI(imageAsset)
     if CoreGui:FindFirstChild("GardenStealer") then
         CoreGui:FindFirstChild("GardenStealer"):Destroy()
@@ -152,9 +159,9 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🌜 GARDEN CROP STEALER (FAST)"
+    title.Text = "🌜 GARDEN STEALER (-100m UNDERGROUND)"
     title.Font = Enum.Font.GothamBlack
-    title.TextSize = 14
+    title.TextSize = 13
     title.TextColor3 = Color3.new(1,1,1)
 
     local closeBtn = Instance.new("TextButton", mainFrame)
@@ -171,7 +178,7 @@ local function createGUI(imageAsset)
     stealBtn.Size = UDim2.new(1, -40, 0, 45)
     stealBtn.Position = UDim2.new(0, 20, 0, 70)
     stealBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-    stealBtn.Text = "⚡ លួចផ្លែឈើទាំងអស់"
+    stealBtn.Text = "⚡ លួចផ្លែឈើទាំងអស់ (ពីក្រោមដី)"
     stealBtn.TextColor3 = Color3.new(1,1,1)
     stealBtn.Font = Enum.Font.GothamBold
     stealBtn.TextSize = 13
@@ -226,7 +233,7 @@ local function createGUI(imageAsset)
 
         for i, plantData in ipairs(plants) do
             if not plantData.model.Parent or not plantData.prompt.Parent then continue end
-            hintLabel.Text = "⚡ កំពុងលួច... (" .. i .. "/" .. #plants .. ")"
+            hintLabel.Text = "⚡ កំពុងលួចពីក្រោមដី... (" .. i .. "/" .. #plants .. ")"
             stealCrop(plantData)
             task.wait(0.25)
         end
