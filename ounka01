@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: SPIRAL FARM (ANTI-BAN + IMAGE, NO KEY) [FIXED]
+-- EVADE: Spiral Farm (SUPER FAST & SAFE COLLECT)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -7,6 +7,7 @@ local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 local FILE_NAME = "bg.jpg"
@@ -32,23 +33,10 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- ✅ បានកែរួច៖ រក Bubble បានទោះគ្មាន PrimaryPart
+-- រក Bubble គ្រប់ប្រភេទ
 local function getValidTarget(obj)
     if not obj then return nil, nil end
     local name = obj.Name:lower()
-    
-    if obj:IsA("ProximityPrompt") and obj.Parent then
-        local action = obj.ActionText:lower()
-        if action:find("revive") or name:find("revive") or action:find("carry") then
-            return obj.Parent, "revive"
-        end
-    end
-
-    local ancestor = obj:FindFirstAncestorOfClass("Model")
-    if ancestor and ancestor:FindFirstChildOfClass("Humanoid") then
-        return nil, nil 
-    end
-
     local parent = obj.Parent
     local parentName = parent and parent.Name:lower() or ""
     local grandParent = parent and parent.Parent
@@ -56,11 +44,7 @@ local function getValidTarget(obj)
 
     if name:find("bubble") or name:find("token") then
         if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
-        if obj:IsA("Model") then
-            -- 🔥 ការកែសម្រួល៖ យក PrimaryPart បើមាន បើគ្មាន រក BasePart ណាមួយ
-            local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-            if part then return part, "item" end
-        end
+        if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart, "item" end
     end
 
     if parent and (parentName:find("bubble") or parentName:find("token")) then
@@ -79,10 +63,16 @@ local function getValidTarget(obj)
         if obj:IsA("BasePart") then return obj, "item" end
     end
 
+    if obj:IsA("ProximityPrompt") and obj.Parent then
+        local action = obj.ActionText:lower()
+        if action:find("revive") or name:find("revive") or action:find("carry") then
+            return obj.Parent, "revive"
+        end
+    end
     return nil, nil
 end
 
-local function scanValidBubbles()
+local function scanFullMap()
     local list = {}
     for _, obj in pairs(Workspace:GetDescendants()) do
         local part, tType = getValidTarget(obj)
@@ -93,17 +83,14 @@ local function scanValidBubbles()
     return list
 end
 
---============== GUI (មានរូបភាព គ្មាន Key) ==============
+--============== GUI ==============
 local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeFarmNoKey") then
-        CoreGui:FindFirstChild("EvadeFarmNoKey"):Destroy()
-    end
+    if CoreGui:FindFirstChild("EvadeSpiralFarm") then CoreGui:FindFirstChild("EvadeSpiralFarm"):Destroy() end
 
     local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeFarmNoKey"
+    gui.Name = "EvadeSpiralFarm"
     gui.IgnoreGuiInset = true
 
-    -- ប៊ូតុងតូចបិទ/បើក GUI (មានរូបភាព)
     local toggleBtn = Instance.new("ImageButton", gui)
     toggleBtn.Size = UDim2.new(0, 55, 0, 55)
     toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
@@ -115,18 +102,16 @@ local function createGUI(imageAsset)
     local toggleStroke = Instance.new("UIStroke", toggleBtn)
     toggleStroke.Thickness = 3
 
-    -- ផ្ទាំងមេ
     local mainFrame = Instance.new("Frame", gui)
     mainFrame.Size = UDim2.new(0, 420, 0, 250)
     mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
     mainFrame.BackgroundTransparency = 1
     mainFrame.BorderSizePixel = 0
-    mainFrame.Visible = true  -- បង្ហាញភ្លាមៗ មិនបាច់ដាក់ Key
+    mainFrame.Visible = true
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
     local mainStroke = Instance.new("UIStroke", mainFrame)
     mainStroke.Thickness = 3
 
-    -- ផ្ទៃខាងក្រោយជារូបភាព
     local bg = Instance.new("ImageLabel", mainFrame)
     bg.Size = UDim2.new(1,0,1,0)
     bg.BackgroundTransparency = 1
@@ -139,7 +124,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🌀 SPIRAL FARM (ANTI-BAN)"
+    title.Text = "⚡ SPIRAL FARM (SPEED 250 - SAFE)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -158,7 +143,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
+    autoLoopBtn.Text = "🔥 បើក Spiral (ល្បឿន 250)"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -168,12 +153,11 @@ local function createGUI(imageAsset)
     hintLabel.Size = UDim2.new(1, -40, 0, 30)
     hintLabel.Position = UDim2.new(0, 20, 0, 130)
     hintLabel.BackgroundTransparency = 1
-    hintLabel.Text = "ស្ថានភាព៖ ត្រៀមរួចរាល់"
+    hintLabel.Text = "ស្ថានភាព៖ រង់ចាំការបញ្ជា..."
     hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     hintLabel.Font = Enum.Font.Gotham
     hintLabel.TextSize = 12
 
-    -- ចលនាពណ៌
     task.spawn(function()
         local hue = 0
         while gui.Parent do
@@ -185,31 +169,27 @@ local function createGUI(imageAsset)
         end
     end)
 
-    --============== អថេរ ==============
+    toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
+    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
+
+    --============== LOGIC (SPEED 250 - SAFE COLLECT) ==============
     local isLooping = false
     local floatConnection
-    local safeHeight = 80
-    local tweenSpeed = 400  -- ល្បឿនហោះ (អាចកែបាន)
+    local safeHeight = 100
+    local isAttacking = false
+    local tweenSpeed = 250  -- ល្បឿនសាកសម បង្ការបញ្ហា Server ដឹងមិនទាន់
 
-    --============== មុខងារ Anti‑Ban ==============
-    local function humanizedFlyTo(targetPos)
+    local function smoothFlyTo(targetPos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
-        local startPos = root.Position
-        local distance = (startPos - targetPos).Magnitude
-        if distance < 2 then return end
-
-        local midPoint = (startPos + targetPos) / 2 + Vector3.new(math.random(-10,10), math.random(5,15), math.random(-10,10))
-        local steps = math.ceil(distance / 10) + 2
-        for t = 0, 1, 1/steps do
-            if not isLooping then break end
-            local lerp1 = startPos:Lerp(midPoint, t)
-            local lerp2 = midPoint:Lerp(targetPos, t)
-            root.CFrame = CFrame.new(lerp1:Lerp(lerp2, t))
-            task.wait(0.02 + math.random() * 0.02)
-        end
-        root.CFrame = CFrame.new(targetPos)
+        local distance = (root.Position - targetPos).Magnitude
+        local duration = distance / tweenSpeed
+        if duration < 0.05 then duration = 0.05 end 
+        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
+        tween:Play()
+        task.wait(duration)
     end
 
     local function startFloating(enable)
@@ -231,31 +211,35 @@ local function createGUI(imageAsset)
         end
     end
 
-    local function safeCollect(bubblePart)
+    local function ensureCollect(bubblePart)
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not root or not bubblePart or not bubblePart.Parent then return end
-        local timeout = tick() + 1.2
+        
+        -- រង់ចាំ 0.25s ឲ្យ Server ហ្គេមដឹងថាយើងបានមកដល់ និងប៉ះ Bubble មែន
+        local timeout = tick() + 0.25 
         repeat
-            if not isLooping then return end
-            root.CFrame = bubblePart.CFrame * CFrame.new(0, 2.5, 0)
-            task.wait(0.08)
-        until not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) or tick() > timeout
+            if firetouchinterest then
+                pcall(function() firetouchinterest(root, bubblePart, 0) end)
+                pcall(function() firetouchinterest(root, bubblePart, 1) end)
+            end
+            
+            -- ទម្លាក់តួអង្គឲ្យចំកណ្ដាល Bubble តែម្ដង
+            root.CFrame = bubblePart.CFrame
+            task.wait(0.02) 
+        until not bubblePart.Parent or tick() > timeout
     end
 
-    --============== ហោះវង់ + ប្រមូល ==============
     local function toggleAutoLoop()
         isLooping = not isLooping
         if isLooping then
             startFloating(true)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
             autoLoopBtn.Text = "⏹️ ឈប់"
-
             task.spawn(function()
                 local char = LocalPlayer.Character
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
-                -- គណនាកណ្តាលផែនទី
                 local centerX, centerZ = 0, 0
                 local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
                 if mapModel and mapModel:IsA("Model") then
@@ -278,39 +262,49 @@ local function createGUI(imageAsset)
                 local angle = 0
                 local angleStep = 25
                 local radiusGrowth = 15
-                local maxRadius = 150
+                local maxRadius = 600
 
                 while isLooping do
                     local rad = math.rad(angle)
                     local x = centerX + math.cos(rad) * radius
                     local z = centerZ + math.sin(rad) * radius
-                    local spiralTarget = Vector3.new(x, safeHeight, z)
+                    local targetPos = Vector3.new(x, safeHeight, z)
 
-                    hintLabel.Text = "🌀 ហោះល្បាត..."
+                    hintLabel.Text = "ស្ថានភាព៖ 🌀 Spiral (ល្បឿន 250)"
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-                    humanizedFlyTo(spiralTarget)
+                    smoothFlyTo(targetPos)
 
-                    -- ស្វែងរក Bubble នៅក្បែរ (50 studs)
-                    local nearbyBubbles = {}
-                    for _, b in ipairs(scanValidBubbles()) do
-                        if (b.part.Position - root.Position).Magnitude <= 50 then
-                            table.insert(nearbyBubbles, b)
-                        end
-                    end
+                    local targets = scanFullMap()
+                    if #targets > 0 then
+                        isAttacking = true
+                        hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងប្រមូល " .. #targets .. " Bubble!"
+                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
 
-                    if #nearbyBubbles > 0 then
-                        hintLabel.Text = "🎯 ប្រមូល " .. #nearbyBubbles .. " Bubble..."
-                        hintLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
-                        for _, b in ipairs(nearbyBubbles) do
-                            if not isLooping then break end
-                            if b.part and b.part.Parent then
-                                humanizedFlyTo(b.part.Position + Vector3.new(0, safeHeight/2, 0))
-                                safeCollect(b.part)
-                                task.wait(math.random() * 0.4 + 0.2)  -- ពន្យារពេលចៃដន្យ (Anti‑Ban)
+                        table.sort(targets, function(a,b)
+                            return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
+                        end)
+
+                        -- ព្យាយាមប្រមូលពីចម្ងាយ (ប្រសិនបើ Exploit គាំទ្រ)
+                        if firetouchinterest then
+                            for _, target in ipairs(targets) do
+                                if target.part and target.part.Parent then
+                                    pcall(function() firetouchinterest(root, target.part, 0) end)
+                                    pcall(function() firetouchinterest(root, target.part, 1) end)
+                                end
                             end
                         end
-                        hintLabel.Text = "✅ ប្រមូលរួច"
-                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+
+                        for _, target in ipairs(targets) do
+                            if not isLooping then break end
+                            if target.part and target.part.Parent then
+                                smoothFlyTo(target.part.Position)
+                                ensureCollect(target.part)
+                                if target.type == "revive" and target.prompt then
+                                    pcall(function() fireproximityprompt(target.prompt, 1) end)
+                                end
+                            end
+                        end
+                        isAttacking = false
                     end
 
                     angle = (angle + angleStep) % 360
@@ -324,30 +318,21 @@ local function createGUI(imageAsset)
         else
             startFloating(false)
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
+            autoLoopBtn.Text = "🔥 បើក Spiral (ល្បឿន 250)"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
     end
 
     autoLoopBtn.MouseButton1Down:Connect(toggleAutoLoop)
-    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
-    toggleBtn.MouseButton1Down:Connect(function()
-        mainFrame.Visible = not mainFrame.Visible
-    end)
-
     makeDraggable(mainFrame)
 end
 
---============== ទាញយករូបភាព (ដូចដើម) ==============
-local function loadImageAndStart()
-    local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
-    if ok and response and response.StatusCode == 200 then
-        writefile(FILE_NAME, response.Body)
-        createGUI(getcustomasset(FILE_NAME))
-    else
-        createGUI("")
-    end
+--============== ទាញយករូបភាព ==============
+local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
+if ok and response and response.StatusCode == 200 then
+    writefile(FILE_NAME, response.Body)
+    createGUI(getcustomasset(FILE_NAME))
+else
+    createGUI("")
 end
-
-loadImageAndStart()
