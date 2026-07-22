@@ -1,12 +1,11 @@
 --========================================================
--- GROW A GARDEN 2: STEAL CROPS (STEAL PROMPT) + HOME
+-- GROW A GARDEN 2: INSTANT TP STEAL + HOME
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
 
 local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 local FILE_NAME = "bg_garden.jpg"
@@ -35,22 +34,15 @@ local function makeDraggable(guiObject)
     end)
 end
 
-local function flyTo(targetPos)
+-- ✅ ជំនួស flyTo ដោយ Teleport ភ្លាមៗ
+local function tpTo(targetPos)
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     if not root then return end
-    local startPos = root.Position
-    local distance = (startPos - targetPos).Magnitude
-    if distance < 3 then return end
-    local steps = math.ceil(distance / 10) + 2
-    for t = 0, 1, 1 / steps do
-        root.CFrame = CFrame.new(startPos:Lerp(targetPos, t))
-        task.wait(0.02)
-    end
     root.CFrame = CFrame.new(targetPos)
 end
 
--- រកដំណាំអ្នកដទៃ (មានម្ចាស់ ហើយមាន ProximityPrompt "Steal")
+-- រកដំណាំអ្នកដទៃ (មានម្ចាស់ និងមាន Prompt "Steal")
 local function getOthersPlants()
     local plants = {}
     for _, obj in pairs(Workspace:GetDescendants()) do
@@ -70,7 +62,7 @@ local function getOthersPlants()
             end
             
             if owner and owner ~= LocalPlayer.Name and owner ~= tostring(LocalPlayer.UserId) then
-                -- រក ProximityPrompt ដែលមាន "steal" (អាចជា ActionText ឬ Name)
+                -- រក ProximityPrompt ដែលមាន "steal"
                 local hasStealPrompt = false
                 for _, prompt in pairs(obj:GetDescendants()) do
                     if prompt:IsA("ProximityPrompt") then
@@ -96,7 +88,6 @@ end
 
 -- លួចដោយចុច Prompt "Steal"
 local function stealPlant(plantModel)
-    -- រក Prompt ដែលមាន "steal"
     local stealPrompt = nil
     for _, prompt in pairs(plantModel:GetDescendants()) do
         if prompt:IsA("ProximityPrompt") then
@@ -113,18 +104,16 @@ local function stealPlant(plantModel)
     local primaryPart = plantModel.PrimaryPart or plantModel:FindFirstChildWhichIsA("BasePart")
     if not primaryPart then return false end
 
-    -- ហោះទៅជិត (កម្ពស់ 3 studs ពីលើ ធានាថានៅក្នុងរង្វង់ Prompt)
-    flyTo(primaryPart.Position + Vector3.new(0, 3, 0))
+    -- TP ទៅពីលើដំណាំ (3 studs) ដើម្បីឲ្យ Prompt ដំណើរការ
+    tpTo(primaryPart.Position + Vector3.new(0, 3, 0))
 
-    -- ធ្វើឲ្យប្រាកដថា Prompt បានបើក
     if not stealPrompt.Enabled then
         stealPrompt.Enabled = true
         task.wait(0.1)
     end
 
-    -- ចាប់ផ្ដើមចុច (សង្កត់) រយៈពេល 0.6 វិនាទី (កែបានតាមតម្រូវការ)
     stealPrompt:InputHoldBegin()
-    task.wait(0.6)
+    task.wait(0.6) -- រយៈពេលចុច (អាចកែបាន)
     stealPrompt:InputHoldEnd()
     return true
 end
@@ -172,7 +161,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🌜 GARDEN CROP STEALER"
+    title.Text = "🌜 GARDEN CROP STEALER (TP)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -191,7 +180,7 @@ local function createGUI(imageAsset)
     stealBtn.Size = UDim2.new(1, -40, 0, 45)
     stealBtn.Position = UDim2.new(0, 20, 0, 70)
     stealBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-    stealBtn.Text = "🚜 លួចផ្លែឈើទាំងអស់ហើយមកផ្ទះ"
+    stealBtn.Text = "⚡ TP លួចផ្លែឈើទាំងអស់ហើយមកផ្ទះ"
     stealBtn.TextColor3 = Color3.new(1,1,1)
     stealBtn.Font = Enum.Font.GothamBold
     stealBtn.TextSize = 13
@@ -211,7 +200,7 @@ local function createGUI(imageAsset)
     hintLabel.Size = UDim2.new(1, -40, 0, 60)
     hintLabel.Position = UDim2.new(0, 20, 0, 180)
     hintLabel.BackgroundTransparency = 1
-    hintLabel.Text = "ចុចប៊ូតុងដើម្បីចាប់ផ្ដើមលួច"
+    hintLabel.Text = "ចុចប៊ូតុងដើម្បីចាប់ផ្ដើម TP លួច"
     hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     hintLabel.Font = Enum.Font.Gotham
     hintLabel.TextSize = 12
@@ -244,11 +233,12 @@ local function createGUI(imageAsset)
         end
 
         for i, plant in ipairs(plants) do
-            hintLabel.Text = "កំពុងលួច " .. plant.Name .. " (" .. i .. "/" .. #plants .. ")"
+            hintLabel.Text = "កំពុង TP លួច " .. plant.Name .. " (" .. i .. "/" .. #plants .. ")"
             local success = stealPlant(plant)
             if success then
-                flyTo(HOME_POSITION)
-                hintLabel.Text = "✅ លួចរួច មកផ្ទះ"
+                -- TP ត្រឡប់មកផ្ទះ
+                tpTo(HOME_POSITION)
+                hintLabel.Text = "✅ លួចរួច TP មកផ្ទះ"
             else
                 hintLabel.Text = "❌ បរាជ័យ " .. plant.Name
             end
