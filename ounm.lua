@@ -1,125 +1,119 @@
 --========================================================
--- GROW A GARDEN 2: MASS STEALER + AUTO LOOP
--- ជួសជុល: លួចបានច្រើនផ្លែព្រមគ្នា ពីក្រោមដីតែម្ដង
+-- GROW A GARDEN: REAL WORKING MASS STEALER
+-- ដំណើរការបានពិត - ចុចឲ្យជាប់ (Hold) ត្រឹមត្រូវ
 --========================================================
 
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
 
-local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg" 
-local FILE_NAME = "bg_garden_stealer.jpg"
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
 --============== ការកំណត់ ==============
-local HOME_POSITION = Vector3.new(0, 10, 0)
-local UNDERGROUND_OFFSET = Vector3.new(0, 120, 0) -- ចុះក្រោម ១២០ម៉ែត្ល
-local STEAL_COOLDOWN = 0.15 -- រង់ចាំរវាងផ្លែ (វិនាទី)
-local AUTO_STEAL_INTERVAL = 3 -- វិនាទីរវាងរាល់ដង Auto-Steal
-
-local State = {
-    IsAutoStealing = false,
-    TotalStolen = 0,
-    LastStolenNames = {},
+local Config = {
+    StealOffset = Vector3.new(0, 3, 0),    -- ទៅជិតផ្លែឈើ (មិនមែនចុះក្រោមដី)
+    HoldDuration = 0.5,                      -- រយៈពេលចុចជាប់ (វិនាទី)
+    BetweenSteals = 0.3,                     -- រង់ចាំរវាងផ្លែ
+    AutoStealDelay = 2,                      -- វិនាទីរវាង Auto-Steal
+    SearchRadius = 500,                      -- ការវាស់វែងស្វែងរក
 }
 
---============== មុខងារអូស GUI ==============
-local function makeDraggable(guiObject)
-    local dragging, startPos, objPos
-    guiObject.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            startPos = input.Position
-            objPos = guiObject.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - startPos
-            guiObject.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
-        end
-    end)
-    guiObject.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
+local State = {
+    IsRunning = false,
+    IsAutoStealing = false,
+    TotalStolen = 0,
+    CurrentPlants = {},
+}
+
+--============== មុខងារជំនួយ ==============
+local function Log(msg)
+    print("[🌾 Stealer] " .. msg)
 end
 
---============== TP ភ្លាមៗ ==============
-local function tpTo(targetPos)
-    local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if root then
-        root.CFrame = CFrame.new(targetPos)
-        root.Velocity = Vector3.new(0, 0, 0)
-        root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+local function GetChar()
+    Character = LocalPlayer.Character
+    if Character then
+        HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
     end
+    return Character, HumanoidRootPart
 end
 
---============== រកផ្លែឈើអ្នកដទៃ (រហ័សជាង) ==============
-local function getEnemyPlants()
+local function TweenTo(pos, speed)
+    local char, root = GetChar()
+    if not root then return false end
+    
+    local distance = (root.Position - pos).Magnitude
+    local time = distance / (speed or 200)
+    
+    local tween = TweenService:Create(root, TweenInfo.new(time, Enum.EasingStyle.Linear), {
+        CFrame = CFrame.new(pos)
+    })
+    tween:Play()
+    tween.Completed:Wait()
+    return true
+end
+
+--============== រកផ្លែឈើដែលលួចបាន ==============
+local function FindStealablePlants()
     local plants = {}
     local myName = LocalPlayer.Name
-    local myUserId = tostring(LocalPlayer.UserId)
+    local myId = tostring(LocalPlayer.UserId)
     
-    -- រកតែក្នុង Plot ឬ Zone ដែលមានដំណាំ
-    local searchTargets = {Workspace}
-    
-    -- បើមាន Folder "Plots" ឬ "Gardens" រកតែទីនោះ
-    for _, folderName in ipairs({"Plots", "Gardens", "Farms", "Stands", "PlayerPlots"}) do
-        local folder = Workspace:FindFirstChild(folderName)
-        if folder then
-            table.insert(searchTargets, 1, folder) -- ដាក់ពីមុខ
-        end
-    end
-    
-    for _, target in ipairs(searchTargets) do
-        for _, obj in pairs(target:GetDescendants()) do
-            if obj:IsA("Model") and obj.Parent then
-                -- ពិនិត្យម្ចាស់
-                local owner = nil
-                local attrOwner = obj:GetAttribute("Owner")
-                if attrOwner then
-                    owner = tostring(attrOwner)
-                else
-                    local ownVal = obj:FindFirstChild("Owner")
-                    if ownVal and ownVal:IsA("StringValue") then
-                        owner = ownVal.Value
-                    elseif ownVal and ownVal:IsA("ObjectValue") and ownVal.Value then
-                        owner = ownVal.Value.Name
-                    end
+    -- រកនៅគ្រប់ទីកន្លែង
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj.Parent then
+            -- ពិនិត្យម្ចាស់
+            local owner = nil
+            
+            -- វិធី 1: Attribute
+            local attr = obj:GetAttribute("Owner") or obj:GetAttribute("owner") or obj:GetAttribute("Player")
+            if attr then owner = tostring(attr) end
+            
+            -- វិធី 2: StringValue
+            if not owner then
+                local val = obj:FindFirstChild("Owner") or obj:FindFirstChild("owner") or obj:FindFirstChild("Player")
+                if val and val:IsA("StringValue") then owner = val.Value end
+                if val and val:IsA("ObjectValue") and val.Value then owner = val.Value.Name end
+            end
+            
+            -- វិធី 3: ឈ្មោះ Plot
+            if not owner and obj.Parent then
+                local plotName = obj.Parent.Name
+                if plotName and plotName ~= myName and plotName ~= "Workspace" then
+                    -- បើ Plot មិនមែនរបស់យើង
+                    owner = plotName
                 end
-
-                -- បើជារបស់អ្នកដទៃ
-                if owner and owner ~= myName and owner ~= myUserId then
-                    local stealPrompt = nil
-                    local primaryPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-                    
-                    -- រក ProximityPrompt ដែលមាន "steal"
-                    for _, child in ipairs(obj:GetDescendants()) do
-                        if child:IsA("ProximityPrompt") then
-                            local action = child.ActionText:lower()
-                            local objName = child.Name:lower()
-                            local parentName = child.Parent and child.Parent.Name:lower() or ""
+            end
+            
+            -- បើជារបស់អ្នកដទៃ
+            if owner and owner ~= myName and owner ~= myId then
+                -- រក ProximityPrompt ដែលមាន "Steal"
+                for _, child in pairs(obj:GetDescendants()) do
+                    if child:IsA("ProximityPrompt") then
+                        local txt = (child.ActionText .. " " .. child.ObjectText):lower()
+                        local name = child.Name:lower()
+                        
+                        if txt:find("steal") or txt:find("harvest") or txt:find("collect") or 
+                           name:find("steal") or name:find("harvest") then
                             
-                            if action:find("steal") or objName:find("steal") or parentName:find("steal") then
-                                stealPrompt = child
+                            local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                            if part then
+                                table.insert(plants, {
+                                    Model = obj,
+                                    Part = part,
+                                    Prompt = child,
+                                    Owner = owner,
+                                    Name = obj.Name,
+                                    Pos = part.Position
+                                })
                                 break
                             end
                         end
-                    end
-                    
-                    if stealPrompt and primaryPart then
-                        table.insert(plants, {
-                            model = obj,
-                            part = primaryPart,
-                            prompt = stealPrompt,
-                            owner = owner,
-                            name = obj.Name
-                        })
                     end
                 end
             end
@@ -129,321 +123,335 @@ local function getEnemyPlants()
     return plants
 end
 
---============== លួចផ្លែឈើ (ពីចម្ងាយ) ==============
-local function stealCrop(plantData, hintLabel)
-    local stealPrompt = plantData.prompt
+--============== លួចផ្លែឈើ (ពិតៗ) ==============
+local function StealPlant(plant)
+    local char, root = GetChar()
+    if not root then return false end
     
-    if not stealPrompt or not stealPrompt.Parent then
-        return false
-    end
+    -- 1. ទៅជិតផ្លែឈើ (ពិតៗ)
+    local targetPos = plant.Pos + Config.StealOffset
+    TweenTo(targetPos, 300)
     
-    -- Bypass ការកំណត់ចម្ងាយ
-    pcall(function()
-        stealPrompt.RequiresLineOfSight = false
-        stealPrompt.MaxActivationDistance = 9999
-        stealPrompt.HoldDuration = 0
-        stealPrompt.Enabled = true
-    end)
+    -- 2. រង់ចាំឲ្យទៅដល់
+    task.wait(0.1)
     
-    task.wait(0.05)
+    -- 3. បើក Prompt ឲ្យដំណើរការបាន
+    local prompt = plant.Prompt
+    if not prompt or not prompt.Parent then return false end
     
-    -- ប្រើវិធីទាំងអស់ដើម្បីលួច
-    local success = false
+    -- កំណត់ឲ្យចុចបាន
+    local originalHold = prompt.HoldDuration
+    local originalDist = prompt.MaxActivationDistance
+    local originalLOS = prompt.RequiresLineOfSight
     
-    -- វិធី 1: fireproximityprompt
+    prompt.MaxActivationDistance = 50
+    prompt.RequiresLineOfSight = false
+    
+    -- 4. ចុចឲ្យជាប់ (Hold) ត្រឹមត្រូវ
+    local holdTime = originalHold > 0 and originalHold or Config.HoldDuration
+    
+    -- វិធីទី 1: fireproximityprompt (ភ្លាម)
     if fireproximityprompt then
         pcall(function()
-            fireproximityprompt(stealPrompt, 1)
-            task.wait(0.05)
-            fireproximityprompt(stealPrompt, 0)
-            success = true
+            fireproximityprompt(prompt, holdTime + 0.1)
         end)
     end
     
-    -- វិធី 2: InputHold
-    if not success then
+    -- វិធីទី 2: InputHoldBegin/End (ពិតប្រាកដ)
+    task.wait(0.05)
+    pcall(function()
+        prompt:InputHoldBegin()
+    end)
+    
+    task.wait(holdTime + 0.1)
+    
+    pcall(function()
+        prompt:InputHoldEnd()
+    end)
+    
+    -- វិធីទី 3: Trigger (បើមាន)
+    task.wait(0.05)
+    pcall(function()
+        prompt:Trigger()
+    end)
+    
+    -- សងរចនាសម្ព័ន្ធដើម
+    task.delay(1, function()
         pcall(function()
-            stealPrompt:InputHoldBegin()
-            task.wait(0.1)
-            stealPrompt:InputHoldEnd()
-            success = true
+            prompt.MaxActivationDistance = originalDist
+            prompt.RequiresLineOfSight = originalLOS
         end)
-    end
+    end)
     
-    -- វិធី 3: Trigger
-    if not success then
-        pcall(function()
-            stealPrompt:Trigger()
-            success = true
-        end)
-    end
+    State.TotalStolen = State.TotalStolen + 1
+    Log("✅ លួច: " .. plant.Name .. " ពី " .. plant.Owner)
     
-    if success then
-        State.TotalStolen = State.TotalStolen + 1
-        table.insert(State.LastStolenNames, plantData.name)
-        if #State.LastStolenNames > 5 then
-            table.remove(State.LastStolenNames, 1)
-        end
-        if hintLabel then
-            hintLabel.Text = "⚡ លួច: " .. plantData.name .. " (" .. State.TotalStolen .. " ផ្លែ)"
-        end
-    end
-    
-    return success
+    return true
 end
 
---============== MASS STEAL - លួចច្រើនផ្លែព្រមគ្នា ==============
-local function massSteal(hintLabel)
-    local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if not root then
-        if hintLabel then hintLabel.Text = "❌ គ្មានតួអង្គ" end
-        return 0
+--============== MASS STEAL ==============
+local function MassSteal(statusLabel)
+    local char, root = GetChar()
+    if not root then 
+        if statusLabel then statusLabel.Text = "❌ គ្មានតួអង្គ" end
+        return 0 
     end
-
-    -- 1. រកផ្លែឈើ
-    if hintLabel then hintLabel.Text = "🔍 កំពុងស្វែងរក..." end
-    local plants = getEnemyPlants()
+    
+    if statusLabel then statusLabel.Text = "🔍 កំពុងស្វែងរកផ្លែឈើ..." end
+    local plants = FindStealablePlants()
     
     if #plants == 0 then
-        if hintLabel then hintLabel.Text = "❌ រកមិនឃើញផ្លែឈើដែលអាចលួច" end
+        if statusLabel then statusLabel.Text = "❌ រកមិនឃើញផ្លែឈើដែលលួចបាន" end
         return 0
     end
     
-    -- 2. TP ចុះក្រោមដីតែម្ដង (កណ្ដាលផែនទី)
-    local centerPos = root.Position - UNDERGROUND_OFFSET
-    tpTo(centerPos)
-    task.wait(0.3)
-    
-    -- 3. លួចទាំងអស់ពីទីតាំងនេះ
-    local stolenCount = 0
-    for i, plantData in ipairs(plants) do
-        if not plantData.model.Parent then continue end
-        if not plantData.prompt.Parent then continue end
-        
-        if hintLabel then
-            hintLabel.Text = "⚡ កំពុងលួច... (" .. i .. "/" .. #plants .. ") | សរុប: " .. State.TotalStolen
-        end
-        
-        if stealCrop(plantData, hintLabel) then
-            stolenCount = stolenCount + 1
-        end
-        
-        task.wait(STEAL_COOLDOWN)
+    if statusLabel then 
+        statusLabel.Text = "🎯 បានរកឃើញ " .. #plants .. " ផ្លែ! កំពុងលួច..." 
     end
     
-    -- 4. ត្រលប់មកផ្ទះ
-    task.wait(0.2)
-    tpTo(HOME_POSITION)
-    
-    if hintLabel then
-        hintLabel.Text = "✅ លួចបាន " .. stolenCount .. "/" .. #plants .. " ផ្លែ! សរុប: " .. State.TotalStolen
+    local stolen = 0
+    for i, plant in ipairs(plants) do
+        if not plant.Model.Parent then continue end
+        
+        if statusLabel then
+            statusLabel.Text = "⚡ លួច " .. i .. "/" .. #plants .. ": " .. plant.Name .. "\nសរុប: " .. State.TotalStolen
+        end
+        
+        local ok = pcall(function()
+            return StealPlant(plant)
+        end)
+        
+        if ok then stolen = stolen + 1 end
+        task.wait(Config.BetweenSteals)
     end
     
-    return stolenCount
+    if statusLabel then
+        statusLabel.Text = "✅ លួចបាន " .. stolen .. "/" .. #plants .. " ផ្លែ!\nសរុបទាំងអស់: " .. State.TotalStolen
+    end
+    
+    return stolen
 end
 
 --============== AUTO STEAL LOOP ==============
-local function startAutoSteal(hintLabel, autoBtn)
+local function StartAuto(statusLabel, btn)
     if State.IsAutoStealing then return end
     State.IsAutoStealing = true
-    State.TotalStolen = 0
     
-    if autoBtn then
-        autoBtn.Text = "⏹ បញ្ឈប់ Auto-Steal"
-        autoBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+    if btn then
+        btn.Text = "⏹ បញ្ឈប់ Auto"
+        btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
     end
     
     task.spawn(function()
         while State.IsAutoStealing do
-            if not LocalPlayer.Character then
-                task.wait(1)
-                continue
-            end
-            
-            massSteal(hintLabel)
-            task.wait(AUTO_STEAL_INTERVAL)
+            MassSteal(statusLabel)
+            task.wait(Config.AutoStealDelay)
         end
         
-        if autoBtn then
-            autoBtn.Text = "🔄 ចាប់ផ្ដើម Auto-Steal"
-            autoBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 200)
+        if btn then
+            btn.Text = "🔄 Auto Steal"
+            btn.BackgroundColor3 = Color3.fromRGB(0, 150, 200)
         end
     end)
 end
 
-local function stopAutoSteal()
+local function StopAuto()
     State.IsAutoStealing = false
 end
 
 --============== GUI ==============
-local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("GardenMassStealer") then
-        CoreGui:FindFirstChild("GardenMassStealer"):Destroy()
+local function CreateGUI()
+    if CoreGui:FindFirstChild("GardenRealStealer") then
+        CoreGui:FindFirstChild("GardenRealStealer"):Destroy()
     end
-
-    local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "GardenMassStealer"
-    gui.IgnoreGuiInset = true
+    
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "GardenRealStealer"
+    gui.Parent = CoreGui
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-    -- Toggle Button
-    local toggleBtn = Instance.new("ImageButton", gui)
-    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
-    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    toggleBtn.Image = imageAsset or ""
-    toggleBtn.ScaleType = Enum.ScaleType.Crop
-    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
-
+    
     -- Main Frame
-    local mainFrame = Instance.new("Frame", gui)
-    mainFrame.Size = UDim2.new(0, 440, 0, 320)
-    mainFrame.Position = UDim2.new(0.5, -220, 0.5, -160)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Visible = true
-    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
-
-    local bg = Instance.new("ImageLabel", mainFrame)
-    bg.Size = UDim2.new(1,0,1,0)
-    bg.BackgroundTransparency = 1
-    bg.Image = imageAsset or ""
-    bg.ScaleType = Enum.ScaleType.Stretch
-    bg.ImageTransparency = 0.3
-    bg.ZIndex = -1
-    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
-
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 320, 0, 280)
+    frame.Position = UDim2.new(0.5, -160, 0.3, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    frame.BorderSizePixel = 0
+    frame.Active = true
+    frame.Parent = gui
+    
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+    
+    -- Shadow
+    local shadow = Instance.new("ImageLabel")
+    shadow.Size = UDim2.new(1, 30, 1, 30)
+    shadow.Position = UDim2.new(0, -15, 0, -15)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://6014261993"
+    shadow.ImageColor3 = Color3.fromRGB(0,0,0)
+    shadow.ImageTransparency = 0.6
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(49,49,450,450)
+    shadow.ZIndex = -1
+    shadow.Parent = frame
+    
     -- Title
-    local title = Instance.new("TextLabel", mainFrame)
-    title.Size = UDim2.new(1,0,0,45)
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 35)
+    title.Position = UDim2.new(0, 0, 0, 5)
     title.BackgroundTransparency = 1
-    title.Text = "🌜 MASS STEALER (Fixed)"
-    title.Font = Enum.Font.GothamBlack
-    title.TextSize = 14
-    title.TextColor3 = Color3.new(1,1,1)
-
+    title.Text = "🌾 REAL MASS STEALER"
+    title.TextColor3 = Color3.fromRGB(0, 255, 100)
+    title.TextSize = 16
+    title.Font = Enum.Font.GothamBold
+    title.Parent = frame
+    
+    -- Drag handle
+    local drag = Instance.new("Frame")
+    drag.Size = UDim2.new(1, 0, 0, 40)
+    drag.BackgroundTransparency = 1
+    drag.Active = true
+    drag.Parent = frame
+    
+    local dragInd = Instance.new("TextLabel")
+    dragInd.Size = UDim2.new(0, 50, 0, 20)
+    dragInd.Position = UDim2.new(0.5, -25, 0, 0)
+    dragInd.BackgroundTransparency = 1
+    dragInd.Text = "━━━"
+    dragInd.TextColor3 = Color3.fromRGB(100, 100, 120)
+    dragInd.Parent = drag
+    
     -- Close
-    local closeBtn = Instance.new("TextButton", mainFrame)
-    closeBtn.Size = UDim2.new(0,35,0,35)
-    closeBtn.Position = UDim2.new(1,-45,0,10)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(200,40,40)
-    closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.new(1,1,1)
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 14
-    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
-
-    -- Steal Once Button
-    local stealBtn = Instance.new("TextButton", mainFrame)
-    stealBtn.Size = UDim2.new(1, -40, 0, 40)
-    stealBtn.Position = UDim2.new(0, 20, 0, 60)
-    stealBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-    stealBtn.Text = "⚡ លួចផ្លែឈើទាំងអស់ (ម្ដង)"
-    stealBtn.TextColor3 = Color3.new(1,1,1)
+    local close = Instance.new("TextButton")
+    close.Size = UDim2.new(0, 28, 0, 28)
+    close.Position = UDim2.new(1, -35, 0, 8)
+    close.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+    close.Text = "✕"
+    close.TextColor3 = Color3.new(1,1,1)
+    close.Font = Enum.Font.GothamBold
+    close.TextSize = 12
+    close.Parent = frame
+    Instance.new("UICorner", close).CornerRadius = UDim.new(0, 8)
+    
+    -- Status
+    local status = Instance.new("TextLabel")
+    status.Size = UDim2.new(1, -20, 0, 50)
+    status.Position = UDim2.new(0, 10, 0, 45)
+    status.BackgroundTransparency = 1
+    status.Text = "រង់ចាំ... ចុច 'MASS STEAL' ដើម្បីលួច"
+    status.TextColor3 = Color3.fromRGB(255, 255, 255)
+    status.TextSize = 12
+    status.Font = Enum.Font.Gotham
+    status.TextWrapped = true
+    status.Parent = frame
+    
+    -- Steal Button
+    local stealBtn = Instance.new("TextButton")
+    stealBtn.Size = UDim2.new(1, -20, 0, 40)
+    stealBtn.Position = UDim2.new(0, 10, 0, 105)
+    stealBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+    stealBtn.Text = "⚡ MASS STEAL (លួចច្រើនផ្លែ)"
+    stealBtn.TextColor3 = Color3.new(0,0,0)
     stealBtn.Font = Enum.Font.GothamBold
     stealBtn.TextSize = 13
+    stealBtn.Parent = frame
     Instance.new("UICorner", stealBtn).CornerRadius = UDim.new(0, 10)
-
-    -- Auto Steal Button
-    local autoBtn = Instance.new("TextButton", mainFrame)
-    autoBtn.Size = UDim2.new(1, -40, 0, 40)
-    autoBtn.Position = UDim2.new(0, 20, 0, 110)
+    
+    -- Auto Button
+    local autoBtn = Instance.new("TextButton")
+    autoBtn.Size = UDim2.new(1, -20, 0, 40)
+    autoBtn.Position = UDim2.new(0, 10, 0, 155)
     autoBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 200)
-    autoBtn.Text = "🔄 ចាប់ផ្ដើម Auto-Steal"
+    autoBtn.Text = "🔄 Auto Steal"
     autoBtn.TextColor3 = Color3.new(1,1,1)
     autoBtn.Font = Enum.Font.GothamBold
     autoBtn.TextSize = 13
+    autoBtn.Parent = frame
     Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 10)
-
-    -- Set Home
-    local setHomeBtn = Instance.new("TextButton", mainFrame)
-    setHomeBtn.Size = UDim2.new(1, -40, 0, 35)
-    setHomeBtn.Position = UDim2.new(0, 20, 0, 160)
-    setHomeBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    setHomeBtn.Text = "📍 កំណត់ទីតាំងផ្ទះ"
-    setHomeBtn.TextColor3 = Color3.new(1,1,1)
-    setHomeBtn.Font = Enum.Font.GothamBold
-    setHomeBtn.TextSize = 12
-    Instance.new("UICorner", setHomeBtn).CornerRadius = UDim.new(0, 8)
-
-    -- Status Label
-    local hintLabel = Instance.new("TextLabel", mainFrame)
-    hintLabel.Size = UDim2.new(1, -40, 0, 80)
-    hintLabel.Position = UDim2.new(0, 20, 0, 205)
-    hintLabel.BackgroundTransparency = 1
-    hintLabel.Text = "ស្ថានភាព: រង់ចាំការបញ្ជា...\nចុច 'លួចផ្លែឈើទាំងអស់' ដើម្បីលួចម្ដងច្រើនផ្លែ"
-    hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    hintLabel.Font = Enum.Font.Gotham
-    hintLabel.TextSize = 12
-    hintLabel.TextWrapped = true
-
-    -- Rainbow Title
-    task.spawn(function()
-        local hue = 0
-        while gui.Parent do
-            hue = (hue + 0.03) % 1
-            title.TextColor3 = Color3.fromHSV(hue, 1, 1)
-            task.wait(0.04)
-        end
-    end)
-
+    
+    -- Stats
+    local stats = Instance.new("TextLabel")
+    stats.Size = UDim2.new(1, -20, 0, 30)
+    stats.Position = UDim2.new(0, 10, 0, 205)
+    stats.BackgroundTransparency = 1
+    stats.Text = "សរុបបានលួច: 0 ផ្លែ"
+    stats.TextColor3 = Color3.fromRGB(255, 215, 0)
+    stats.TextSize = 14
+    stats.Font = Enum.Font.GothamBold
+    stats.Parent = frame
+    
+    -- Info
+    local info = Instance.new("TextLabel")
+    info.Size = UDim2.new(1, -20, 0, 40)
+    info.Position = UDim2.new(0, 10, 0, 235)
+    info.BackgroundTransparency = 1
+    info.Text = "💡 វិធី: ទៅជិតផ្លែ → ចុចជាប់ → លួច"
+    info.TextColor3 = Color3.fromRGB(180, 180, 180)
+    info.TextSize = 10
+    info.Font = Enum.Font.Gotham
+    info.TextWrapped = true
+    info.Parent = frame
+    
     -- Events
-    stealBtn.MouseButton1Down:Connect(function()
+    stealBtn.MouseButton1Click:Connect(function()
         task.spawn(function()
-            massSteal(hintLabel)
+            MassSteal(status)
+            stats.Text = "សរុបបានលួច: " .. State.TotalStolen .. " ផ្លែ"
         end)
     end)
-
-    autoBtn.MouseButton1Down:Connect(function()
+    
+    autoBtn.MouseButton1Click:Connect(function()
         if State.IsAutoStealing then
-            stopAutoSteal()
-            autoBtn.Text = "🔄 ចាប់ផ្ដើម Auto-Steal"
+            StopAuto()
+            autoBtn.Text = "🔄 Auto Steal"
             autoBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 200)
-            hintLabel.Text = "⏹ បានបញ្ឈប់ Auto-Steal"
+            status.Text = "⏹ បានបញ្ឈប់ Auto"
         else
-            startAutoSteal(hintLabel, autoBtn)
+            StartAuto(status, autoBtn)
         end
     end)
-
-    setHomeBtn.MouseButton1Down:Connect(function()
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if root then
-            HOME_POSITION = root.Position
-            hintLabel.Text = "✅ បានកំណត់ទីតាំងផ្ទះថ្មី!"
-        end
-    end)
-
-    closeBtn.MouseButton1Down:Connect(function()
-        stopAutoSteal()
+    
+    close.MouseButton1Click:Connect(function()
+        StopAuto()
         gui:Destroy()
     end)
-
-    toggleBtn.MouseButton1Down:Connect(function()
-        mainFrame.Visible = not mainFrame.Visible
+    
+    -- Drag
+    local dragging = false
+    local startPos, framePos
+    
+    drag.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            startPos = input.Position
+            framePos = frame.Position
+        end
     end)
-
-    makeDraggable(mainFrame)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - startPos
+            frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    
+    -- Update stats
+    RunService.RenderStepped:Connect(function()
+        stats.Text = "សរុបបានលួច: " .. State.TotalStolen .. " ផ្លែ"
+    end)
 end
 
 --============== ចាប់ផ្ដើម ==============
-local function loadImageAndStart()
-    local ok, response = pcall(function() 
-        return request({Url=IMAGE_URL, Method="GET"}) 
-    end)
-    if ok and response and response.StatusCode == 200 then
-        writefile(FILE_NAME, response.Body)
-        createGUI(getcustomasset(FILE_NAME))
-    else
-        createGUI("")
-    end
-end
+CreateGUI()
 
-loadImageAndStart()
-
-print("✅ Mass Stealer បានផ្ទុក!")
-print("🆕 លក្ខណៈថ្មី:")
-print("   • TP ចុះក្រោមដីតែម្ដង ហើយលួចទាំងអស់")
-print("   • Auto-Steal រក + លួចដោយស្វ័យប្រវត្តិ")
-print("   • លួចបានច្រើនផ្លែព្រមគ្នា")
+Log("✅ Real Mass Stealer បានផ្ទុក!")
+Log("🎮 វិធីដំណើរការ:")
+Log("   1. ទៅជិតផ្លែឈើ (Tween លឿន)")
+Log("   2. ចុចជាប់ (Hold) ត្រឹមត្រូវតាមពេលវេលា")
+Log("   3. លួចច្រើនផ្លែជាប់ៗគ្នា")
+Log("   4. Auto-Steal ដោយស្វ័យប្រវត្តិ")
