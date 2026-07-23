@@ -138,7 +138,7 @@ scanBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- បិទ
+-- បិទើ
 local closeBtn = Instance.new("TextButton", frame)
 closeBtn.Size = UDim2.new(0,22,0,22)
 closeBtn.Position = UDim2.new(1,-26,0,2)
