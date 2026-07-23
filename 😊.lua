@@ -1,51 +1,26 @@
 --========================================================
--- BLOX FRUITS: SIMPLE LEVEL HACK (AUTO-SCAN)
+-- EVADE: BUBBLE ADDER (REMOTE FIRE, LIKE SHECKLES)
 --========================================================
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-local levelValue = nil
-local levelRemote = nil
+local bubbleRemote = nil
 
--- ស្វែងរក Value (Number/Int) ដែលទាក់ទងនឹង Level
-local function scanForValue()
-    local keywords = {"level", "lvl", "xp", "exp", "rank"}
-    local player = LocalPlayer
-    for _, obj in pairs(player:GetDescendants()) do
-        if obj:IsA("NumberValue") or obj:IsA("IntValue") then
-            local name = obj.Name:lower()
-            for _, kw in ipairs(keywords) do
-                if name:find(kw) then return obj end
-            end
-        end
-    end
-    local leaderstats = player:FindFirstChild("leaderstats")
-    if leaderstats then
-        for _, obj in pairs(leaderstats:GetDescendants()) do
-            if obj:IsA("NumberValue") or obj:IsA("IntValue") then
-                local name = obj.Name:lower()
-                for _, kw in ipairs(keywords) do
-                    if name:find(kw) then return obj end
-                end
-            end
-        end
-    end
-    return nil
-end
-
--- ស្វែងរក Remote (Event/Function) សម្រាប់ Level
+-- មុខងារស្កេនរក Remote ដែលប្រើសម្រាប់បន្ថែម Bubble
 local function scanForRemote()
-    local keywords = {"level", "lvl", "add", "setlevel", "addexp", "give", "upgrade", "rank"}
+    local keywords = {"bubble", "token", "collect", "add", "give", "reward", "coin"}
     local services = {ReplicatedStorage, Workspace, game:GetService("ServerStorage")}
     for _, service in ipairs(services) do
         for _, obj in pairs(service:GetDescendants()) do
             if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
                 local name = obj.Name:lower()
                 for _, kw in ipairs(keywords) do
-                    if name:find(kw) then return obj end
+                    if name:find(kw) then
+                        return obj
+                    end
                 end
             end
         end
@@ -54,15 +29,15 @@ local function scanForRemote()
 end
 
 -- ស្កេនដំបូង
-levelValue = scanForValue()
-levelRemote = scanForRemote()
+bubbleRemote = scanForRemote()
 
--- GUI សាមញ្ញបំផុត
+-- GUI
 local gui = Instance.new("ScreenGui", CoreGui)
-gui.Name = "BloxFruitsLevel"
+gui.Name = "EvadeBubbleAdder"
+
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 250, 0, 130)
-frame.Position = UDim2.new(0.5, -125, 0.5, -65)
+frame.Size = UDim2.new(0, 280, 0, 150)
+frame.Position = UDim2.new(0.5, -140, 0.5, -75)
 frame.BackgroundColor3 = Color3.fromRGB(30,30,35)
 frame.BorderSizePixel = 0
 frame.Draggable = true
@@ -72,108 +47,98 @@ Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1,0,0,25)
 title.BackgroundTransparency = 1
-title.Text = "🍈 Level Hack"
+title.Text = "🫧 Bubble Adder (Remote)"
 title.Font = Enum.Font.GothamBold
-title.TextSize = 14
-title.TextColor3 = Color3.fromRGB(255,215,0)
+title.TextSize = 13
+title.TextColor3 = Color3.fromRGB(100,200,255)
 
 local status = Instance.new("TextLabel", frame)
-status.Size = UDim2.new(1,-20,0,25)
-status.Position = UDim2.new(0,10,0,28)
+status.Size = UDim2.new(1, -20, 0, 30)
+status.Position = UDim2.new(0, 10, 0, 30)
 status.BackgroundTransparency = 1
-status.Text = (levelValue and "Value: "..levelValue.Name) or (levelRemote and "Remote: "..levelRemote.Name) or "រកមិនឃើញ"
-status.TextColor3 = Color3.new(1,1,1)
+status.Text = bubbleRemote and "✅ រកឃើញ Remote: "..bubbleRemote.Name or "❌ រកមិនឃើញ Remote"
+status.TextColor3 = bubbleRemote and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
 status.Font = Enum.Font.Gotham
 status.TextSize = 10
+status.TextWrapped = true
 
 local input = Instance.new("TextBox", frame)
 input.Size = UDim2.new(0, 80, 0, 28)
-input.Position = UDim2.new(0, 10, 0, 60)
+input.Position = UDim2.new(0, 10, 0, 70)
 input.BackgroundColor3 = Color3.fromRGB(50,50,55)
 input.TextColor3 = Color3.new(1,1,1)
 input.Font = Enum.Font.Gotham
 input.TextSize = 14
-input.PlaceholderText = "Level"
-input.Text = "1000"
+input.PlaceholderText = "10"
+input.Text = "10"
 Instance.new("UICorner", input).CornerRadius = UDim.new(0,5)
 
 local addBtn = Instance.new("TextButton", frame)
-addBtn.Size = UDim2.new(0, 90, 0, 28)
-addBtn.Position = UDim2.new(0, 100, 0, 60)
+addBtn.Size = UDim2.new(0, 100, 0, 28)
+addBtn.Position = UDim2.new(0, 100, 0, 70)
 addBtn.BackgroundColor3 = Color3.fromRGB(0,180,0)
-addBtn.Text = "កំណត់ Level"
+addBtn.Text = "បន្ថែម"
 addBtn.TextColor3 = Color3.new(1,1,1)
 addBtn.Font = Enum.Font.GothamBold
-addBtn.TextSize = 11
+addBtn.TextSize = 12
 Instance.new("UICorner", addBtn).CornerRadius = UDim.new(0,5)
 
 addBtn.MouseButton1Click:Connect(function()
-    local targetLevel = tonumber(input.Text)
-    if not targetLevel or targetLevel <= 0 then
-        status.Text = "បញ្ចូល Level ត្រឹមត្រូវ"
+    local amount = tonumber(input.Text)
+    if not amount or amount <= 0 then
+        status.Text = "បញ្ចូលចំនួនត្រឹមត្រូវ"
+        return
+    end
+    if not bubbleRemote then
+        status.Text = "គ្មាន Remote សូមស្កេនឡើងវិញ"
         return
     end
 
-    -- វិធី១: កែ Value ផ្ទាល់ (អាច Fake)
-    if levelValue then
-        pcall(function()
-            levelValue.Value = targetLevel
-            status.Text = "✅ បានកំណត់ Level "..targetLevel.." (Value)"
-        end)
-        return
-    end
-
-    -- វិធី២: បាញ់ Remote
-    if levelRemote then
-        local success = false
-        if levelRemote:IsA("RemoteEvent") then
-            -- សាកជាមួយ targetLevel និង Player
-            success = pcall(function() levelRemote:FireServer(targetLevel) end)
-            if not success then
-                success = pcall(function() levelRemote:FireServer(LocalPlayer, targetLevel) end)
-            end
-            if not success then
-                success = pcall(function() levelRemote:FireServer({Level = targetLevel}) end)
-            end
-        elseif levelRemote:IsA("RemoteFunction") then
-            success = pcall(function() levelRemote:InvokeServer(targetLevel) end)
-            if not success then
-                success = pcall(function() levelRemote:InvokeServer(LocalPlayer, targetLevel) end)
-            end
+    -- បាញ់ Remote ជាមួយចំនួន
+    local success = false
+    if bubbleRemote:IsA("RemoteEvent") then
+        -- សាកបាញ់ជាមួយ amount និង player
+        success = pcall(function() bubbleRemote:FireServer(amount) end)
+        if not success then
+            success = pcall(function() bubbleRemote:FireServer(LocalPlayer, amount) end)
         end
-        if success then
-            status.Text = "✅ បាញ់ Remote កំណត់ Level "..targetLevel
-        else
-            status.Text = "❌ បរាជ័យ ពិនិត្យ Remote ដោយ RemoteSpy"
+        if not success then
+            success = pcall(function() bubbleRemote:FireServer({Amount = amount}) end)
         end
-        return
+    elseif bubbleRemote:IsA("RemoteFunction") then
+        success = pcall(function() bubbleRemote:InvokeServer(amount) end)
+        if not success then
+            success = pcall(function() bubbleRemote:InvokeServer(LocalPlayer, amount) end)
+        end
     end
 
-    status.Text = "❌ គ្មាន Value/Remote សាកស្កេនឡើងវិញ"
+    if success then
+        status.Text = "✅ បាញ់ Remote ជាមួយ "..amount.." Bubble"
+    else
+        status.Text = "❌ បរាជ័យ សូមពិនិត្យ Remote ដោយ RemoteSpy"
+    end
 end)
 
 -- ប៊ូតុងស្កេនឡើងវិញ
 local scanBtn = Instance.new("TextButton", frame)
-scanBtn.Size = UDim2.new(0, 80, 0, 25)
-scanBtn.Position = UDim2.new(0, 10, 0, 95)
+scanBtn.Size = UDim2.new(0, 100, 0, 25)
+scanBtn.Position = UDim2.new(0, 10, 0, 110)
 scanBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
 scanBtn.Text = "ស្កេនថ្មី"
 scanBtn.TextColor3 = Color3.new(1,1,1)
 scanBtn.Font = Enum.Font.GothamBold
-scanBtn.TextSize = 10
+scanBtn.TextSize = 11
 Instance.new("UICorner", scanBtn).CornerRadius = UDim.new(0,5)
 scanBtn.MouseButton1Click:Connect(function()
-    levelValue = scanForValue()
-    levelRemote = scanForRemote()
-    if levelValue then
-        status.Text = "✅ រកឃើញ Value: "..levelValue.Name
-    elseif levelRemote then
-        status.Text = "✅ រកឃើញ Remote: "..levelRemote.Name
+    bubbleRemote = scanForRemote()
+    if bubbleRemote then
+        status.Text = "✅ រកឃើញ Remote: "..bubbleRemote.Name
     else
-        status.Text = "❌ មិនឃើញ (ប្រើ RemoteSpy ពេល Level ឡើង)"
+        status.Text = "❌ មិនឃើញ Remote – សាកប្រើ RemoteSpy ពេលប្រមូល Bubble ដោយដៃ"
     end
 end)
 
+-- បិទ
 local closeBtn = Instance.new("TextButton", frame)
 closeBtn.Size = UDim2.new(0,22,0,22)
 closeBtn.Position = UDim2.new(1,-26,0,2)
