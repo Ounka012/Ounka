@@ -1,1 +1,117 @@
-uu
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>រាត្រីលំហអាកាស</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(180deg, #020215 0%, #0a0c2e 40%, #1c2660 100%);
+            height: 100vh; overflow: hidden; position: relative;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            user-select: none; -webkit-user-select: none;
+        }
+        .stars { position: absolute; inset: 0; pointer-events: none; }
+        .star {
+            position: absolute;
+            width: var(--s); height: var(--s);
+            background: var(--color);
+            border-radius: 50%;
+            animation: twinkle var(--d) ease-in-out infinite;
+            animation-delay: var(--del);
+            box-shadow: 0 0 calc(var(--s)*0.8) calc(var(--s)*0.3) var(--glow);
+        }
+        @keyframes twinkle {
+            0%,100% { opacity: 0.35; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(1.2); }
+        }
+        /* ព្រៃឈើ */
+        .forest {
+            position: absolute; bottom: 40px; left: 0; right: 0; height: 140px;
+            pointer-events: none;
+        }
+        .tree {
+            position: absolute; bottom: 0;
+            width: 0; height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 30px solid #040612;
+        }
+        .tree.tall {
+            border-bottom-width: 45px;
+            border-left-width: 10px;
+            border-right-width: 10px;
+        }
+        .tree.small {
+            border-bottom-width: 20px;
+            border-left-width: 6px;
+            border-right-width: 6px;
+        }
+        .ground {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 40px;
+            background: #02040d;
+        }
+        .title {
+            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+            text-align: center; color: #dcdcf0cc; letter-spacing: 0.3em;
+            text-shadow: 0 0 20px #aab4dc88;
+            font-weight: 300; font-size: clamp(1.2rem, 3vw, 2rem);
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="forest" id="forest"></div>
+    <div class="ground"></div>
+    <div class="title">រាត្រីលំហអាកាស</div>
+    <script>
+        const starsContainer = document.getElementById('stars');
+        const starCount = 120;
+        const starColors = [
+            { color: '#ffffff', glow: '#ffffffcc' },
+            { color: '#ffe8c0', glow: '#ffdc9699' },
+            { color: '#c8dfff', glow: '#b4d2ff99' },
+            { color: '#ffd700', glow: '#ffd70099' }
+        ];
+
+        for (let i = 0; i < starCount; i++) {
+            const s = document.createElement('div');
+            s.className = 'star';
+            const type = starColors[Math.floor(Math.random() * starColors.length)];
+            // ទំហំតូចបំផុត 1px - 2.5px
+            const size = Math.random() * 1.5 + 1;
+            const top = Math.random() * 88;
+            const left = Math.random() * 100;
+            const dur = Math.random() * 3 + 2.5;
+            const delay = Math.random() * 5;
+            s.style.cssText = `
+                --s:${size}px;
+                --color:${type.color};
+                --glow:${type.glow};
+                --d:${dur}s;
+                --del:-${delay}s;
+                top:${top}%; left:${left}%;
+            `;
+            starsContainer.appendChild(s);
+        }
+
+        // ព្រៃឈើ
+        const forestContainer = document.getElementById('forest');
+        const treeCount = 40;
+        for (let i = 0; i < treeCount; i++) {
+            const tree = document.createElement('div');
+            const r = Math.random();
+            if (r < 0.25) tree.className = 'tree tall';
+            else if (r < 0.55) tree.className = 'tree small';
+            else tree.className = 'tree';
+            const leftPercent = (i / (treeCount - 1)) * 100;
+            const jitter = (Math.random() - 0.5) * 5;
+            tree.style.left = `calc(${leftPercent}% + ${jitter}px)`;
+            tree.style.bottom = '0px';
+            forestContainer.appendChild(tree);
+        }
+    </script>
+</body>
+</html>
