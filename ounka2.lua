@@ -10,8 +10,8 @@ local success, err = pcall(function()
 
     -- បញ្ជីចម្រៀង
     local SongLibrary = {
-        { name = "ចម្រៀងដំបូង", id = "rbxassetid://1842190355" },
-        { name = "ចម្រៀងទីពីរ", id = "rbxassetid://1845743597" },
+        { name = "ចម្រៀងដំបូង", id = "rbxassetid://126498463169239" },
+        { name = "ចម្រៀងទីពីរ", id = "rbxassetid://126498463169239" },
         { name = "ចម្រៀងទីបី", id = "rbxassetid://1840927967" },
         { name = "ចម្រៀងទីបួន", id = "rbxassetid://1837856842" },
         { name = "ចម្រៀងទីប្រាំ", id = "rbxassetid://1845014938" },
