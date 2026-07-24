@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: BUBBLE SPIRAL FARM (FANCY GUI + UNLIMITED RANGE)
+-- EVADE: BUBBLE SPIRAL FARM (STOP & GO METHOD)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -63,7 +63,7 @@ local function fly(pos)
     root.CFrame = CFrame.new(pos)
 end
 
---============== GUI (មានរូបភាព គ្មាន Key) ==============
+--============== GUI (មានរូបភាព) ==============
 local function createGUI(imageAsset)
     if CoreGui:FindFirstChild("EvadeFarm") then
         CoreGui:FindFirstChild("EvadeFarm"):Destroy()
@@ -192,13 +192,15 @@ local function createGUI(imageAsset)
                         for _, b in allBubbles do
                             if not isLooping then break end
                             if b and b.Parent then
-                                fly(b.Position + Vector3.new(0, safeHeight/2, 0))
-                                -- តោងជាប់
-                                repeat
-                                    if not isLooping or not b.Parent then break end
-                                    root.CFrame = b.CFrame * CFrame.new(0, 2.5, 0)
-                                    task.wait(0.05)
-                                until not b.Parent
+                                -- ហោះទៅជិត Bubble (មិនតោងជាប់)
+                                local targetPos = b.Position + Vector3.new(0, 3, 0)
+                                fly(targetPos)
+                                -- រង់ចាំឲ្យ Bubble បាត់ (ប្រមូលបាន)
+                                local waitStart = tick()
+                                while isLooping and b.Parent do
+                                    if tick() - waitStart > 5 then break end -- ដើម្បីកុំឲ្យជាប់យូរពេក
+                                    task.wait(0.1)
+                                end
                             end
                         end
                         hintLabel.Text = "✅ ប្រមូលរួច"
@@ -230,7 +232,7 @@ local function createGUI(imageAsset)
     makeDraggable(mainFrame)
 end
 
---============== ទាញយករូបភាព (ដូចដើម) ==============
+--============== ទាញយករូបភាព ==============
 local function loadImageAndStart()
     local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
     if ok and response and response.StatusCode == 200 then
