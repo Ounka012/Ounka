@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: SPIRAL FARM (ORIGINAL + NO DISTANCE LIMIT)
+-- EVADE: SPIRAL FARM (STOP & WAIT, NO STICK)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -32,7 +32,7 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- រក Bubble ទាំងអស់ (Model គ្មាន PrimaryPart ក៏បាន) – គ្មានដែនកំណត់ចម្ងាយ
+-- រក Bubble ទាំងអស់ គ្មានកំណត់ចម្ងាយ
 local function getBubbles()
     local bubbles = {}
     for _, obj in Workspace:GetDescendants() do
@@ -106,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🌀 BUBBLE SPIRAL FARM"
+    title.Text = "🌀 BUBBLE SPIRAL "
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -158,7 +158,7 @@ local function createGUI(imageAsset)
     local radius = 20
     local angle = 0
 
-    --============== ហោះវង់ + ប្រមូល (តោងជាប់ គ្មានកំណត់ចម្ងាយ) ==============
+    --============== ហោះវង់ + ឈប់នៅ Bubble ==============
     local function toggleAutoLoop()
         isLooping = not isLooping
         if isLooping then
@@ -181,7 +181,7 @@ local function createGUI(imageAsset)
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     fly(spiralTarget)
 
-                    -- ស្វែងរក Bubble ទាំងអស់ (គ្មានកំណត់ចម្ងាយ) ហើយទៅប្រមូលម្ដងមួយ
+                    -- រក Bubble ទាំងអស់
                     local allBubbles = getBubbles()
                     if #allBubbles > 0 then
                         hintLabel.Text = "🎯 ប្រមូល " .. #allBubbles .. " Bubble..."
@@ -189,14 +189,12 @@ local function createGUI(imageAsset)
                         for _, b in allBubbles do
                             if not isLooping then break end
                             if b and b.Parent then
-                                -- ហោះទៅ Bubble
-                                fly(b.Position + Vector3.new(0, safeHeight/2, 0))
-                                -- តោងជាប់រហូតដល់ Bubble បាត់ (ប្រមូលបាន)
-                                repeat
-                                    if not isLooping or not b.Parent then break end
-                                    root.CFrame = b.CFrame * CFrame.new(0, 2.5, 0)
-                                    task.wait(0.05)
-                                until not b.Parent
+                                -- ហោះទៅជិត Bubble (3 studs ពីលើ)
+                                fly(b.Position + Vector3.new(0, 3, 0))
+                                -- ឈប់នៅទីនេះ រង់ចាំឲ្យ Bubble បាត់ (ប្រមូលបាន)
+                                while b.Parent and isLooping do
+                                    task.wait(0.2)
+                                end
                             end
                         end
                         hintLabel.Text = "✅ ប្រមូលរួច"
