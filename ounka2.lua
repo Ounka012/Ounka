@@ -1,241 +1,197 @@
---========================================================
--- EVADE: SPIRAL FARM (GUI + NO DISTANCE LIMIT)
---========================================================
-local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui") 
+local ContentProvider = game:GetService("ContentProvider")
 
-local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
-local FILE_NAME = "bg.jpg"
+local plr = Players.LocalPlayer
 
---============== ជំនួយ GUI ==============
-local function makeDraggable(guiObject)
-    local dragging, startPos, objPos
-    guiObject.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; startPos = input.Position; objPos = guiObject.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - startPos
-            guiObject.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
-        end
-    end)
-    guiObject.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
+--============ ការកំណត់ GUI និងរូបភាព ============
+local IMAGE_URL = "rbxassetid://13583271707" 
+
+if CoreGui:FindFirstChild("BubbleFinderGUI") then
+    CoreGui:FindFirstChild("BubbleFinderGUI"):Destroy()
 end
 
--- រក Bubble គ្រប់ប្រភេទ (គ្មានកំណត់ចម្ងាយ)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BubbleFinderGUI"
+screenGui.ResetOnSpawn = false 
+screenGui.Parent = CoreGui 
+
+-- Main Frame (ផ្ទាំងធំ)
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 220, 0, 130)
+mainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true 
+mainFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 12)
+uiCorner.Parent = mainFrame
+
+-- Background Image (រូបភាពខាងក្រោយ)
+local bgImage = Instance.new("ImageLabel")
+bgImage.Size = UDim2.new(1, 0, 1, 0)
+bgImage.BackgroundTransparency = 1
+bgImage.Image = IMAGE_URL
+bgImage.ScaleType = Enum.ScaleType.Stretch
+bgImage.ImageTransparency = 0.4 
+bgImage.ZIndex = 0
+bgImage.Parent = mainFrame
+
+local imgCorner = Instance.new("UICorner")
+imgCorner.CornerRadius = UDim.new(0, 12)
+imgCorner.Parent = bgImage
+
+-- Title (ចំណងជើង)
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 35)
+titleLabel.Position = UDim2.new(0, 0, 0, 5)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "BUBBLE FINDER"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Font = Enum.Font.GothamBlack
+titleLabel.TextSize = 16
+titleLabel.ZIndex = 1
+titleLabel.Parent = mainFrame
+
+-- Toggle Button (ប៊ូតុងបិទ/បើក)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0.8, 0, 0, 45)
+toggleBtn.Position = UDim2.new(0.1, 0, 0.45, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50) 
+toggleBtn.Text = "STATUS: OFF"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 16
+toggleBtn.ZIndex = 1
+toggleBtn.Parent = mainFrame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = toggleBtn
+
+--============ 2. អថេរគ្រប់គ្រងស្ថានភាព ============
+local isRunning = false
+
+--============ 3. មុខងារផ្លាស់ប្តូរ ON/OFF ============
+toggleBtn.MouseButton1Click:Connect(function()
+    isRunning = not isRunning
+    if isRunning then
+        toggleBtn.Text = "STATUS: ON"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50) 
+    else
+        toggleBtn.Text = "STATUS: OFF"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50) 
+    end
+end)
+
+--============ 4. កូដដើមរបស់អ្នក (Logic) ============
 local function getBubbles()
     local bubbles = {}
-    for _, obj in Workspace:GetDescendants() do
-        local name = obj.Name:lower()
-        if obj:IsA("Model") and (name:find("bubble") or name:find("token")) then
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj.Name:lower():find("bubble") and obj:IsA("Model") then
             local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-            if part then table.insert(bubbles, part) end
-        elseif obj:IsA("BasePart") and (name:find("bubble") or name:find("token")) then
-            table.insert(bubbles, obj)
+            if part then
+                table.insert(bubbles, part)
+            end
         end
     end
     return bubbles
 end
 
--- ហោះរលូន
-local function fly(pos)
-    local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
+local function fly(root, pos)
     if not root then return end
     local startPos = root.Position
     local distance = (startPos - pos).Magnitude
     if distance < 3 then return end
+
     local steps = math.ceil(distance / 10 + 2)
     for t = 0, 1, 1 / steps do
+        if not isRunning or not root.Parent then break end
         root.CFrame = CFrame.new(startPos:Lerp(pos, t))
         task.wait(0.02)
     end
-    root.CFrame = CFrame.new(pos)
+    if isRunning and root.Parent then
+        root.CFrame = CFrame.new(pos)
+    end
 end
 
---============== GUI (មានរូបភាព) ==============
-local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeFarm") then
-        CoreGui:FindFirstChild("EvadeFarm"):Destroy()
+-- មុខងាររកដីនៅខាងក្រោម Bubble
+local function getGroundPosition(char, startPos)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {char}
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+    -- បាញ់រលកចុះក្រោម 500 ម៉ែត្រ ដើម្បីរកដី
+    local raycastResult = Workspace:Raycast(startPos, Vector3.new(0, -500, 0), raycastParams)
+    
+    if raycastResult then
+        return raycastResult.Position
+    else
+        -- បើរករអត់ឃើញដីទេ យកកម្ពស់ទាបជាង Bubble បន្តិចសិន
+        return startPos - Vector3.new(0, 30, 0)
     end
+end
 
-    local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeFarm"
-    gui.IgnoreGuiInset = true
-
-    local toggleBtn = Instance.new("ImageButton", gui)
-    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
-    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    toggleBtn.Image = imageAsset or ""
-    toggleBtn.ScaleType = Enum.ScaleType.Crop
-    toggleBtn.Draggable = true
-    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
-    local toggleStroke = Instance.new("UIStroke", toggleBtn)
-    toggleStroke.Thickness = 3
-
-    local mainFrame = Instance.new("Frame", gui)
-    mainFrame.Size = UDim2.new(0, 420, 0, 250)
-    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
-    mainFrame.BackgroundTransparency = 1
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Visible = true
-    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
-    local mainStroke = Instance.new("UIStroke", mainFrame)
-    mainStroke.Thickness = 3
-
-    local bg = Instance.new("ImageLabel", mainFrame)
-    bg.Size = UDim2.new(1,0,1,0)
-    bg.BackgroundTransparency = 1
-    bg.Image = imageAsset or ""
-    bg.ScaleType = Enum.ScaleType.Stretch
-    bg.ImageTransparency = 0.3
-    bg.ZIndex = -1
-    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
-
-    local title = Instance.new("TextLabel", mainFrame)
-    title.Size = UDim2.new(1,0,0,45)
-    title.BackgroundTransparency = 1
-    title.Text = "🌀 BUBBLE SPIRAL FARM"
-    title.Font = Enum.Font.GothamBlack
-    title.TextSize = 14
-    title.TextColor3 = Color3.new(1,1,1)
-
-    local closeBtn = Instance.new("TextButton", mainFrame)
-    closeBtn.Size = UDim2.new(0,35,0,35)
-    closeBtn.Position = UDim2.new(1,-45,0,10)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(200,40,40)
-    closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.new(1,1,1)
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 14
-    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
-
-    local autoLoopBtn = Instance.new("TextButton", mainFrame)
-    autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
-    autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
-    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
-    autoLoopBtn.TextColor3 = Color3.new(1,1,1)
-    autoLoopBtn.Font = Enum.Font.GothamBold
-    autoLoopBtn.TextSize = 13
-    Instance.new("UICorner", autoLoopBtn).CornerRadius = UDim.new(0, 10)
-
-    local hintLabel = Instance.new("TextLabel", mainFrame)
-    hintLabel.Size = UDim2.new(1, -40, 0, 30)
-    hintLabel.Position = UDim2.new(0, 20, 0, 130)
-    hintLabel.BackgroundTransparency = 1
-    hintLabel.Text = "ស្ថានភាព៖ ត្រៀមរួចរាល់"
-    hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    hintLabel.Font = Enum.Font.Gotham
-    hintLabel.TextSize = 12
-
-    -- RGB effect
-    task.spawn(function()
-        local hue = 0
-        while gui.Parent do
-            hue = (hue + 0.03) % 1
-            title.TextColor3 = Color3.fromHSV(hue, 1, 1)
-            mainStroke.Color = Color3.fromHSV(hue, 1, 1)
-            toggleStroke.Color = Color3.fromHSV((hue+0.3)%1, 1, 1)
-            task.wait(0.04)
-        end
-    end)
-
-    --============== អថេរ ==============
-    local isLooping = false
-    local safeHeight = 80
+--============ 5. Main Loop ============
+task.spawn(function()
+    local height = 80
     local radius = 20
     local angle = 0
 
-    --============== ហោះវង់ + ប្រមូល ==============
-    local function toggleAutoLoop()
-        isLooping = not isLooping
-        if isLooping then
-            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
-            autoLoopBtn.Text = "⏹️ ឈប់"
+    while true do
+        task.wait(0.1)
 
-            task.spawn(function()
-                local char = LocalPlayer.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                if not root then return end
+        if isRunning then
+            local char = plr.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
 
-                while isLooping do
-                    -- ហោះវង់
-                    local rad = math.rad(angle)
-                    local x = math.cos(rad) * radius
-                    local z = math.sin(rad) * radius
-                    local spiralTarget = Vector3.new(x, safeHeight, z)
+            if root then
+                local x = math.cos(math.rad(angle)) * radius
+                local z = math.sin(math.rad(angle)) * radius
+                local targetCirclePos = Vector3.new(x, height, z)
+                
+                fly(root, targetCirclePos)
 
-                    hintLabel.Text = "🌀 ហោះល្បាត..."
-                    hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-                    fly(spiralTarget)
-
-                    -- ស្វែងរក Bubble ទាំងអស់ (គ្មានកំណត់ចម្ងាយ)
-                    local allBubbles = getBubbles()
-                    if #allBubbles > 0 then
-                        hintLabel.Text = "🎯 ប្រមូល " .. #allBubbles .. " Bubble..."
-                        hintLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
-                        for _, b in allBubbles do
-                            if not isLooping then break end
-                            if b and b.Parent then
-                                fly(b.Position + Vector3.new(0, safeHeight/2, 0))
-                                -- តោងជាប់រហូតដល់ Bubble បាត់
-                                repeat
-                                    if not isLooping or not b.Parent then break end
-                                    root.CFrame = b.CFrame * CFrame.new(0, 2.5, 0)
-                                    task.wait(0.05)
-                                until not b.Parent
-                            end
-                        end
-                        hintLabel.Text = "✅ ប្រមូលរួច"
-                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                local bubbles = getBubbles()
+                for _, b in ipairs(bubbles) do
+                    if not isRunning or not root.Parent then break end
+                    
+                    if b and b.Parent and (b.Position - root.Position).Magnitude <= 50 then
+                        
+                        -- ទី១៖ រកទីតាំងដីនៅក្រោម Bubble រួចហោះទៅឈប់នៅទីនោះសិន
+                        local groundPos = getGroundPosition(char, b.Position)
+                        fly(root, groundPos + Vector3.new(0, 3, 0)) -- ហោះទៅដី (បូក 3 studs កុំឲ្យកប់ដី)
+                        
+                        -- រង់ចាំនៅលើដីសិន (អ្នកអាចដូរលេខ 1.5 នេះទៅតាមការចង់បាន ឧទាហរណ៍ 1 វិនាទី ឬ 2 វិនាទី)
+                        task.wait(1.5) 
+                        
+                        if not isRunning or not root.Parent or not b.Parent then break end
+                        
+                        -- ទី២៖ បន្ទាប់ពីរង់ចាំចប់ ហោះឡើងទៅសុី Bubble តែម្តង
+                        fly(root, b.Position + Vector3.new(0, 2.5, 0))
+                        
+                        repeat
+                            if not isRunning or not root.Parent or not b.Parent then break end
+                            root.CFrame = b.CFrame * CFrame.new(0, 2.5, 0)
+                            task.wait(0.05)
+                        until not b.Parent or not isRunning or not root.Parent
                     end
-
-                    angle = (angle + 25) % 360
-                    radius = radius + 15
-                    if radius > 150 then
-                        radius = 20
-                    end
-                    task.wait(0.1)
                 end
-            end)
-        else
-            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
-            hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
-            hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+                angle = (angle + 25) % 360
+                radius = radius + 15
+                if radius > 150 then
+                    radius = 20
+                end
+            end
         end
     end
+end)
 
-    autoLoopBtn.MouseButton1Down:Connect(toggleAutoLoop)
-    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
-    toggleBtn.MouseButton1Down:Connect(function()
-        mainFrame.Visible = not mainFrame.Visible
-    end)
-
-    makeDraggable(mainFrame)
-end
-
---============== ទាញយករូបភាព ==============
-local function loadImageAndStart()
-    local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
-    if ok and response and response.StatusCode == 200 then
-        writefile(FILE_NAME, response.Body)
-        createGUI(getcustomasset(FILE_NAME))
-    else
-        createGUI("")
-    end
-end
-
-loadImageAndStart()
+pcall(function()
+    ContentProvider:PreloadAsync({Instance.new("ImageLabel", {Image = IMAGE_URL})})
+end)
