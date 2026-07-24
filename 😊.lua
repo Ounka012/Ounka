@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: BUBBLE SPIRAL FARM (STOP & GO METHOD)
+-- EVADE: BUBBLE COLLECTOR (NO DISTANCE LIMIT, NO SPIRAL)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -32,7 +32,7 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- រក Bubble គ្រប់ប្រភេទ (Model គ្មាន PrimaryPart ក៏បាន)
+-- រក Bubble គ្រប់ប្រភេទ (Model គ្មាន PrimaryPart ក៏បាន) – គ្មានការកំណត់ចម្ងាយ
 local function getBubbles()
     local bubbles = {}
     for _, obj in Workspace:GetDescendants() do
@@ -47,7 +47,7 @@ local function getBubbles()
     return bubbles
 end
 
--- ហោះទៅកាន់ទីតាំង (រលូន)
+-- ហោះរលូន
 local function fly(pos)
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -73,7 +73,6 @@ local function createGUI(imageAsset)
     gui.Name = "EvadeFarm"
     gui.IgnoreGuiInset = true
 
-    -- ប៊ូតុងតូចបិទ/បើក GUI (មានរូបភាព)
     local toggleBtn = Instance.new("ImageButton", gui)
     toggleBtn.Size = UDim2.new(0, 55, 0, 55)
     toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
@@ -85,7 +84,6 @@ local function createGUI(imageAsset)
     local toggleStroke = Instance.new("UIStroke", toggleBtn)
     toggleStroke.Thickness = 3
 
-    -- ផ្ទាំងមេ
     local mainFrame = Instance.new("Frame", gui)
     mainFrame.Size = UDim2.new(0, 420, 0, 250)
     mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
@@ -96,7 +94,6 @@ local function createGUI(imageAsset)
     local mainStroke = Instance.new("UIStroke", mainFrame)
     mainStroke.Thickness = 3
 
-    -- ផ្ទៃខាងក្រោយជារូបភាព
     local bg = Instance.new("ImageLabel", mainFrame)
     bg.Size = UDim2.new(1,0,1,0)
     bg.BackgroundTransparency = 1
@@ -109,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🌀 BUBBLE  FARM"
+    title.Text = "🌀 BUBBLE COLLECTOR"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -128,7 +125,7 @@ local function createGUI(imageAsset)
     autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
     autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
     autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
+    autoLoopBtn.Text = "🔥 បើកប្រមូល Bubble"
     autoLoopBtn.TextColor3 = Color3.new(1,1,1)
     autoLoopBtn.Font = Enum.Font.GothamBold
     autoLoopBtn.TextSize = 13
@@ -143,7 +140,6 @@ local function createGUI(imageAsset)
     hintLabel.Font = Enum.Font.Gotham
     hintLabel.TextSize = 12
 
-    -- ចលនាពណ៌
     task.spawn(function()
         local hue = 0
         while gui.Parent do
@@ -155,75 +151,50 @@ local function createGUI(imageAsset)
         end
     end)
 
-    --============== អថេរ ==============
-    local isLooping = false
-    local safeHeight = 80
-    local radius = 20
-    local angle = 0
+    local isCollecting = false
 
-    --============== ហោះវង់ + ប្រមូល ==============
-    local function toggleAutoLoop()
-        isLooping = not isLooping
-        if isLooping then
+    local function toggleCollect()
+        isCollecting = not isCollecting
+        if isCollecting then
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
             autoLoopBtn.Text = "⏹️ ឈប់"
-
             task.spawn(function()
-                local char = LocalPlayer.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                if not root then return end
+                while isCollecting do
+                    local bubbles = getBubbles()
+                    hintLabel.Text = "រកឃើញ " .. #bubbles .. " Bubble"
+                    hintLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
 
-                while isLooping do
-                    -- ហោះវង់
-                    local rad = math.rad(angle)
-                    local x = math.cos(rad) * radius
-                    local z = math.sin(rad) * radius
-                    local spiralTarget = Vector3.new(x, safeHeight, z)
-
-                    hintLabel.Text = "🌀 ហោះល្បាត..."
-                    hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-                    fly(spiralTarget)
-
-                    -- ស្វែងរក Bubble ទាំងអស់ (គ្មានដែនកំណត់)
-                    local allBubbles = getBubbles()
-                    if #allBubbles > 0 then
-                        hintLabel.Text = "🎯 ប្រមូល " .. #allBubbles .. " Bubble..."
-                        hintLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
-                        for _, b in allBubbles do
-                            if not isLooping then break end
+                    if #bubbles > 0 then
+                        for _, b in ipairs(bubbles) do
+                            if not isCollecting then break end
                             if b and b.Parent then
-                                -- ហោះទៅជិត Bubble (មិនតោងជាប់)
-                                local targetPos = b.Position + Vector3.new(0, 3, 0)
-                                fly(targetPos)
-                                -- រង់ចាំឲ្យ Bubble បាត់ (ប្រមូលបាន)
-                                local waitStart = tick()
-                                while isLooping and b.Parent do
-                                    if tick() - waitStart > 5 then break end -- ដើម្បីកុំឲ្យជាប់យូរពេក
-                                    task.wait(0.1)
+                                fly(b.Position + Vector3.new(0, 3, 0))
+                                -- រង់ចាំឲ្យ Bubble បាត់ (ប្រមូលបាន) ឬដល់ពេលកំណត់
+                                local waitTime = 0
+                                while b.Parent and waitTime < 5 do
+                                    task.wait(0.2)
+                                    waitTime = waitTime + 0.2
                                 end
                             end
                         end
                         hintLabel.Text = "✅ ប្រមូលរួច"
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                    else
+                        hintLabel.Text = "គ្មាន Bubble រង់ចាំ..."
+                        hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                     end
-
-                    angle = (angle + 25) % 360
-                    radius = radius + 15
-                    if radius > 150 then
-                        radius = 20
-                    end
-                    task.wait(0.1)
+                    task.wait(2) -- ពន្យារពេលមុនពិនិត្យម្ដងទៀត
                 end
             end)
         else
             autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
+            autoLoopBtn.Text = "🔥 បើកប្រមូល Bubble"
             hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
             hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
     end
 
-    autoLoopBtn.MouseButton1Down:Connect(toggleAutoLoop)
+    autoLoopBtn.MouseButton1Down:Connect(toggleCollect)
     closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
     toggleBtn.MouseButton1Down:Connect(function()
         mainFrame.Visible = not mainFrame.Visible
@@ -232,7 +203,6 @@ local function createGUI(imageAsset)
     makeDraggable(mainFrame)
 end
 
---============== ទាញយករូបភាព ==============
 local function loadImageAndStart()
     local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
     if ok and response and response.StatusCode == 200 then
