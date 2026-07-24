@@ -1,351 +1,392 @@
---========================================================
--- EVADE: Spiral Farm (STICK UNTIL COLLECTED)
---========================================================
-local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
+-- 🎵 ADVANCED BOOMBOX SYSTEM (SERVER SCRIPT)
+
+local Tool = script.Parent
+local Handle = Tool:WaitForChild("Handle")
+
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
-local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
-local FILE_NAME = "bg.jpg"
+-- =====================
+-- Remote Events
+-- =====================
 
---============== ជំនួយ ==============
-local function makeDraggable(guiObject)
-    local dragging, startPos, objPos
-    guiObject.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; startPos = input.Position; objPos = guiObject.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - startPos
-            guiObject.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
-        end
-    end)
-    guiObject.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
+local musicUpdateEvent = Instance.new("RemoteEvent")
+musicUpdateEvent.Name = "BoomboxMusicUpdate"
+musicUpdateEvent.Parent = ReplicatedStorage
+
+-- =====================
+-- បញ្ជីចម្រៀង
+-- =====================
+
+local SongLibrary = {
+	{name = "ចម្រៀងលេខ 1", id = "rbxassetid://1842190355", duration = 120},
+	{name = "ចម្រៀងលេខ 2", id = "rbxassetid://1845743597", duration = 180},
+	{name = "ចម្រៀងលេខ 3", id = "rbxassetid://1840927967", duration = 150},
+	{name = "ចម្រៀងលេខ 4", id = "rbxassetid://1837856842", duration = 200},
+	{name = "ចម្រៀងលេខ 5", id = "rbxassetid://1845014938", duration = 160},
+}
+
+-- =====================
+-- ការកំណត់
+-- =====================
+
+local DefaultMusicID = SongLibrary[1].id
+local DefaultVolume = 0.8
+local MaxDistance = 150
+local MinDistance = 10
+
+-- =====================
+-- បង្កើត Sound Objects
+-- =====================
+
+local CurrentMusic = Instance.new("Sound")
+CurrentMusic.Name = "BoomboxMusic"
+CurrentMusic.SoundId = DefaultMusicID
+CurrentMusic.Volume = DefaultVolume
+CurrentMusic.Looped = false -- នឹងប្រើប្រព័ន្ធចាក់បន្ទាប់ដោយខ្លួនឯង
+
+-- ការកំណត់សំឡេង 3D
+CurrentMusic.RollOffMode = Enum.RollOffMode.InverseTapered
+CurrentMusic.RollOffMaxDistance = MaxDistance
+CurrentMusic.RollOffMinDistance = MinDistance
+CurrentMusic.EmitterSize = 15
+
+CurrentMusic.Parent = Handle
+
+-- បង្កើតសំឡេងបែបផែន
+local ClickSound = Instance.new("Sound")
+ClickSound.SoundId = "rbxassetid://9125405871" -- សំឡេងចុច
+ClickSound.Volume = 0.5
+ClickSound.Parent = Handle
+
+local BassBoost = Instance.new("EqualizerSoundEffect")
+BassBoost.LowGain = 3
+BassBoost.MidGain = 0
+BassBoost.HighGain = 1
+BassBoost.Parent = CurrentMusic
+
+local Reverb = Instance.new("ReverbSoundEffect")
+Reverb.DecayTime = 1
+Reverb.DryLevel = -3
+Reverb.WetLevel = -6
+Reverb.Parent = CurrentMusic
+
+-- =====================
+-- បែបផែនភ្លើង
+-- =====================
+
+local function createLightEffects()
+	-- បង្កើតភ្លើង Point Light
+	local pointLight = Instance.new("PointLight")
+	pointLight.Brightness = 0
+	pointLight.Range = 15
+	pointLight.Color = Color3.fromRGB(0, 255, 255) -- ពណ៌ខៀវភ្លឺ
+	pointLight.Parent = Handle
+	
+	-- បង្កើតភ្លើងសម្រាប់ចង្វាក់
+	local beatLight = Instance.new("PointLight")
+	beatLight.Brightness = 0
+	beatLight.Range = 20
+	beatLight.Color = Color3.fromRGB(255, 0, 255) -- ពណ៌ស្វាយ
+	beatLight.Parent = Handle
+	
+	return pointLight, beatLight
 end
 
--- រក Bubble គ្រប់ប្រភេទ (មិនចាប់យកអ្នកលេងដទៃ)
-local function getValidTarget(obj)
-    if not obj then return nil, nil end
-    local name = obj.Name:lower()
-    
-    if obj:IsA("ProximityPrompt") and obj.Parent then
-        local action = obj.ActionText:lower()
-        if action:find("revive") or name:find("revive") or action:find("carry") then
-            return obj.Parent, "revive"
-        end
-    end
+local mainLight, beatLight = createLightEffects()
 
-    local ancestor = obj:FindFirstAncestorOfClass("Model")
-    if ancestor and ancestor:FindFirstChildOfClass("Humanoid") then
-        return nil, nil 
-    end
+-- =====================
+-- GUI សម្រាប់បង្ហាញស្ថានភាព
+-- =====================
 
-    local parent = obj.Parent
-    local parentName = parent and parent.Name:lower() or ""
-    local grandParent = parent and parent.Parent
-    local grandParentName = grandParent and grandParent.Name:lower() or ""
-
-    if name:find("bubble") or name:find("token") then
-        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
-        if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart, "item" end
-    end
-
-    if parent and (parentName:find("bubble") or parentName:find("token")) then
-        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
-        if obj:IsA("Model") then
-            local p = obj:FindFirstChildWhichIsA("BasePart")
-            if p then return p, "item" end
-        end
-    end
-
-    if grandParent and (grandParentName:find("bubble") or grandParentName:find("token")) then
-        if obj:IsA("BasePart") or obj:IsA("MeshPart") then return obj, "item" end
-    end
-
-    if name == "handle" and parent and (parentName:find("bubble") or parentName:find("token")) then
-        if obj:IsA("BasePart") then return obj, "item" end
-    end
-
-    return nil, nil
+local function createStatusGUI(player)
+	local playerGui = player:WaitForChild("PlayerGui")
+	
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "BoomboxStatus"
+	screenGui.ResetOnSpawn = false
+	
+	local statusFrame = Instance.new("Frame")
+	statusFrame.Size = UDim2.new(0, 200, 0, 40)
+	statusFrame.Position = UDim2.new(0.5, -100, 0, 10)
+	statusFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	statusFrame.BackgroundTransparency = 0.5
+	statusFrame.BorderSizePixel = 0
+	statusFrame.Parent = screenGui
+	
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = statusFrame
+	
+	local statusLabel = Instance.new("TextLabel")
+	statusLabel.Size = UDim2.new(1, 0, 1, 0)
+	statusLabel.BackgroundTransparency = 1
+	statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	statusLabel.Font = Enum.Font.GothamBold
+	statusLabel.TextSize = 14
+	statusLabel.Text = "🎵 ត្រៀមរួចរាល់"
+	statusLabel.Parent = statusFrame
+	
+	screenGui.Parent = playerGui
+	
+	return statusLabel
 end
 
-local function scanFullMap()
-    local list = {}
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        local part, tType = getValidTarget(obj)
-        if part and part:IsA("BasePart") then
-            table.insert(list, {part = part, type = tType, prompt = (tType == "revive" and obj or nil)})
-        end
-    end
-    return list
+-- =====================
+-- Variables
+-- =====================
+
+local IsPlaying = false
+local CurrentOwner = nil
+local CurrentSongIndex = 1
+local CurrentVolume = DefaultVolume
+local IsShuffle = false
+local PlayedSongs = {}
+
+-- =====================
+-- មុខងារជំនួយ
+-- =====================
+
+local function getNextSongIndex()
+	if IsShuffle then
+		-- ចាក់ចៃដន្យ
+		if #PlayedSongs == #SongLibrary then
+			PlayedSongs = {} -- កំណត់ឡើងវិញនៅពេលចាក់អស់ទាំងអស់
+		end
+		
+		local randomIndex
+		repeat
+			randomIndex = math.random(1, #SongLibrary)
+		until not table.find(PlayedSongs, randomIndex)
+		
+		table.insert(PlayedSongs, randomIndex)
+		return randomIndex
+	else
+		-- ចាក់តាមលំដាប់
+		local nextIndex = CurrentSongIndex + 1
+		if nextIndex > #SongLibrary then
+			nextIndex = 1 -- ត្រឡប់ទៅចម្រៀងដំបូង
+		end
+		return nextIndex
+	end
 end
 
---============== GUI ==============
-local function createGUI(imageAsset)
-    if CoreGui:FindFirstChild("EvadeSpiralFarm") then CoreGui:FindFirstChild("EvadeSpiralFarm"):Destroy() end
-
-    local gui = Instance.new("ScreenGui", CoreGui)
-    gui.Name = "EvadeSpiralFarm"
-    gui.IgnoreGuiInset = true
-
-    local toggleBtn = Instance.new("ImageButton", gui)
-    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
-    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    toggleBtn.Image = imageAsset or ""
-    toggleBtn.ScaleType = Enum.ScaleType.Crop
-    toggleBtn.Draggable = true
-    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
-    local toggleStroke = Instance.new("UIStroke", toggleBtn)
-    toggleStroke.Thickness = 3
-
-    local mainFrame = Instance.new("Frame", gui)
-    mainFrame.Size = UDim2.new(0, 420, 0, 250)
-    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
-    mainFrame.BackgroundTransparency = 1
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Visible = true
-    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
-    local mainStroke = Instance.new("UIStroke", mainFrame)
-    mainStroke.Thickness = 3
-
-    local bg = Instance.new("ImageLabel", mainFrame)
-    bg.Size = UDim2.new(1,0,1,0)
-    bg.BackgroundTransparency = 1
-    bg.Image = imageAsset or ""
-    bg.ScaleType = Enum.ScaleType.Stretch
-    bg.ImageTransparency = 0.3
-    bg.ZIndex = -1
-    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
-
-    local title = Instance.new("TextLabel", mainFrame)
-    title.Size = UDim2.new(1,0,0,45)
-    title.BackgroundTransparency = 1
-    title.Text = "⚡ SPIRAL FARM (STICK & COLLECT)"
-    title.Font = Enum.Font.GothamBlack
-    title.TextSize = 14
-    title.TextColor3 = Color3.new(1,1,1)
-
-    local closeBtn = Instance.new("TextButton", mainFrame)
-    closeBtn.Size = UDim2.new(0,35,0,35)
-    closeBtn.Position = UDim2.new(1,-45,0,10)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(200,40,40)
-    closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.new(1,1,1)
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 14
-    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
-
-    local autoLoopBtn = Instance.new("TextButton", mainFrame)
-    autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
-    autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
-    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
-    autoLoopBtn.TextColor3 = Color3.new(1,1,1)
-    autoLoopBtn.Font = Enum.Font.GothamBold
-    autoLoopBtn.TextSize = 13
-    Instance.new("UICorner", autoLoopBtn).CornerRadius = UDim.new(0, 10)
-
-    local hintLabel = Instance.new("TextLabel", mainFrame)
-    hintLabel.Size = UDim2.new(1, -40, 0, 30)
-    hintLabel.Position = UDim2.new(0, 20, 0, 130)
-    hintLabel.BackgroundTransparency = 1
-    hintLabel.Text = "ស្ថានភាព៖ រង់ចាំការបញ្ជា..."
-    hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    hintLabel.Font = Enum.Font.Gotham
-    hintLabel.TextSize = 12
-
-    task.spawn(function()
-        local hue = 0
-        while gui.Parent do
-            hue = (hue + 0.03) % 1
-            title.TextColor3 = Color3.fromHSV(hue, 1, 1)
-            mainStroke.Color = Color3.fromHSV(hue, 1, 1)
-            toggleStroke.Color = Color3.fromHSV((hue+0.3)%1, 1, 1)
-            task.wait(0.04)
-        end
-    end)
-
-    toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
-    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
-
-    --============== LOGIC (SPEED 250 & STICK) ==============
-    local isLooping = false
-    local floatConnection
-    local safeHeight = 100
-    local tweenSpeed = 250 
-
-    local function smoothFlyTo(targetPos)
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        local distance = (root.Position - targetPos).Magnitude
-        local duration = distance / tweenSpeed
-        if duration < 0.05 then duration = 0.05 end 
-        local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-        local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
-        tween:Play()
-        task.wait(duration)
-    end
-
-    local function startFloating(enable)
-        if floatConnection then floatConnection:Disconnect(); floatConnection = nil end
-        if enable then
-            floatConnection = RunService.Stepped:Connect(function()
-                local char = LocalPlayer.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                if root then
-                    root.Velocity = Vector3.new(0,0,0)
-                    root.CanCollide = true
-                    for _, part in pairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") and part ~= root then
-                            part.CanCollide = false
-                        end
-                    end
-                end
-            end)
-        end
-    end
-
-    -- កន្លែងកែប្រែ៖ ធ្វើឲ្យវាត្រាំជាប់ Bubble រហូតដល់ស៊ីបាន!
-    local function ensureCollect(bubblePart)
-        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not root or not bubblePart or not bubblePart.Parent then return end
-        
-        -- កំណត់ពេលអតិបរមាត្រឹម ៣ វិនាទី បើវាមិនបាត់ក្នុងពេល ៣ វិនាទីទេ គឺវាគាំងហើយ ត្រូវរំលងវាចោល
-        local timeout = tick() + 3 
-        
-        repeat
-            if not isLooping then break end -- បើចុចឈប់ ឲ្យវាឈប់ភ្លាម
-            
-            -- បង្ខំឲ្យតួអង្គទម្លាក់ខ្លួនចំកណ្ដាល Bubble ជាប់រហូត
-            root.Velocity = Vector3.new(0, 0, 0)
-            root.CFrame = bubblePart.CFrame
-            
-            -- បាញ់សញ្ញាបញ្ឆោតថាប៉ះជារឿយៗ
-            if firetouchinterest then
-                pcall(function() firetouchinterest(root, bubblePart, 0) end)
-                pcall(function() firetouchinterest(root, bubblePart, 1) end)
-            end
-            
-            task.wait(0.05) -- រង់ចាំ Server ឆ្លើយតប
-            
-        -- វានឹងឈប់នៅពេលដែល Bubble នោះបាត់ពីផែនទី (ស៊ីចូល) ឬអស់ម៉ោង ៣ វិនាទី
-        until not bubblePart.Parent or not bubblePart:IsDescendantOf(Workspace) or tick() > timeout
-    end
-
-    local function toggleAutoLoop()
-        isLooping = not isLooping
-        if isLooping then
-            startFloating(true)
-            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
-            autoLoopBtn.Text = "⏹️ ឈប់"
-            task.spawn(function()
-                local char = LocalPlayer.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                if not root then return end
-
-                local centerX, centerZ = 0, 0
-                local mapModel = Workspace:FindFirstChild("Map") or Workspace:FindFirstChild("MapFolder")
-                if mapModel and mapModel:IsA("Model") then
-                    local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
-                    for _, part in pairs(mapModel:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            minX = math.min(minX, part.Position.X)
-                            maxX = math.max(maxX, part.Position.X)
-                            minZ = math.min(minZ, part.Position.Z)
-                            maxZ = math.max(maxZ, part.Position.Z)
-                        end
-                    end
-                    if minX ~= math.huge then
-                        centerX = (minX + maxX) / 2
-                        centerZ = (minZ + maxZ) / 2
-                    end
-                end
-
-                local radius = 20
-                local angle = 0
-                local angleStep = 25
-                local radiusGrowth = 15
-                local maxRadius = 600
-
-                while isLooping do
-                    local rad = math.rad(angle)
-                    local x = centerX + math.cos(rad) * radius
-                    local z = centerZ + math.sin(rad) * radius
-                    local targetPos = Vector3.new(x, safeHeight, z)
-
-                    hintLabel.Text = "ស្ថានភាព៖ 🌀 ហោះរកទីតាំងថ្មី"
-                    hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-                    smoothFlyTo(targetPos)
-
-                    local targets = scanFullMap()
-                    if #targets > 0 then
-                        hintLabel.Text = "ស្ថានភាព៖ 🫧 កំពុងប្រមូល " .. #targets .. " Bubble!"
-                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
-
-                        table.sort(targets, function(a,b)
-                            return (root.Position - a.part.Position).Magnitude < (root.Position - b.part.Position).Magnitude
-                        end)
-
-                        -- ព្យាយាមប្រមូលពីចម្ងាយ (ប្រសិនបើ Exploit គាំទ្រ)
-                        if firetouchinterest then
-                            for _, target in ipairs(targets) do
-                                if target.part and target.part.Parent then
-                                    pcall(function() firetouchinterest(root, target.part, 0) end)
-                                    pcall(function() firetouchinterest(root, target.part, 1) end)
-                                end
-                            end
-                        end
-
-                        for _, target in ipairs(targets) do
-                            if not isLooping then break end
-                            if target.part and target.part.Parent then
-                                smoothFlyTo(target.part.Position)
-                                ensureCollect(target.part) -- វាឈប់ត្រឹមហ្នឹងទាល់តែស៊ីបាន ទើបដើរទៅជួរក្រោមទៀត
-                                if target.type == "revive" and target.prompt then
-                                    pcall(function() fireproximityprompt(target.prompt, 1) end)
-                                end
-                            end
-                        end
-                    end
-
-                    angle = (angle + angleStep) % 360
-                    radius = radius + radiusGrowth
-                    if radius > maxRadius then
-                        radius = 20
-                    end
-                    task.wait(0.1)
-                end
-            end)
-        else
-            startFloating(false)
-            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-            autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
-            hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
-            hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        end
-    end
-
-    autoLoopBtn.MouseButton1Down:Connect(toggleAutoLoop)
-    makeDraggable(mainFrame)
+local function updateMusicInfo()
+	if CurrentOwner then
+		local currentSong = SongLibrary[CurrentSongIndex]
+		musicUpdateEvent:FireClient(CurrentOwner, {
+			songName = currentSong.name,
+			songIndex = CurrentSongIndex,
+			totalSongs = #SongLibrary,
+			isPlaying = IsPlaying,
+			volume = CurrentVolume,
+			isShuffle = IsShuffle
+		})
+	end
 end
 
---============== ទាញយករូបភាព ==============
-local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
-if ok and response and response.StatusCode == 200 then
-    writefile(FILE_NAME, response.Body)
-    createGUI(getcustomasset(FILE_NAME))
-else
-    createGUI("")
+-- =====================
+-- មុខងារពន្លឺ
+-- =====================
+
+local function startLightShow()
+	-- បង្កើតចលនាពន្លឺនៅពេលចាក់តន្ត្រី
+	local lightTween = TweenService:Create(mainLight, 
+		TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), 
+		{Brightness = 5}
+	)
+	lightTween:Play()
+	
+	-- បង្កើតពន្លឺតាមចង្វាក់
+	spawn(function()
+		while IsPlaying do
+			local beatTween = TweenService:Create(beatLight,
+				TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+				{Brightness = 8}
+			)
+			beatTween:Play()
+			
+			task.wait(0.5) -- ចង្វាក់ពន្លឺ
+			
+			local fadeTween = TweenService:Create(beatLight,
+				TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{Brightness = 0}
+			)
+			fadeTween:Play()
+			
+			task.wait(0.5)
+		end
+	end)
 end
+
+local function stopLightShow()
+	mainLight.Brightness = 0
+	beatLight.Brightness = 0
+end
+
+-- =====================
+-- មុខងារចាក់តន្ត្រី
+-- =====================
+
+local function playCurrentSong()
+	if CurrentMusic.IsLoaded then
+		CurrentMusic:Play()
+		startLightShow()
+	else
+		CurrentMusic.Loaded:Wait()
+		CurrentMusic:Play()
+		startLightShow()
+	end
+end
+
+local function stopMusic()
+	CurrentMusic:Stop()
+	stopLightShow()
+end
+
+local function nextSong()
+	stopMusic()
+	CurrentSongIndex = getNextSongIndex()
+	CurrentMusic.SoundId = SongLibrary[CurrentSongIndex].id
+	updateMusicInfo()
+	
+	if IsPlaying then
+		playCurrentSong()
+	end
+end
+
+-- =====================
+-- ការគ្រប់គ្រងព្រឹត្តិការណ៍
+-- =====================
+
+-- ចាប់យក Tool
+Tool.Equipped:Connect(function()
+	local Character = Tool.Parent
+	local Player = Players:GetPlayerFromCharacter(Character)
+	
+	if Player then
+		CurrentOwner = Player
+		print("🎒 " .. Player.Name .. " បានកាន់ Boombox")
+		
+		-- បង្កើត GUI ស្ថានភាព
+		local statusLabel = createStatusGUI(Player)
+		
+		-- ធ្វើបច្ចុប្បន្នភាពព័ត៌មាន
+		updateMusicInfo()
+	end
+end)
+
+-- ចុចបើក/បិទ
+Tool.Activated:Connect(function()
+	if CurrentOwner == nil then
+		return
+	end
+	
+	-- លេងសំឡេងចុច
+	ClickSound:Play()
+	
+	if IsPlaying == false then
+		-- ចាប់ផ្តើមចាក់
+		IsPlaying = true
+		playCurrentSong()
+		
+		print("🎵 ចាក់តន្ត្រី៖ " .. SongLibrary[CurrentSongIndex].name .. " ដោយ " .. CurrentOwner.Name)
+		
+	else
+		-- បិទតន្ត្រី
+		IsPlaying = false
+		stopMusic()
+		
+		print("⛔ តន្ត្រីត្រូវបានបិទ")
+	end
+	
+	updateMusicInfo()
+end)
+
+-- ព្រឹត្តិការណ៍ក្តារចុចសម្រាប់ការគ្រប់គ្រងបន្ថែម
+Tool.Equipped:Connect(function()
+	local Player = CurrentOwner
+	if not Player then return end
+	
+	local UserInputService = game:GetService("UserInputService")
+	
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then return end
+		if CurrentOwner ~= Player then return end
+		
+		if input.KeyCode == Enum.KeyCode.N then
+			-- ចុច N សម្រាប់ចម្រៀងបន្ទាប់
+			if IsPlaying then
+				nextSong()
+				print("⏭️ ប្តូរទៅចម្រៀងបន្ទាប់៖ " .. SongLibrary[CurrentSongIndex].name)
+			end
+			
+		elseif input.KeyCode == Enum.KeyCode.V then
+			-- ចុច V សម្រាប់បន្ថយសំឡេង
+			CurrentVolume = math.max(0, CurrentVolume - 0.1)
+			CurrentMusic.Volume = CurrentVolume
+			print("🔉 កម្រិតសំឡេង៖ " .. math.floor(CurrentVolume * 100) .. "%")
+			updateMusicInfo()
+			
+		elseif input.KeyCode == Enum.KeyCode.B then
+			-- ចុច B សម្រាប់បង្កើនសំឡេង
+			CurrentVolume = math.min(1, CurrentVolume + 0.1)
+			CurrentMusic.Volume = CurrentVolume
+			print("🔊 កម្រិតសំឡេង៖ " .. math.floor(CurrentVolume * 100) .. "%")
+			updateMusicInfo()
+			
+		elseif input.KeyCode == Enum.KeyCode.S then
+			-- ចុច S សម្រាប់បើក/បិទ Shuffle
+			IsShuffle = not IsShuffle
+			print("🔀 Shuffle " .. (IsShuffle and "បើក" or "បិទ"))
+			updateMusicInfo()
+		end
+	end)
+end)
+
+-- ដាក់ Tool ចុះ
+Tool.Unequipped:Connect(function()
+	if IsPlaying then
+		stopMusic()
+		IsPlaying = false
+	end
+	
+	-- លុប GUI ស្ថានភាព
+	if CurrentOwner then
+		local playerGui = CurrentOwner:FindFirstChild("PlayerGui")
+		if playerGui then
+			local statusGui = playerGui:FindFirstChild("BoomboxStatus")
+			if statusGui then
+				statusGui:Destroy()
+			end
+		end
+	end
+	
+	CurrentOwner = nil
+end)
+
+-- Player ចាកចេញ
+Players.PlayerRemoving:Connect(function(Player)
+	if Player == CurrentOwner then
+		stopMusic()
+		IsPlaying = false
+		CurrentOwner = nil
+	end
+end)
+
+-- ព្រឹត្តិការណ៍ចម្រៀងបញ្ចប់
+CurrentMusic.Ended:Connect(function()
+	if IsPlaying then
+		nextSong()
+	end
+end)
+
+-- Cleanup
+Tool.Destroying:Connect(function()
+	stopMusic()
+	CurrentMusic:Destroy()
+	ClickSound:Destroy()
+end)
+
+print("🎧 Advanced Boombox System Loaded!")
