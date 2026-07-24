@@ -1,338 +1,241 @@
--- 🎵 Boombox Client v2 (មានការបញ្ជាក់ និងចាប់កំហុស)
-local success, err = pcall(function()
-    local Players = game:GetService("Players")
-    local TweenService = game:GetService("TweenService")
-    local UserInputService = game:GetService("UserInputService")
-    local RunService = game:GetService("RunService")
+--========================================================
+-- EVADE: SPIRAL FARM (GUI + NO DISTANCE LIMIT)
+--========================================================
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
-    local Player = Players.LocalPlayer
-    local PlayerGui = Player:WaitForChild("PlayerGui")
+local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
+local FILE_NAME = "bg.jpg"
 
-    -- បញ្ជីចម្រៀង
-    local SongLibrary = {
-        { name = "ចម្រៀងដំបូង", id = "rbxassetid://126498463169239" },
-        { name = "ចម្រៀងទីពីរ", id = "rbxassetid://126498463169239" },
-        { name = "ចម្រៀងទីបី", id = "rbxassetid://100620250336897" },
-        { name = "ចម្រៀងទីបួន", id = "rbxassetid://1837856842" },
-        { name = "ចម្រៀងទីប្រាំ", id = "rbxassetid://1845014938" },
-    }
-
-    local currentSongIndex = 1
-    local isPlaying = false
-    local currentVolume = 0.8
-    local isShuffle = false
-    local playedSongs = {}
-
-    -- Sound
-    local Music = Instance.new("Sound")
-    Music.Volume = currentVolume
-    Music.Looped = false
-    Music.Parent = PlayerGui
-    Music.SoundId = SongLibrary[currentSongIndex].id
-
-    local ClickSound = Instance.new("Sound")
-    ClickSound.SoundId = "rbxassetid://9125405871"
-    ClickSound.Volume = 0.4
-    ClickSound.Parent = PlayerGui
-
-    -- GUI
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "BoomboxSystem"
-    ScreenGui.Parent = PlayerGui
-    ScreenGui.ResetOnSpawn = false
-
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 300, 0, 420)
-    MainFrame.Position = UDim2.new(0.5, -150, 0.5, -210)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Active = true
-    MainFrame.Draggable = true
-    MainFrame.Parent = ScreenGui
-    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
-
-    -- Title
-    local TitleBar = Instance.new("Frame")
-    TitleBar.Size = UDim2.new(1, 0, 0, 35)
-    TitleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    TitleBar.BorderSizePixel = 0
-    TitleBar.Parent = MainFrame
-    Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 12)
-
-    local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Size = UDim2.new(1, -10, 1, 0)
-    TitleLabel.Position = UDim2.new(0, 10, 0, 0)
-    TitleLabel.BackgroundTransparency = 1
-    TitleLabel.Text = "🎧 BOOMBOX"
-    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TitleLabel.Font = Enum.Font.GothamBlack
-    TitleLabel.TextSize = 18
-    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    TitleLabel.Parent = TitleBar
-
-    -- Song info
-    local SongInfoFrame = Instance.new("Frame")
-    SongInfoFrame.Size = UDim2.new(1, -20, 0, 60)
-    SongInfoFrame.Position = UDim2.new(0, 10, 0, 50)
-    SongInfoFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    SongInfoFrame.BorderSizePixel = 0
-    SongInfoFrame.Parent = MainFrame
-    Instance.new("UICorner", SongInfoFrame).CornerRadius = UDim.new(0, 8)
-
-    local SongNameLabel = Instance.new("TextLabel")
-    SongNameLabel.Size = UDim2.new(1, -10, 0, 30)
-    SongNameLabel.Position = UDim2.new(0, 5, 0, 5)
-    SongNameLabel.BackgroundTransparency = 1
-    SongNameLabel.Text = "ចម្រៀង: " .. SongLibrary[currentSongIndex].name
-    SongNameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    SongNameLabel.Font = Enum.Font.Gotham
-    SongNameLabel.TextSize = 14
-    SongNameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    SongNameLabel.Parent = SongInfoFrame
-
-    local SongStatusLabel = Instance.new("TextLabel")
-    SongStatusLabel.Size = UDim2.new(1, -10, 0, 20)
-    SongStatusLabel.Position = UDim2.new(0, 5, 0, 35)
-    SongStatusLabel.BackgroundTransparency = 1
-    SongStatusLabel.Text = "ស្ថានភាព: ឈប់"
-    SongStatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-    SongStatusLabel.Font = Enum.Font.Gotham
-    SongStatusLabel.TextSize = 12
-    SongStatusLabel.TextXAlignment = Enum.TextXAlignment.Left
-    SongStatusLabel.Parent = SongInfoFrame
-
-    -- Volume
-    local VolumeFrame = Instance.new("Frame")
-    VolumeFrame.Size = UDim2.new(1, -20, 0, 40)
-    VolumeFrame.Position = UDim2.new(0, 10, 0, 120)
-    VolumeFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    VolumeFrame.BorderSizePixel = 0
-    VolumeFrame.Parent = MainFrame
-    Instance.new("UICorner", VolumeFrame).CornerRadius = UDim.new(0, 8)
-
-    local VolumeLabel = Instance.new("TextLabel")
-    VolumeLabel.Size = UDim2.new(0, 80, 1, 0)
-    VolumeLabel.Position = UDim2.new(0, 5, 0, 0)
-    VolumeLabel.BackgroundTransparency = 1
-    VolumeLabel.Text = "🔊 កម្រិត"
-    VolumeLabel.TextColor3 = Color3.fromRGB(255,255,255)
-    VolumeLabel.Font = Enum.Font.Gotham
-    VolumeLabel.TextSize = 12
-    VolumeLabel.TextXAlignment = Enum.TextXAlignment.Left
-    VolumeLabel.Parent = VolumeFrame
-
-    local VolumeSlider = Instance.new("TextButton")
-    VolumeSlider.Size = UDim2.new(1, -100, 0, 20)
-    VolumeSlider.Position = UDim2.new(0, 85, 0, 10)
-    VolumeSlider.BackgroundColor3 = Color3.fromRGB(60,60,60)
-    VolumeSlider.Text = ""
-    VolumeSlider.BorderSizePixel = 0
-    VolumeSlider.Parent = VolumeFrame
-    Instance.new("UICorner", VolumeSlider).CornerRadius = UDim.new(0, 4)
-
-    local VolumeFill = Instance.new("Frame")
-    VolumeFill.Size = UDim2.new(currentVolume, 0, 1, 0)
-    VolumeFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-    VolumeFill.BorderSizePixel = 0
-    VolumeFill.Parent = VolumeSlider
-    Instance.new("UICorner", VolumeFill).CornerRadius = UDim.new(0, 4)
-
-    -- Buttons
-    local ButtonFrame = Instance.new("Frame")
-    ButtonFrame.Size = UDim2.new(1, -20, 0, 50)
-    ButtonFrame.Position = UDim2.new(0, 10, 0, 175)
-    ButtonFrame.BackgroundTransparency = 1
-    ButtonFrame.Parent = MainFrame
-
-    local function createButton(text, posX, color, callback)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0, 40, 0, 40)
-        btn.Position = UDim2.new(0, posX, 0, 5)
-        btn.BackgroundColor3 = color
-        btn.Text = text
-        btn.TextColor3 = Color3.fromRGB(255,255,255)
-        btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 18
-        btn.Parent = ButtonFrame
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-        btn.MouseButton1Click:Connect(function()
-            ClickSound:Play()
-            callback()
-        end)
-        return btn
-    end
-
-    local PlayPauseBtn = createButton("▶", 0, Color3.fromRGB(0, 150, 0), function()
-        if not isPlaying then
-            Music.TimePosition = 0
-            Music:Play()
-            isPlaying = true
-            PlayPauseBtn.Text = "⏸"
-            SongStatusLabel.Text = "ស្ថានភាព: កំពុងចាក់"
-        else
-            Music:Pause()
-            isPlaying = false
-            PlayPauseBtn.Text = "▶"
-            SongStatusLabel.Text = "ស្ថានភាព: ផ្អាក"
+--============== ជំនួយ GUI ==============
+local function makeDraggable(guiObject)
+    local dragging, startPos, objPos
+    guiObject.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; startPos = input.Position; objPos = guiObject.Position
         end
     end)
-
-    createButton("⏹", 50, Color3.fromRGB(150, 0, 0), function()
-        Music:Stop()
-        isPlaying = false
-        PlayPauseBtn.Text = "▶"
-        SongStatusLabel.Text = "ស្ថានភាព: ឈប់"
-    end)
-
-    createButton("⏮", 100, Color3.fromRGB(100, 100, 100), function()
-        Music:Stop()
-        currentSongIndex = currentSongIndex - 1
-        if currentSongIndex < 1 then currentSongIndex = #SongLibrary end
-        Music.SoundId = SongLibrary[currentSongIndex].id
-        SongNameLabel.Text = "ចម្រៀង: " .. SongLibrary[currentSongIndex].name
-        if isPlaying then Music:Play(); PlayPauseBtn.Text = "⏸" end
-    end)
-
-    createButton("⏭", 150, Color3.fromRGB(100, 100, 100), function()
-        Music:Stop()
-        currentSongIndex = currentSongIndex + 1
-        if currentSongIndex > #SongLibrary then currentSongIndex = 1 end
-        Music.SoundId = SongLibrary[currentSongIndex].id
-        SongNameLabel.Text = "ចម្រៀង: " .. SongLibrary[currentSongIndex].name
-        if isPlaying then Music:Play(); PlayPauseBtn.Text = "⏸" end
-    end)
-
-    local ShuffleBtn = Instance.new("TextButton")
-    ShuffleBtn.Size = UDim2.new(0, 40, 0, 40)
-    ShuffleBtn.Position = UDim2.new(0, 210, 0, 5)
-    ShuffleBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    ShuffleBtn.Text = "🔀"
-    ShuffleBtn.TextColor3 = Color3.fromRGB(255,255,255)
-    ShuffleBtn.Font = Enum.Font.GothamBold
-    ShuffleBtn.TextSize = 18
-    ShuffleBtn.Parent = ButtonFrame
-    Instance.new("UICorner", ShuffleBtn).CornerRadius = UDim.new(0, 8)
-    ShuffleBtn.MouseButton1Click:Connect(function()
-        ClickSound:Play()
-        isShuffle = not isShuffle
-        ShuffleBtn.BackgroundColor3 = isShuffle and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(80, 80, 80)
-    end)
-
-    -- Playlist
-    local PlaylistFrame = Instance.new("ScrollingFrame")
-    PlaylistFrame.Size = UDim2.new(1, -20, 0, 120)
-    PlaylistFrame.Position = UDim2.new(0, 10, 0, 235)
-    PlaylistFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    PlaylistFrame.BorderSizePixel = 0
-    PlaylistFrame.ScrollBarThickness = 5
-    PlaylistFrame.CanvasSize = UDim2.new(0,0,0,0)
-    PlaylistFrame.Parent = MainFrame
-    Instance.new("UICorner", PlaylistFrame).CornerRadius = UDim.new(0, 8)
-
-    local UIListLayout = Instance.new("UIListLayout")
-    UIListLayout.Padding = UDim.new(0,5)
-    UIListLayout.Parent = PlaylistFrame
-
-    local function updatePlaylist()
-        for _, child in ipairs(PlaylistFrame:GetChildren()) do
-            if child ~= UIListLayout then child:Destroy() end
-        end
-        for idx, song in ipairs(SongLibrary) do
-            local songBtn = Instance.new("TextButton")
-            songBtn.Size = UDim2.new(1, -10, 0, 30)
-            songBtn.BackgroundColor3 = (idx == currentSongIndex) and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(45,45,45)
-            songBtn.Text = "🎵 " .. song.name
-            songBtn.TextColor3 = Color3.fromRGB(255,255,255)
-            songBtn.Font = Enum.Font.Gotham
-            songBtn.TextSize = 13
-            songBtn.TextXAlignment = Enum.TextXAlignment.Left
-            songBtn.Parent = PlaylistFrame
-            Instance.new("UICorner", songBtn).CornerRadius = UDim.new(0, 4)
-            songBtn.MouseButton1Click:Connect(function()
-                ClickSound:Play()
-                Music:Stop()
-                currentSongIndex = idx
-                Music.SoundId = song.id
-                SongNameLabel.Text = "ចម្រៀង: " .. song.name
-                if isPlaying then Music:Play(); PlayPauseBtn.Text = "⏸"
-                else PlayPauseBtn.Text = "▶"; SongStatusLabel.Text = "ស្ថានភាព: ឈប់" end
-                updatePlaylist()
-            end)
-        end
-        PlaylistFrame.CanvasSize = UDim2.new(0,0,0, UIListLayout.AbsoluteContentSize.Y + 10)
-    end
-
-    -- Volume slider interaction
-    VolumeSlider.MouseButton1Down:Connect(function()
-        local connection
-        connection = RunService.RenderStepped:Connect(function()
-            if not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-                connection:Disconnect()
-                return
-            end
-            local mousePos = UserInputService:GetMouseLocation()
-            local sliderAbsPos = VolumeSlider.AbsolutePosition
-            local sliderSize = VolumeSlider.AbsoluteSize
-            local relativeX = math.clamp(mousePos.X - sliderAbsPos.X, 0, sliderSize.X)
-            local newVolume = relativeX / sliderSize.X
-            currentVolume = math.round(newVolume * 100) / 100
-            Music.Volume = currentVolume
-            VolumeFill.Size = UDim2.new(newVolume, 0, 1, 0)
-        end)
-    end)
-
-    -- Song ended -> next
-    Music.Ended:Connect(function()
-        if not isPlaying then return end
-        if isShuffle then
-            if #playedSongs == #SongLibrary then playedSongs = {} end
-            local nextIdx
-            repeat nextIdx = math.random(1, #SongLibrary) until not table.find(playedSongs, nextIdx)
-            table.insert(playedSongs, nextIdx)
-            currentSongIndex = nextIdx
-        else
-            currentSongIndex = currentSongIndex + 1
-            if currentSongIndex > #SongLibrary then currentSongIndex = 1 end
-        end
-        Music.SoundId = SongLibrary[currentSongIndex].id
-        SongNameLabel.Text = "ចម្រៀង: " .. SongLibrary[currentSongIndex].name
-        updatePlaylist()
-        Music:Play()
-    end)
-
-    updatePlaylist()
-
-    -- Toggle with RightControl
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        if input.KeyCode == Enum.KeyCode.RightControl then
-            MainFrame.Visible = not MainFrame.Visible
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - startPos
+            guiObject.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
         end
     end)
-
-    print("✅ Boombox GUI Loaded Successfully! ចុច RightControl ដើម្បីបង្ហាញ/លាក់")
-end)
-
-if not success then
-    warn("❌ កំហុសក្នុងការដំណើរការ Boombox: " .. tostring(err))
-    -- បង្កើត GUI តូចដើម្បីបង្ហាញកំហុស
-    local Player = game.Players.LocalPlayer
-    local PlayerGui = Player:WaitForChild("PlayerGui")
-    local errorGui = Instance.new("ScreenGui")
-    errorGui.Name = "ErrorDisplay"
-    errorGui.Parent = PlayerGui
-    local errorFrame = Instance.new("Frame")
-    errorFrame.Size = UDim2.new(0,300,0,50)
-    errorFrame.Position = UDim2.new(0.5,-150,0.5,-25)
-    errorFrame.BackgroundColor3 = Color3.fromRGB(255,0,0)
-    errorFrame.BorderSizePixel = 0
-    errorFrame.Parent = errorGui
-    local errorLabel = Instance.new("TextLabel")
-    errorLabel.Size = UDim2.new(1,0,1,0)
-    errorLabel.BackgroundTransparency = 1
-    errorLabel.Text = "Error: " .. tostring(err)
-    errorLabel.TextColor3 = Color3.fromRGB(255,255,255)
-    errorLabel.Font = Enum.Font.Gotham
-    errorLabel.TextSize = 12
-    errorLabel.Parent = errorFrame
+    guiObject.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
 end
+
+-- រក Bubble គ្រប់ប្រភេទ (គ្មានកំណត់ចម្ងាយ)
+local function getBubbles()
+    local bubbles = {}
+    for _, obj in Workspace:GetDescendants() do
+        local name = obj.Name:lower()
+        if obj:IsA("Model") and (name:find("bubble") or name:find("token")) then
+            local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+            if part then table.insert(bubbles, part) end
+        elseif obj:IsA("BasePart") and (name:find("bubble") or name:find("token")) then
+            table.insert(bubbles, obj)
+        end
+    end
+    return bubbles
+end
+
+-- ហោះរលូន
+local function fly(pos)
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local startPos = root.Position
+    local distance = (startPos - pos).Magnitude
+    if distance < 3 then return end
+    local steps = math.ceil(distance / 10 + 2)
+    for t = 0, 1, 1 / steps do
+        root.CFrame = CFrame.new(startPos:Lerp(pos, t))
+        task.wait(0.02)
+    end
+    root.CFrame = CFrame.new(pos)
+end
+
+--============== GUI (មានរូបភាព) ==============
+local function createGUI(imageAsset)
+    if CoreGui:FindFirstChild("EvadeFarm") then
+        CoreGui:FindFirstChild("EvadeFarm"):Destroy()
+    end
+
+    local gui = Instance.new("ScreenGui", CoreGui)
+    gui.Name = "EvadeFarm"
+    gui.IgnoreGuiInset = true
+
+    local toggleBtn = Instance.new("ImageButton", gui)
+    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
+    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    toggleBtn.Image = imageAsset or ""
+    toggleBtn.ScaleType = Enum.ScaleType.Crop
+    toggleBtn.Draggable = true
+    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
+    local toggleStroke = Instance.new("UIStroke", toggleBtn)
+    toggleStroke.Thickness = 3
+
+    local mainFrame = Instance.new("Frame", gui)
+    mainFrame.Size = UDim2.new(0, 420, 0, 250)
+    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -125)
+    mainFrame.BackgroundTransparency = 1
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Visible = true
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
+    local mainStroke = Instance.new("UIStroke", mainFrame)
+    mainStroke.Thickness = 3
+
+    local bg = Instance.new("ImageLabel", mainFrame)
+    bg.Size = UDim2.new(1,0,1,0)
+    bg.BackgroundTransparency = 1
+    bg.Image = imageAsset or ""
+    bg.ScaleType = Enum.ScaleType.Stretch
+    bg.ImageTransparency = 0.3
+    bg.ZIndex = -1
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
+
+    local title = Instance.new("TextLabel", mainFrame)
+    title.Size = UDim2.new(1,0,0,45)
+    title.BackgroundTransparency = 1
+    title.Text = "🌀 BUBBLE SPIRAL FARM"
+    title.Font = Enum.Font.GothamBlack
+    title.TextSize = 14
+    title.TextColor3 = Color3.new(1,1,1)
+
+    local closeBtn = Instance.new("TextButton", mainFrame)
+    closeBtn.Size = UDim2.new(0,35,0,35)
+    closeBtn.Position = UDim2.new(1,-45,0,10)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200,40,40)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.new(1,1,1)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 14
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
+
+    local autoLoopBtn = Instance.new("TextButton", mainFrame)
+    autoLoopBtn.Size = UDim2.new(1, -40, 0, 45)
+    autoLoopBtn.Position = UDim2.new(0, 20, 0, 70)
+    autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+    autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
+    autoLoopBtn.TextColor3 = Color3.new(1,1,1)
+    autoLoopBtn.Font = Enum.Font.GothamBold
+    autoLoopBtn.TextSize = 13
+    Instance.new("UICorner", autoLoopBtn).CornerRadius = UDim.new(0, 10)
+
+    local hintLabel = Instance.new("TextLabel", mainFrame)
+    hintLabel.Size = UDim2.new(1, -40, 0, 30)
+    hintLabel.Position = UDim2.new(0, 20, 0, 130)
+    hintLabel.BackgroundTransparency = 1
+    hintLabel.Text = "ស្ថានភាព៖ ត្រៀមរួចរាល់"
+    hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    hintLabel.Font = Enum.Font.Gotham
+    hintLabel.TextSize = 12
+
+    -- RGB effect
+    task.spawn(function()
+        local hue = 0
+        while gui.Parent do
+            hue = (hue + 0.03) % 1
+            title.TextColor3 = Color3.fromHSV(hue, 1, 1)
+            mainStroke.Color = Color3.fromHSV(hue, 1, 1)
+            toggleStroke.Color = Color3.fromHSV((hue+0.3)%1, 1, 1)
+            task.wait(0.04)
+        end
+    end)
+
+    --============== អថេរ ==============
+    local isLooping = false
+    local safeHeight = 80
+    local radius = 20
+    local angle = 0
+
+    --============== ហោះវង់ + ប្រមូល ==============
+    local function toggleAutoLoop()
+        isLooping = not isLooping
+        if isLooping then
+            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
+            autoLoopBtn.Text = "⏹️ ឈប់"
+
+            task.spawn(function()
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if not root then return end
+
+                while isLooping do
+                    -- ហោះវង់
+                    local rad = math.rad(angle)
+                    local x = math.cos(rad) * radius
+                    local z = math.sin(rad) * radius
+                    local spiralTarget = Vector3.new(x, safeHeight, z)
+
+                    hintLabel.Text = "🌀 ហោះល្បាត..."
+                    hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+                    fly(spiralTarget)
+
+                    -- ស្វែងរក Bubble ទាំងអស់ (គ្មានកំណត់ចម្ងាយ)
+                    local allBubbles = getBubbles()
+                    if #allBubbles > 0 then
+                        hintLabel.Text = "🎯 ប្រមូល " .. #allBubbles .. " Bubble..."
+                        hintLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+                        for _, b in allBubbles do
+                            if not isLooping then break end
+                            if b and b.Parent then
+                                fly(b.Position + Vector3.new(0, safeHeight/2, 0))
+                                -- តោងជាប់រហូតដល់ Bubble បាត់
+                                repeat
+                                    if not isLooping or not b.Parent then break end
+                                    root.CFrame = b.CFrame * CFrame.new(0, 2.5, 0)
+                                    task.wait(0.05)
+                                until not b.Parent
+                            end
+                        end
+                        hintLabel.Text = "✅ ប្រមូលរួច"
+                        hintLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                    end
+
+                    angle = (angle + 25) % 360
+                    radius = radius + 15
+                    if radius > 150 then
+                        radius = 20
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        else
+            autoLoopBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+            autoLoopBtn.Text = "🔥 បើកការប្រមូល Bubble"
+            hintLabel.Text = "ស្ថានភាព៖ បានបញ្ឈប់"
+            hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    end
+
+    autoLoopBtn.MouseButton1Down:Connect(toggleAutoLoop)
+    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
+    toggleBtn.MouseButton1Down:Connect(function()
+        mainFrame.Visible = not mainFrame.Visible
+    end)
+
+    makeDraggable(mainFrame)
+end
+
+--============== ទាញយករូបភាព ==============
+local function loadImageAndStart()
+    local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
+    if ok and response and response.StatusCode == 200 then
+        writefile(FILE_NAME, response.Body)
+        createGUI(getcustomasset(FILE_NAME))
+    else
+        createGUI("")
+    end
+end
+
+loadImageAndStart()
