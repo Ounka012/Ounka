@@ -109,7 +109,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🌀 BUBBLE SPIRAL FARM"
+    title.Text = "🌀 BUBBLE  FARM"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
