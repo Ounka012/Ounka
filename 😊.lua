@@ -183,14 +183,14 @@ local function createGUI(imageAsset)
                     local z = centerZ + math.sin(rad) * radius
                     local spiralTarget = Vector3.new(x, safeHeight, z)
 
-                    hintLabel.Text = "🌀 ហោះល្បាត..."
+                    hintLabel.Text = "🌀កំពុងហោះ..."
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     fly(spiralTarget)
 
                     -- រក Bubble ទាំងអស់
                     local allBubbles = getBubbles()
                     if #allBubbles > 0 then
-                        hintLabel.Text = "🎯 ប្រមូល " .. #allBubbles .. " Bubble..."
+                        hintLabel.Text = "ទៅយកហើយប្រមូល " .. #allBubbles .. " Bubble..."
                         hintLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
                         for _, b in allBubbles do
                             if not isLooping then break end
