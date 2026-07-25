@@ -1,4 +1,4 @@
--- Evade Ultimate Full ESP (Image GUI + Working ESP) for Delta
+-- Evade Ultimate Full ESP (Visible Highlight Fix) for Delta
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
@@ -29,7 +29,7 @@ local ESP_SETTINGS = {
 
 local ESP_Objects, Monster_Objects, Item_Objects = {}, {}, {}
 
--- Helper functions
+-- Helper functions (same as before)
 local function tween(obj, props, duration, style, dir)
     local info = TweenInfo.new(duration or 0.3, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out)
     local tw = TweenService:Create(obj, info, props)
@@ -84,7 +84,7 @@ local function isItem(obj)
         or name:find("item") or name:find("collect") or name:find("pickup")
 end
 
--- Create ESP object (without black background)
+-- Create ESP object with VISIBLE highlight
 local function createESP(target, espType)
     local folder = Instance.new("Folder")
     folder.Name = "ESP_" .. espType .. "_" .. target.Name
@@ -179,9 +179,12 @@ local function createESP(target, espType)
     arrow.Visible = false
     arrow.Parent = folder
 
+    -- ========== HIGHLIGHT (NOW VERY VISIBLE) ==========
     local highlight = Instance.new("Highlight")
-    highlight.FillTransparency = 0.85
-    highlight.OutlineTransparency = 0.3
+    highlight.FillTransparency = 0.5   -- ពណ៌ភ្លឺច្បាស់ (ពីមុន 0.85 ថ្លាពេក)
+    highlight.OutlineTransparency = 0  -- គែមពណ៌ភ្លឺ
+    highlight.OutlineColor = Color3.new(1,1,1)
+    highlight.FillColor = Color3.new(1,1,1)
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     highlight.Parent = folder
 
@@ -271,13 +274,17 @@ local function updateAllESP()
                         data.hpText.Visible = false
                     end
 
+                    -- HIGHLIGHT (always try to set)
                     pcall(function()
                         if ESP_SETTINGS.ShowPlayerHighlight then
                             data.highlight.Adornee = char
                             data.highlight.FillColor = color
                             data.highlight.OutlineColor = color
                             data.highlight.Visible = true
-                        else data.highlight.Visible = false end
+                            data.highlight.Enabled = true
+                        else
+                            data.highlight.Visible = false
+                        end
                     end)
 
                     local screenPos, onScreen = camera:WorldToViewportPoint(root.Position)
@@ -320,7 +327,7 @@ local function updateAllESP()
         end
     end
 
-    -- Update Monsters
+    -- Update Monsters (same logic, visible highlight)
     for obj, data in pairs(Monster_Objects) do
         if not ESP_SETTINGS.ShowMonsters or not obj or not obj.Parent then
             data.folder.Enabled = false
@@ -342,8 +349,15 @@ local function updateAllESP()
                         data.distLabel.Visible = true; data.distLabel.Text = string.format("[%.0f m]", dist)
                     else data.distLabel.Visible = false end
                     data.hpFill.Parent.Visible = false; data.hpText.Visible = false
+                    -- NPC HIGHLIGHT (visible)
                     if ESP_SETTINGS.ShowMonsterHighlight then
-                        pcall(function() data.highlight.Adornee = obj; data.highlight.FillColor = color; data.highlight.OutlineColor = color; data.highlight.Visible = true end)
+                        pcall(function()
+                            data.highlight.Adornee = obj
+                            data.highlight.FillColor = color
+                            data.highlight.OutlineColor = color
+                            data.highlight.Visible = true
+                            data.highlight.Enabled = true
+                        end)
                     else data.highlight.Visible = false end
                     local screenPos, onScreen = camera:WorldToViewportPoint(pos)
                     if onScreen then
@@ -369,7 +383,7 @@ local function updateAllESP()
         end
     end
 
-    -- Update Items (simplified)
+    -- Update Items (same)
     for obj, data in pairs(Item_Objects) do
         if not ESP_SETTINGS.ShowItems or not obj or not obj.Parent then
             data.folder.Enabled = false
@@ -406,7 +420,6 @@ local function scanWorld()
             end
         end
     end
-    -- Cleanup
     for obj,_ in pairs(Monster_Objects) do if not obj or not obj.Parent then removeESP(Monster_Objects, obj) end end
     for obj,_ in pairs(Item_Objects) do if not obj or not obj.Parent then removeESP(Item_Objects, obj) end end
 end
@@ -423,7 +436,7 @@ RunService.RenderStepped:Connect(function()
     updateAllESP()
 end)
 
---============== GUI WITH IMAGE ==============
+--============== GUI WITH IMAGE (same as before) ==============
 local function createGUI(imageAsset)
     if CoreGui:FindFirstChild("EvadeUltimateESP") then
         CoreGui:FindFirstChild("EvadeUltimateESP"):Destroy()
@@ -433,7 +446,6 @@ local function createGUI(imageAsset)
     gui.Name = "EvadeUltimateESP"
     gui.IgnoreGuiInset = true
 
-    -- Toggle Button (ImageButton)
     local toggleBtn = Instance.new("ImageButton", gui)
     toggleBtn.Size = UDim2.new(0,60,0,60)
     toggleBtn.Position = UDim2.new(0,25,0.5,-30)
@@ -533,7 +545,7 @@ local function createGUI(imageAsset)
     end)
 
     -- Categories
-    local function createCategory(y, icon, titleText, desc, color, settingsPrefix)
+    local function createCategory(y, icon, titleText, color, settingsPrefix)
         local card = Instance.new("Frame", main)
         card.Size = UDim2.new(1,-40,0,110)
         card.Position = UDim2.new(0,20,0,y)
@@ -619,9 +631,9 @@ local function createGUI(imageAsset)
         end
     end
 
-    createCategory(125, "👤", "PLAYERS", "All player info", ESP_SETTINGS.PlayerColor, "ShowPlayer")
-    createCategory(245, "🤖", "MONSTERS", "Enemy NPCs", ESP_SETTINGS.MonsterColor, "ShowMonster")
-    createCategory(365, "📦", "ITEMS", "Loot & revives", ESP_SETTINGS.ItemColor, "ShowItem")
+    createCategory(125, "👤", "PLAYERS", ESP_SETTINGS.PlayerColor, "ShowPlayer")
+    createCategory(245, "🤖", "MONSTERS", ESP_SETTINGS.MonsterColor, "ShowMonster")
+    createCategory(365, "📦", "ITEMS", ESP_SETTINGS.ItemColor, "ShowItem")
 
     -- Distance Slider
     local distFrame = Instance.new("Frame", main)
@@ -699,7 +711,6 @@ local function createGUI(imageAsset)
         end
     end)
 
-    -- Buttons actions
     closeBtn.MouseButton1Down:Connect(function()
         ESP_SETTINGS.Enabled = false
         for p,_ in pairs(ESP_Objects) do removeESP(ESP_Objects, p) end
@@ -709,7 +720,6 @@ local function createGUI(imageAsset)
     end)
     toggleBtn.MouseButton1Down:Connect(function() main.Visible = not main.Visible end)
 
-    -- Rainbow effect
     task.spawn(function()
         local hue = 0
         while gui.Parent do
@@ -725,7 +735,7 @@ local function createGUI(imageAsset)
     makeDraggable(toggleBtn)
 end
 
---============== Load Image (Original Method) ==============
+-- Load Image
 local function loadImageAndStart()
     local requestFunc = syn and syn.request or http_request or request
     if requestFunc and writefile and getcustomasset then
@@ -734,13 +744,13 @@ local function loadImageAndStart()
             writefile(FILE_NAME, response.Body)
             createGUI(getcustomasset(FILE_NAME))
         else
-            createGUI("") -- fallback, no image but GUI works
+            createGUI("")
         end
     else
-        createGUI("") -- fallback
+        createGUI("")
     end
 end
 
 loadImageAndStart()
 
-print("👁️ EVADE ULTIMATE ESP LOADED! (Image + ESP Working)")
+print("👁️ EVADE ULTIMATE ESP LOADED! (Highlight now very visible)")
