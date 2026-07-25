@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: SPIRAL FARM (STOP & DROP FAST)
+-- EVADE: SPIRAL FARM (GUI + NO DISTANCE LIMIT)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -32,7 +32,7 @@ local function makeDraggable(guiObject)
     end)
 end
 
--- រក Bubble ទាំងអស់ គ្មានកំណត់ចម្ងាយ
+-- រក Bubble គ្រប់ប្រភេទ (គ្មានកំណត់ចម្ងាយ)
 local function getBubbles()
     local bubbles = {}
     for _, obj in Workspace:GetDescendants() do
@@ -54,11 +54,11 @@ local function fly(pos)
     if not root then return end
     local startPos = root.Position
     local distance = (startPos - pos).Magnitude
-    if distance < 1 then return end
-    local steps = math.ceil(distance / 15 + 2)
+    if distance < 3 then return end
+    local steps = math.ceil(distance / 10 + 2)
     for t = 0, 1, 1 / steps do
         root.CFrame = CFrame.new(startPos:Lerp(pos, t))
-        task.wait(0.01)
+        task.wait(0.02)
     end
     root.CFrame = CFrame.new(pos)
 end
@@ -106,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "❤️❤️ OUNCOPYBARA ❤️❤️"
+    title.Text = "🌀 BUBBLE SPIRAL FARM"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -158,7 +158,7 @@ local function createGUI(imageAsset)
     local radius = 20
     local angle = 0
 
-    --============== ហោះវង់ + ទៅជិត Bubble + ធ្លាក់ដីលឿន + ឡើងវិញ ==============
+    --============== ហោះវង់ + ប្រមូល ==============
     local function toggleAutoLoop()
         isLooping = not isLooping
         if isLooping then
@@ -171,7 +171,7 @@ local function createGUI(imageAsset)
                 if not root then return end
 
                 while isLooping do
-                    -- ហោះវង់នៅ safeHeight
+                    -- ហោះវង់
                     local rad = math.rad(angle)
                     local x = math.cos(rad) * radius
                     local z = math.sin(rad) * radius
@@ -181,49 +181,33 @@ local function createGUI(imageAsset)
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     fly(spiralTarget)
 
-                    -- រក Bubble ទាំងអស់
+                    -- ស្វែងរក Bubble ទាំងអស់ (គ្មានកំណត់ចម្ងាយ)
                     local allBubbles = getBubbles()
                     if #allBubbles > 0 then
                         hintLabel.Text = "🎯 ប្រមូល " .. #allBubbles .. " Bubble..."
                         hintLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
-                        
                         for _, b in allBubbles do
                             if not isLooping then break end
                             if b and b.Parent then
-                                local bubblePos = b.Position
-                                
-                                -- ហោះទៅពីលើ Bubble 3 studs
-                                local aboveBubble = bubblePos + Vector3.new(0, 3, 0)
-                                fly(aboveBubble)
-                                
-                                -- ធ្លាក់ដីឱ្យលឿន (ទៅទីតាំង Bubble ផ្ទាល់ ឬដី)
-                                local groundPos = Vector3.new(bubblePos.X, 0, bubblePos.Z)
-                                fly(groundPos)
-                                
-                                -- ឡើងវិញភ្លាមទៅ safeHeight
-                                local risePos = Vector3.new(bubblePos.X, safeHeight, bubblePos.Z)
-                                fly(risePos)
-                                
-                                -- រង់ចាំពិនិត្យថា Bubble បាត់ឬនៅ
-                                local waitCount = 0
-                                while b.Parent and isLooping and waitCount < 15 do
-                                    task.wait(0.1)
-                                    waitCount = waitCount + 1
-                                end
+                                fly(b.Position + Vector3.new(0, safeHeight/2, 0))
+                                -- តោងជាប់រហូតដល់ Bubble បាត់
+                                repeat
+                                    if not isLooping or not b.Parent then break end
+                                    root.CFrame = b.CFrame * CFrame.new(0, 2.5, 0)
+                                    task.wait(0.05)
+                                until not b.Parent
                             end
                         end
-                        
                         hintLabel.Text = "✅ ប្រមូលរួច"
                         hintLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
                     end
 
-                    -- បង្កើនមុំ និងពង្រីករង្វង់
                     angle = (angle + 25) % 360
                     radius = radius + 15
                     if radius > 150 then
                         radius = 20
                     end
-                    task.wait(0.05)
+                    task.wait(0.1)
                 end
             end)
         else
