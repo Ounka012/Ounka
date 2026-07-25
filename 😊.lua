@@ -1,7 +1,7 @@
 --[[
-    MKRA HUB (Original Combat Logic + Image Background)
-    Features: Kill Aura (Players), Kill Aura NPCs (Remote/Direct), Kill Mobs
-    GUI: Original MKRA HUB style with rainbow bars, image background
+    MKRA HUB (Original GUI + Image Background)
+    Features: Kill Aura, Kill Aura NPCs, Kill Mobs
+    Image: https://files.catbox.moe/ka5x56.jpg
 ]]
 
 -- ═══════════════════════════════════════════════════════════════
@@ -10,21 +10,19 @@
 local Services = {
     Players = game:GetService("Players"),
     RunService = game:GetService("RunService"),
-    UserInputService = game:GetService("UserInputService"),
     Workspace = game:GetService("Workspace"),
     ReplicatedStorage = game:GetService("ReplicatedStorage"),
     CoreGui = game:GetService("CoreGui"),
 }
 
 local LocalPlayer = Services.Players.LocalPlayer
-local Camera = Services.Workspace.CurrentCamera
 
 -- ====== រូបភាព ======
 local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 local FILE_NAME = "bg.jpg"
 
 -- ═══════════════════════════════════════════════════════════════
--- CONFIG & THEME (ដូចដើម)
+-- CONFIG & THEME (ដូចកូដដើម)
 -- ═══════════════════════════════════════════════════════════════
 local CONFIG = {
     UI_NAME = "MkraHub_KillOnly",
@@ -88,9 +86,7 @@ end
 -- ═══════════════════════════════════════════════════════════════
 local Combat = {}
 
--- ស្វែងរក Remote សម្រាប់វាយ NPC (ដូចកូដដើម)
 function Combat:GetKARemote()
-    -- ពិនិត្យតាមឈ្មោះទូទៅ
     local searchNames = {"Attack", "Damage", "Hit", "Kill", "DealDamage", "Fire"}
     for _, v in ipairs(Services.ReplicatedStorage:GetDescendants()) do
         if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
@@ -140,7 +136,6 @@ function Combat:GetKATargets()
     return targets
 end
 
--- Kill Aura (ដើម)
 function Combat:ToggleKillAura()
     if State.Connections.KillAura then
         pcall(function() State.Connections.KillAura:Disconnect() end)
@@ -162,11 +157,9 @@ function Combat:ToggleKillAura()
             local targets = self:GetKATargets()
             for _, t in pairs(targets) do
                 if (myRoot.Position - t.RootPart.Position).Magnitude <= State.Settings.KillAuraRange then
-                    -- អ្នកលេង៖ ប្រើ TakeDamage ជានិច្ច
                     if t.IsPlayer then
                         pcall(function() t.Humanoid:TakeDamage(State.Settings.KillAuraDamage) end)
                     else
-                        -- NPC៖ ប្រើ Remote បើមាន បើមិនអញ្ចឹងកាត់ឈាមផ្ទាល់
                         if remote then
                             pcall(function()
                                 if remote:IsA("RemoteEvent") then
@@ -187,7 +180,6 @@ function Combat:ToggleKillAura()
     end
 end
 
--- Kill Mobs (ដើម)
 function Combat:ToggleKillMobs()
     if State.Connections.KillMobs then
         pcall(function() State.Connections.KillMobs:Disconnect() end)
@@ -223,7 +215,7 @@ function Combat:ToggleKillMobs()
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- UI (MKRA HUB Original + Image Background)
+-- UI (Original MKRA HUB + Image Background)
 -- ═══════════════════════════════════════════════════════════════
 local UI = {}
 
@@ -235,7 +227,6 @@ function UI:CreateMainWindow(imageAsset)
     screenGui.Name = CONFIG.UI_NAME
     screenGui.Parent = Services.CoreGui
 
-    -- Main Frame
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainWindow"
     mainFrame.Size = UDim2.new(0, 320, 0, 300)
@@ -264,7 +255,7 @@ function UI:CreateMainWindow(imageAsset)
     -- Title Bar
     self:CreateTitleBar(mainFrame)
 
-    -- ផ្ទាំង Combat តែមួយ
+    -- Combat Tab Content
     self:CreateSingleCombatTab(mainFrame)
 
     -- Bottom Rainbow Bar
@@ -346,7 +337,7 @@ function UI:CreateSingleCombatTab(parent)
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 200)
     scrollFrame.Parent = contentFrame
 
-    -- Helper functions
+    -- Helper: Toggle
     local function addToggle(text, default, callback)
         local frame = Instance.new("Frame")
         frame.Size = UDim2.new(1, -10, 0, 30)
@@ -374,6 +365,7 @@ function UI:CreateSingleCombatTab(parent)
         end)
     end
 
+    -- Helper: TextBox
     local function addTextBox(label, default, callback)
         local frame = Instance.new("Frame")
         frame.Size = UDim2.new(1, -10, 0, 30)
@@ -423,7 +415,6 @@ function UI:CreateSingleCombatTab(parent)
 
     addToggle("KA NPCs", State.Settings.KillAuraNPC, function(v)
         State.Settings.KillAuraNPC = v
-        -- ចាប់ផ្ដើម Kill Aura ឡើងវិញដើម្បីអនុវត្តការផ្លាស់ប្ដូរ
         if State.Settings.KillAura then
             Combat:ToggleKillAura()
             Combat:ToggleKillAura()
