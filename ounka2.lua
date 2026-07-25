@@ -1,7 +1,5 @@
 
-evade_team_esp = '''--========================================================
--- EVADE: GUI + PLAYER ESP VIP + TEAM SEPARATION
---========================================================
+
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
