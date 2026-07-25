@@ -1,6 +1,5 @@
-
-full_esp = '''--========================================================
--- EVADE: ULTIMATE FULL ESP - SEE EVERYTHING
+--========================================================
+-- EVADE: ULTIMATE FULL ESP - SEE EVERYTHING (Fixed)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -296,152 +295,148 @@ local function updateAllESP()
 
         if not ESP_SETTINGS.ShowPlayers or not char or not root or not hum or hum.Health <= 0 then
             data.folder.Enabled = false
-            continue
-        end
-
-        local isTeam = isTeammate(player)
-        if isTeam and not ESP_SETTINGS.ShowTeammates then
-            data.folder.Enabled = false
-            continue
-        end
-
-        local dist = localRoot and (root.Position - localRoot.Position).Magnitude or 0
-        if dist > ESP_SETTINGS.MaxDistance then
-            data.folder.Enabled = false
-            continue
-        end
-
-        data.folder.Enabled = true
-        data.billboard.Adornee = root
-
-        local color = isTeam and ESP_SETTINGS.TeammateColor or ESP_SETTINGS.PlayerColor
-
-        -- Badge
-        if ESP_SETTINGS.ShowPlayerTeam then
-            data.badge.Visible = true
-            data.badge.BackgroundColor3 = color
-            data.badgeText.Text = isTeam and "TEAMMATE" or "PLAYER"
         else
-            data.badge.Visible = false
-        end
-
-        -- Name
-        if ESP_SETTINGS.ShowPlayerName then
-            data.nameLabel.Visible = true
-            data.nameLabel.Text = player.Name
-            data.nameLabel.TextColor3 = color
-        else
-            data.nameLabel.Visible = false
-        end
-
-        -- Distance
-        if ESP_SETTINGS.ShowPlayerDistance then
-            data.distLabel.Visible = true
-            data.distLabel.Text = string.format("[%.0f m]", dist)
-        else
-            data.distLabel.Visible = false
-        end
-
-        -- Health
-        if ESP_SETTINGS.ShowPlayerHealth then
-            local hp, maxHp = getHealth(char)
-            local pct = math.clamp(hp / maxHp, 0, 1)
-            data.hpFill.Size = UDim2.new(pct, 0, 1, 0)
-            data.hpText.Text = string.format("%.0f / %.0f HP", hp, maxHp)
-
-            if pct > 0.6 then
-                data.hpFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
-                data.hpText.TextColor3 = Color3.fromRGB(0, 255, 100)
-            elseif pct > 0.3 then
-                data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
-                data.hpText.TextColor3 = Color3.fromRGB(255, 200, 0)
+            local isTeam = isTeammate(player)
+            if isTeam and not ESP_SETTINGS.ShowTeammates then
+                data.folder.Enabled = false
             else
-                data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-                data.hpText.TextColor3 = Color3.fromRGB(255, 50, 50)
+                local dist = localRoot and (root.Position - localRoot.Position).Magnitude or 0
+                if dist > ESP_SETTINGS.MaxDistance then
+                    data.folder.Enabled = false
+                else
+                    data.folder.Enabled = true
+                    data.billboard.Adornee = root
+
+                    local color = isTeam and ESP_SETTINGS.TeammateColor or ESP_SETTINGS.PlayerColor
+
+                    -- Badge
+                    if ESP_SETTINGS.ShowPlayerTeam then
+                        data.badge.Visible = true
+                        data.badge.BackgroundColor3 = color
+                        data.badgeText.Text = isTeam and "TEAMMATE" or "PLAYER"
+                    else
+                        data.badge.Visible = false
+                    end
+
+                    -- Name
+                    if ESP_SETTINGS.ShowPlayerName then
+                        data.nameLabel.Visible = true
+                        data.nameLabel.Text = player.Name
+                        data.nameLabel.TextColor3 = color
+                    else
+                        data.nameLabel.Visible = false
+                    end
+
+                    -- Distance
+                    if ESP_SETTINGS.ShowPlayerDistance then
+                        data.distLabel.Visible = true
+                        data.distLabel.Text = string.format("[%.0f m]", dist)
+                    else
+                        data.distLabel.Visible = false
+                    end
+
+                    -- Health
+                    if ESP_SETTINGS.ShowPlayerHealth then
+                        local hp, maxHp = getHealth(char)
+                        local pct = math.clamp(hp / maxHp, 0, 1)
+                        data.hpFill.Size = UDim2.new(pct, 0, 1, 0)
+                        data.hpText.Text = string.format("%.0f / %.0f HP", hp, maxHp)
+
+                        if pct > 0.6 then
+                            data.hpFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+                            data.hpText.TextColor3 = Color3.fromRGB(0, 255, 100)
+                        elseif pct > 0.3 then
+                            data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+                            data.hpText.TextColor3 = Color3.fromRGB(255, 200, 0)
+                        else
+                            data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                            data.hpText.TextColor3 = Color3.fromRGB(255, 50, 50)
+                        end
+                        data.hpFill.Parent.Visible = true
+                        data.hpText.Visible = true
+                    else
+                        data.hpFill.Parent.Visible = false
+                        data.hpText.Visible = false
+                    end
+
+                    -- Highlight
+                    if ESP_SETTINGS.ShowPlayerHighlight then
+                        data.highlight.Adornee = char
+                        data.highlight.FillColor = color
+                        data.highlight.OutlineColor = color
+                        data.highlight.Visible = true
+                    else
+                        data.highlight.Visible = false
+                    end
+
+                    -- Box & Tracer
+                    local screenPos, onScreen = camera:WorldToViewportPoint(root.Position)
+                    if onScreen then
+                        data.arrow.Visible = false
+
+                        if ESP_SETTINGS.ShowPlayerBox then
+                            local head = char:FindFirstChild("Head")
+                            local headY = head and camera:WorldToViewportPoint(head.Position).Y or screenPos.Y - 50
+                            local footY = screenPos.Y
+                            local boxHeight = math.abs(footY - headY) * 1.2
+                            local boxWidth = boxHeight * 0.5
+
+                            data.box.Size = UDim2.new(0, boxWidth, 0, boxHeight)
+                            data.box.Position = UDim2.new(0, screenPos.X - boxWidth / 2, 0, headY - boxHeight * 0.1)
+                            data.box.Visible = true
+                            data.boxStroke.Color = color
+
+                            -- Corner lines
+                            local cornerSize = 8
+                            data.corners[1].Size = UDim2.new(0, cornerSize, 0, 2)
+                            data.corners[1].Position = UDim2.new(0, 0, 0, 0)
+                            data.corners[1].BackgroundColor3 = color
+
+                            data.corners[2].Size = UDim2.new(0, 2, 0, cornerSize)
+                            data.corners[2].Position = UDim2.new(0, 0, 0, 0)
+                            data.corners[2].BackgroundColor3 = color
+
+                            data.corners[3].Size = UDim2.new(0, cornerSize, 0, 2)
+                            data.corners[3].Position = UDim2.new(1, -cornerSize, 0, 0)
+                            data.corners[3].BackgroundColor3 = color
+
+                            data.corners[4].Size = UDim2.new(0, 2, 0, cornerSize)
+                            data.corners[4].Position = UDim2.new(1, -2, 0, 0)
+                            data.corners[4].BackgroundColor3 = color
+                        else
+                            data.box.Visible = false
+                        end
+
+                        -- Tracer
+                        if ESP_SETTINGS.ShowPlayerTracer then
+                            data.tracer.Visible = true
+                            data.tracer.BackgroundColor3 = color
+                            local startX = screenSize.X / 2
+                            local startY = screenSize.Y - 50
+                            local endX = screenPos.X
+                            local endY = screenPos.Y + (data.box.Visible and data.box.AbsoluteSize.Y / 2 or 20)
+                            local dx = endX - startX
+                            local dy = endY - startY
+                            local length = math.sqrt(dx * dx + dy * dy)
+                            local angle = math.atan2(dy, dx)
+                            data.tracer.Size = UDim2.new(0, length, 0, ESP_SETTINGS.TracerThickness)
+                            data.tracer.Position = UDim2.new(0, startX, 0, startY)
+                            data.tracer.Rotation = math.deg(angle)
+                        else
+                            data.tracer.Visible = false
+                        end
+                    else
+                        -- Off-screen arrow
+                        data.box.Visible = false
+                        data.tracer.Visible = false
+                        data.arrow.Visible = true
+                        data.arrow.Position = UDim2.new(0, math.clamp(screenPos.X, 50, screenSize.X - 50), 0, math.clamp(screenPos.Y, 50, screenSize.Y - 50))
+                        data.arrow.TextColor3 = color
+                        local angle = math.atan2(screenPos.Y - screenSize.Y / 2, screenPos.X - screenSize.X / 2)
+                        data.arrow.Rotation = math.deg(angle) - 90
+                    end
+                end
             end
-            data.hpFill.Parent.Visible = true
-            data.hpText.Visible = true
-        else
-            data.hpFill.Parent.Visible = false
-            data.hpText.Visible = false
-        end
-
-        -- Highlight
-        if ESP_SETTINGS.ShowPlayerHighlight then
-            data.highlight.Adornee = char
-            data.highlight.FillColor = color
-            data.highlight.OutlineColor = color
-            data.highlight.Visible = true
-        else
-            data.highlight.Visible = false
-        end
-
-        -- Box & Tracer
-        local screenPos, onScreen = camera:WorldToViewportPoint(root.Position)
-        if onScreen then
-            data.arrow.Visible = false
-
-            -- 2D Box
-            if ESP_SETTINGS.ShowPlayerBox then
-                local head = char:FindFirstChild("Head")
-                local headY = head and camera:WorldToViewportPoint(head.Position).Y or screenPos.Y - 50
-                local footY = screenPos.Y
-                local boxHeight = math.abs(footY - headY) * 1.2
-                local boxWidth = boxHeight * 0.5
-
-                data.box.Size = UDim2.new(0, boxWidth, 0, boxHeight)
-                data.box.Position = UDim2.new(0, screenPos.X - boxWidth / 2, 0, headY - boxHeight * 0.1)
-                data.box.Visible = true
-                data.boxStroke.Color = color
-
-                -- Corner lines
-                local cornerSize = 8
-                data.corners[1].Size = UDim2.new(0, cornerSize, 0, 2)
-                data.corners[1].Position = UDim2.new(0, 0, 0, 0)
-                data.corners[1].BackgroundColor3 = color
-
-                data.corners[2].Size = UDim2.new(0, 2, 0, cornerSize)
-                data.corners[2].Position = UDim2.new(0, 0, 0, 0)
-                data.corners[2].BackgroundColor3 = color
-
-                data.corners[3].Size = UDim2.new(0, cornerSize, 0, 2)
-                data.corners[3].Position = UDim2.new(1, -cornerSize, 0, 0)
-                data.corners[3].BackgroundColor3 = color
-
-                data.corners[4].Size = UDim2.new(0, 2, 0, cornerSize)
-                data.corners[4].Position = UDim2.new(1, -2, 0, 0)
-                data.corners[4].BackgroundColor3 = color
-            else
-                data.box.Visible = false
-            end
-
-            -- Tracer
-            if ESP_SETTINGS.ShowPlayerTracer then
-                data.tracer.Visible = true
-                data.tracer.BackgroundColor3 = color
-                local startX = screenSize.X / 2
-                local startY = screenSize.Y - 50
-                local endX = screenPos.X
-                local endY = screenPos.Y + (data.box.Visible and data.box.AbsoluteSize.Y / 2 or 20)
-                local dx = endX - startX
-                local dy = endY - startY
-                local length = math.sqrt(dx * dx + dy * dy)
-                local angle = math.atan2(dy, dx)
-                data.tracer.Size = UDim2.new(0, length, 0, ESP_SETTINGS.TracerThickness)
-                data.tracer.Position = UDim2.new(0, startX, 0, startY)
-                data.tracer.Rotation = math.deg(angle)
-            else
-                data.tracer.Visible = false
-            end
-        else
-            -- Off-screen arrow
-            data.box.Visible = false
-            data.tracer.Visible = false
-            data.arrow.Visible = true
-            data.arrow.Position = UDim2.new(0, math.clamp(screenPos.X, 50, screenSize.X - 50), 0, math.clamp(screenPos.Y, 50, screenSize.Y - 50))
-            data.arrow.TextColor3 = color
-            local angle = math.atan2(screenPos.Y - screenSize.Y / 2, screenPos.X - screenSize.X / 2)
-            data.arrow.Rotation = math.deg(angle) - 90
         end
     end
 
@@ -449,79 +444,77 @@ local function updateAllESP()
     for monster, data in pairs(Monster_Objects) do
         if not ESP_SETTINGS.ShowMonsters or not monster or not monster.Parent then
             data.folder.Enabled = false
-            continue
-        end
-
-        local dist = localRoot and (monster.Position - localRoot.Position).Magnitude or 0
-        if dist > ESP_SETTINGS.MaxDistance then
-            data.folder.Enabled = false
-            continue
-        end
-
-        data.folder.Enabled = true
-        data.billboard.Adornee = monster
-
-        local color = ESP_SETTINGS.MonsterColor
-
-        data.badge.Visible = true
-        data.badge.BackgroundColor3 = color
-        data.badgeText.Text = "⚠️ MONSTER"
-
-        if ESP_SETTINGS.ShowMonsterName then
-            data.nameLabel.Visible = true
-            data.nameLabel.Text = monster.Name
-            data.nameLabel.TextColor3 = color
         else
-            data.nameLabel.Visible = false
-        end
-
-        if ESP_SETTINGS.ShowMonsterDistance then
-            data.distLabel.Visible = true
-            data.distLabel.Text = string.format("[%.0f m]", dist)
-        else
-            data.distLabel.Visible = false
-        end
-
-        data.hpFill.Parent.Visible = false
-        data.hpText.Visible = false
-
-        if ESP_SETTINGS.ShowMonsterHighlight then
-            data.highlight.Adornee = monster
-            data.highlight.FillColor = color
-            data.highlight.OutlineColor = color
-            data.highlight.Visible = true
-        else
-            data.highlight.Visible = false
-        end
-
-        local screenPos, onScreen = camera:WorldToViewportPoint(monster.Position)
-        if onScreen then
-            data.arrow.Visible = false
-
-            if ESP_SETTINGS.ShowMonsterTracer then
-                data.tracer.Visible = true
-                data.tracer.BackgroundColor3 = color
-                local startX = screenSize.X / 2
-                local startY = screenSize.Y - 50
-                local dx = screenPos.X - startX
-                local dy = screenPos.Y - startY
-                local length = math.sqrt(dx * dx + dy * dy)
-                local angle = math.atan2(dy, dx)
-                data.tracer.Size = UDim2.new(0, length, 0, ESP_SETTINGS.TracerThickness + 1)
-                data.tracer.Position = UDim2.new(0, startX, 0, startY)
-                data.tracer.Rotation = math.deg(angle)
+            local dist = localRoot and (monster.Position - localRoot.Position).Magnitude or 0
+            if dist > ESP_SETTINGS.MaxDistance then
+                data.folder.Enabled = false
             else
-                data.tracer.Visible = false
+                data.folder.Enabled = true
+                data.billboard.Adornee = monster
+
+                local color = ESP_SETTINGS.MonsterColor
+
+                data.badge.Visible = true
+                data.badge.BackgroundColor3 = color
+                data.badgeText.Text = "⚠️ MONSTER"
+
+                if ESP_SETTINGS.ShowMonsterName then
+                    data.nameLabel.Visible = true
+                    data.nameLabel.Text = monster.Name
+                    data.nameLabel.TextColor3 = color
+                else
+                    data.nameLabel.Visible = false
+                end
+
+                if ESP_SETTINGS.ShowMonsterDistance then
+                    data.distLabel.Visible = true
+                    data.distLabel.Text = string.format("[%.0f m]", dist)
+                else
+                    data.distLabel.Visible = false
+                end
+
+                data.hpFill.Parent.Visible = false
+                data.hpText.Visible = false
+
+                if ESP_SETTINGS.ShowMonsterHighlight then
+                    data.highlight.Adornee = monster
+                    data.highlight.FillColor = color
+                    data.highlight.OutlineColor = color
+                    data.highlight.Visible = true
+                else
+                    data.highlight.Visible = false
+                end
+
+                local screenPos, onScreen = camera:WorldToViewportPoint(monster.Position)
+                if onScreen then
+                    data.arrow.Visible = false
+
+                    if ESP_SETTINGS.ShowMonsterTracer then
+                        data.tracer.Visible = true
+                        data.tracer.BackgroundColor3 = color
+                        local startX = screenSize.X / 2
+                        local startY = screenSize.Y - 50
+                        local dx = screenPos.X - startX
+                        local dy = screenPos.Y - startY
+                        local length = math.sqrt(dx * dx + dy * dy)
+                        local angle = math.atan2(dy, dx)
+                        data.tracer.Size = UDim2.new(0, length, 0, ESP_SETTINGS.TracerThickness + 1)
+                        data.tracer.Position = UDim2.new(0, startX, 0, startY)
+                        data.tracer.Rotation = math.deg(angle)
+                    else
+                        data.tracer.Visible = false
+                    end
+                    data.box.Visible = false
+                else
+                    data.box.Visible = false
+                    data.tracer.Visible = false
+                    data.arrow.Visible = true
+                    data.arrow.Position = UDim2.new(0, math.clamp(screenPos.X, 50, screenSize.X - 50), 0, math.clamp(screenPos.Y, 50, screenSize.Y - 50))
+                    data.arrow.TextColor3 = color
+                    local angle = math.atan2(screenPos.Y - screenSize.Y / 2, screenPos.X - screenSize.X / 2)
+                    data.arrow.Rotation = math.deg(angle) - 90
+                end
             end
-            data.box.Visible = false
-        else
-            data.box.Visible = false
-            data.tracer.Visible = false
-            data.arrow.Visible = true
-            data.arrow.Position = UDim2.new(0, math.clamp(screenPos.X, 50, screenSize.X - 50), 0, math.clamp(screenPos.Y, 50, screenSize.Y - 50))
-            data.arrow.TextColor3 = color
-            local angle = math.atan2(screenPos.Y - screenSize.Y / 2, screenPos.X - screenSize.X / 2)
-            data.arrow.Rotation = math.deg(angle) - 90
         end
     end
 
@@ -529,45 +522,43 @@ local function updateAllESP()
     for item, data in pairs(Item_Objects) do
         if not ESP_SETTINGS.ShowItems or not item or not item.Parent then
             data.folder.Enabled = false
-            continue
-        end
-
-        local dist = localRoot and (item.Position - localRoot.Position).Magnitude or 0
-        if dist > ESP_SETTINGS.MaxDistance then
-            data.folder.Enabled = false
-            continue
-        end
-
-        data.folder.Enabled = true
-        data.billboard.Adornee = item
-
-        local color = ESP_SETTINGS.ItemColor
-
-        data.badge.Visible = true
-        data.badge.BackgroundColor3 = color
-        data.badgeText.Text = "📦 ITEM"
-
-        if ESP_SETTINGS.ShowItemName then
-            data.nameLabel.Visible = true
-            data.nameLabel.Text = item.Name
-            data.nameLabel.TextColor3 = color
         else
-            data.nameLabel.Visible = false
-        end
+            local dist = localRoot and (item.Position - localRoot.Position).Magnitude or 0
+            if dist > ESP_SETTINGS.MaxDistance then
+                data.folder.Enabled = false
+            else
+                data.folder.Enabled = true
+                data.billboard.Adornee = item
 
-        if ESP_SETTINGS.ShowItemDistance then
-            data.distLabel.Visible = true
-            data.distLabel.Text = string.format("[%.0f m]", dist)
-        else
-            data.distLabel.Visible = false
-        end
+                local color = ESP_SETTINGS.ItemColor
 
-        data.hpFill.Parent.Visible = false
-        data.hpText.Visible = false
-        data.highlight.Visible = false
-        data.box.Visible = false
-        data.tracer.Visible = false
-        data.arrow.Visible = false
+                data.badge.Visible = true
+                data.badge.BackgroundColor3 = color
+                data.badgeText.Text = "📦 ITEM"
+
+                if ESP_SETTINGS.ShowItemName then
+                    data.nameLabel.Visible = true
+                    data.nameLabel.Text = item.Name
+                    data.nameLabel.TextColor3 = color
+                else
+                    data.nameLabel.Visible = false
+                end
+
+                if ESP_SETTINGS.ShowItemDistance then
+                    data.distLabel.Visible = true
+                    data.distLabel.Text = string.format("[%.0f m]", dist)
+                else
+                    data.distLabel.Visible = false
+                end
+
+                data.hpFill.Parent.Visible = false
+                data.hpText.Visible = false
+                data.highlight.Visible = false
+                data.box.Visible = false
+                data.tracer.Visible = false
+                data.arrow.Visible = false
+            end
+        end
     end
 end
 
@@ -1028,10 +1019,3 @@ end
 loadImageAndStart()
 
 print("👁️ EVADE ULTIMATE ESP LOADED - SEE EVERYTHING!")
-'''
-
-with open('/mnt/agents/output/Evade_Ultimate_Full_ESP.lua', 'w', encoding='utf-8') as f:
-    f.write(full_esp)
-
-print("✅ File saved!")
-print(f"📦 Size: {len(full_esp):,} characters")
