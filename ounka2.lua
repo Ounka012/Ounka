@@ -1,5 +1,6 @@
-
-
+evade_team_esp = '''--========================================================
+-- EVADE: GUI + PLAYER ESP VIP + TEAM SEPARATION
+--========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
@@ -271,104 +272,120 @@ local function updateESP()
         local root = char and char:FindFirstChild("HumanoidRootPart")
         local hum = char and char:FindFirstChildOfClass("Humanoid")
 
+        -- Check if character is valid
         if not char or not root or not hum or hum.Health <= 0 then
             data.folder.Enabled = false
-            continue
-        end
-
-        local isTeam = isTeammate(player)
-        local teamName = getTeamName(player)
-        local teamColor = getTeamColor(player)
-
-        -- Team check
-        if isTeam and not ESP_SETTINGS.ShowTeammates then
-            data.folder.Enabled = false
-            continue
-        end
-
-        -- Count teams
-        if TeamCount[teamName] then
-            TeamCount[teamName] = TeamCount[teamName] + 1
-        end
-
-        -- Distance check
-        local dist = localRoot and (root.Position - localRoot.Position).Magnitude or 0
-        if dist > ESP_SETTINGS.MaxDistance then
-            data.folder.Enabled = false
-            continue
-        end
-
-        data.folder.Enabled = true
-
-        -- Update Team Badge
-        if ESP_SETTINGS.ShowTeam then
-            data.teamBadge.Visible = true
-            data.teamBadgeText.Text = teamName:upper()
-            data.teamBadge.BackgroundColor3 = teamColor
-            data.teamBadgeText.TextColor3 = Color3.new(0, 0, 0)
         else
-            data.teamBadge.Visible = false
-        end
+            local isTeam = isTeammate(player)
+            local teamName = getTeamName(player)
+            local teamColor = getTeamColor(player)
 
-        -- Update Name with team color
-        data.nameLabel.Text = player.Name
-        if ESP_SETTINGS.ShowTeam then
-            data.nameLabel.TextColor3 = teamColor
-        else
-            data.nameLabel.TextColor3 = Color3.new(1, 1, 1)
-        end
-
-        -- Update Distance
-        data.distLabel.Text = string.format("[%.0fm]", dist)
-
-        -- Update Health
-        local health, maxHealth = getHealth(player)
-        local healthPercent = math.clamp(health / maxHealth, 0, 1)
-        data.healthFill.Size = UDim2.new(healthPercent, 0, 1, 0)
-        data.healthText.Text = string.format("%.0f HP", health)
-
-        if healthPercent > 0.6 then
-            data.healthFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
-            data.healthText.TextColor3 = Color3.fromRGB(0, 255, 100)
-        elseif healthPercent > 0.3 then
-            data.healthFill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
-            data.healthText.TextColor3 = Color3.fromRGB(255, 200, 0)
-        else
-            data.healthFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-            data.healthText.TextColor3 = Color3.fromRGB(255, 50, 50)
-        end
-
-        -- Update Highlight
-        data.highlight.Adornee = char
-        data.highlight.FillColor = teamColor
-        data.highlight.OutlineColor = teamColor
-
-        -- Update Box
-        data.boxStroke.Color = teamColor
-
-        -- Update Tracer
-        if ESP_SETTINGS.ShowTracers then
-            local screenPos, onScreen = camera:WorldToViewportPoint(root.Position)
-            if onScreen then
-                data.tracer.Visible = true
-                data.tracer.BackgroundColor3 = teamColor
-                local startX = screenSize.X / 2
-                local startY = screenSize.Y
-                local endX = screenPos.X
-                local endY = screenPos.Y
-                local dx = endX - startX
-                local dy = endY - startY
-                local length = math.sqrt(dx * dx + dy * dy)
-                local angle = math.atan2(dy, dx)
-                data.tracer.Size = UDim2.new(0, length, 0, 1.5)
-                data.tracer.Position = UDim2.new(0, startX, 0, startY)
-                data.tracer.Rotation = math.deg(angle)
-                data.tracer.BackgroundTransparency = 0.3
+            -- Team check - hide if teammate and ShowTeammates is off
+            if isTeam and not ESP_SETTINGS.ShowTeammates then
+                data.folder.Enabled = false
             else
-                data.tracer.Visible = false
+                -- Count teams
+                if TeamCount[teamName] then
+                    TeamCount[teamName] = TeamCount[teamName] + 1
+                end
+
+                -- Distance check
+                local dist = localRoot and (root.Position - localRoot.Position).Magnitude or 0
+                if dist > ESP_SETTINGS.MaxDistance then
+                    data.folder.Enabled = false
+                else
+                    data.folder.Enabled = true
+
+                    -- Update Team Badge
+                    if ESP_SETTINGS.ShowTeam then
+                        data.teamBadge.Visible = true
+                        data.teamBadgeText.Text = teamName:upper()
+                        data.teamBadge.BackgroundColor3 = teamColor
+                        data.teamBadgeText.TextColor3 = Color3.new(0, 0, 0)
+                    else
+                        data.teamBadge.Visible = false
+                    end
+
+                    -- Update Name with team color
+                    data.nameLabel.Text = player.Name
+                    if ESP_SETTINGS.ShowName then
+                        data.nameLabel.Visible = true
+                        if ESP_SETTINGS.ShowTeam then
+                            data.nameLabel.TextColor3 = teamColor
+                        else
+                            data.nameLabel.TextColor3 = Color3.new(1, 1, 1)
+                        end
+                    else
+                        data.nameLabel.Visible = false
+                    end
+
+                    -- Update Distance
+                    if ESP_SETTINGS.ShowDistance then
+                        data.distLabel.Visible = true
+                        data.distLabel.Text = string.format("[%.0fm]", dist)
+                    else
+                        data.distLabel.Visible = false
+                    end
+
+                    -- Update Health
+                    if ESP_SETTINGS.ShowHealth then
+                        local health, maxHealth = getHealth(player)
+                        local healthPercent = math.clamp(health / maxHealth, 0, 1)
+                        data.healthFill.Size = UDim2.new(healthPercent, 0, 1, 0)
+                        data.healthText.Text = string.format("%.0f HP", health)
+                        
+                        data.healthFill.Parent.Visible = true
+                        data.healthText.Visible = true
+
+                        if healthPercent > 0.6 then
+                            data.healthFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+                            data.healthText.TextColor3 = Color3.fromRGB(0, 255, 100)
+                        elseif healthPercent > 0.3 then
+                            data.healthFill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+                            data.healthText.TextColor3 = Color3.fromRGB(255, 200, 0)
+                        else
+                            data.healthFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                            data.healthText.TextColor3 = Color3.fromRGB(255, 50, 50)
+                        end
+                    else
+                        data.healthFill.Parent.Visible = false
+                        data.healthText.Visible = false
+                    end
+
+                    -- Update Highlight
+                    data.highlight.Adornee = char
+                    data.highlight.FillColor = teamColor
+                    data.highlight.OutlineColor = teamColor
+
+                    -- Update Box
+                    data.boxStroke.Color = teamColor
+
+                    -- Update Tracer
+                    if ESP_SETTINGS.ShowTracers then
+                        local screenPos, onScreen = camera:WorldToViewportPoint(root.Position)
+                        if onScreen then
+                            data.tracer.Visible = true
+                            data.tracer.BackgroundColor3 = teamColor
+                            local startX = screenSize.X / 2
+                            local startY = screenSize.Y
+                            local endX = screenPos.X
+                            local endY = screenPos.Y
+                            local dx = endX - startX
+                            local dy = endY - startY
+                            local length = math.sqrt(dx * dx + dy * dy)
+                            local angle = math.atan2(dy, dx)
+                            data.tracer.Size = UDim2.new(0, length, 0, 1.5)
+                            data.tracer.Position = UDim2.new(0, startX, 0, startY)
+                            data.tracer.Rotation = math.deg(angle)
+                            data.tracer.BackgroundTransparency = 0.3
+                        else
+                            data.tracer.Visible = false
+                        end
+                    else
+                        data.tracer.Visible = false
+                    end
+                end
             end
-        else
-            data.tracer.Visible = false
         end
     end
 end
@@ -713,177 +730,4 @@ local function createGUI(imageAsset)
     local distCorner = Instance.new("UICorner", distFrame)
     distCorner.CornerRadius = UDim.new(0, 12)
 
-    local distLabel = Instance.new("TextLabel", distFrame)
-    distLabel.Size = UDim2.new(0, 200, 0, 18)
-    distLabel.Position = UDim2.new(0, 12, 0, 6)
-    distLabel.BackgroundTransparency = 1
-    distLabel.Text = "Max Distance: " .. ESP_SETTINGS.MaxDistance .. "m"
-    distLabel.Font = Enum.Font.GothamBold
-    distLabel.TextSize = 12
-    distLabel.TextColor3 = Color3.fromRGB(200, 200, 230)
-    distLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-    local distBarBg = Instance.new("Frame", distFrame)
-    distBarBg.Size = UDim2.new(1, -24, 0, 6)
-    distBarBg.Position = UDim2.new(0, 12, 0, 30)
-    distBarBg.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    distBarBg.BorderSizePixel = 0
-
-    local distBarBgCorner = Instance.new("UICorner", distBarBg)
-    distBarBgCorner.CornerRadius = UDim.new(1, 0)
-
-    local distBarFill = Instance.new("Frame", distBarBg)
-    distBarFill.Size = UDim2.new(ESP_SETTINGS.MaxDistance / 3000, 0, 1, 0)
-    distBarFill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
-    distBarFill.BorderSizePixel = 0
-
-    local distBarFillCorner = Instance.new("UICorner", distBarFill)
-    distBarFillCorner.CornerRadius = UDim.new(1, 0)
-
-    local distKnob = Instance.new("TextButton", distBarBg)
-    distKnob.Size = UDim2.new(0, 16, 0, 16)
-    distKnob.Position = UDim2.new(ESP_SETTINGS.MaxDistance / 3000, -8, 0.5, -8)
-    distKnob.BackgroundColor3 = Color3.new(1, 1, 1)
-    distKnob.Text = ""
-
-    local distKnobCorner = Instance.new("UICorner", distKnob)
-    distKnobCorner.CornerRadius = UDim.new(1, 0)
-
-    -- Distance slider logic
-    local distDragging = false
-    distKnob.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            distDragging = true
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if distDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local relX = math.clamp(input.Position.X - distBarBg.AbsolutePosition.X, 0, distBarBg.AbsoluteSize.X)
-            local value = math.floor((relX / distBarBg.AbsoluteSize.X) * 3000)
-            ESP_SETTINGS.MaxDistance = value
-            distBarFill.Size = UDim2.new(value / 3000, 0, 1, 0)
-            distKnob.Position = UDim2.new(value / 3000, -8, 0.5, -8)
-            distLabel.Text = "Max Distance: " .. value .. "m"
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            distDragging = false
-        end
-    end)
-
-    -- ====== Status Label ======
-    local statusLabel = Instance.new("TextLabel", mainFrame)
-    statusLabel.Size = UDim2.new(1, -40, 0, 20)
-    statusLabel.Position = UDim2.new(0, 20, 0, 380)
-    statusLabel.BackgroundTransparency = 1
-    statusLabel.Text = "● ESP: OFF | Players: 0"
-    statusLabel.Font = Enum.Font.Gotham
-    statusLabel.TextSize = 11
-    statusLabel.TextColor3 = Color3.fromRGB(120, 120, 150)
-    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-    -- Update status & team counts
-    task.spawn(function()
-        while gui.Parent do
-            local count = 0
-            for _ in pairs(ESP_Objects) do count = count + 1 end
-
-            survLabel.Text = "🔵 Survivor: " .. (TeamCount.Survivor or 0)
-            monLabel.Text = "🔴 Monster: " .. (TeamCount.Monster or 0)
-            neutLabel.Text = "🟢 Neutral: " .. (TeamCount.Neutral or 0)
-
-            if ESP_SETTINGS.Enabled then
-                statusLabel.Text = "● ESP: ON | Players: " .. count
-                statusLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
-            else
-                statusLabel.Text = "● ESP: OFF | Players: " .. count
-                statusLabel.TextColor3 = Color3.fromRGB(120, 120, 150)
-            end
-            task.wait(0.5)
-        end
-    end)
-
-    -- ====== Toggle Animation ======
-    local function animateToggle(state)
-        if state then
-            tween(espToggle, {BackgroundColor3 = Color3.fromRGB(0, 200, 100)}, 0.25)
-            tween(espKnob, {Position = UDim2.new(0, 26, 0.5, -12)}, 0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-            tween(espCard, {BackgroundColor3 = Color3.fromRGB(15, 40, 25)}, 0.3)
-            tween(espIcon, {TextColor3 = Color3.fromRGB(0, 255, 120)}, 0.3)
-        else
-            tween(espToggle, {BackgroundColor3 = Color3.fromRGB(60, 60, 80)}, 0.25)
-            tween(espKnob, {Position = UDim2.new(0, 2, 0.5, -12)}, 0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-            tween(espCard, {BackgroundColor3 = Color3.fromRGB(25, 25, 45)}, 0.3)
-            tween(espIcon, {TextColor3 = Color3.fromRGB(255, 255, 255)}, 0.3)
-        end
-    end
-
-    espBtn.MouseButton1Down:Connect(function()
-        ESP_SETTINGS.Enabled = not ESP_SETTINGS.Enabled
-        animateToggle(ESP_SETTINGS.Enabled)
-    end)
-
-    -- ====== Hover Effects ======
-    closeBtn.MouseEnter:Connect(function()
-        tween(closeBtn, {BackgroundColor3 = Color3.fromRGB(255, 80, 80)}, 0.15)
-    end)
-    closeBtn.MouseLeave:Connect(function()
-        tween(closeBtn, {BackgroundColor3 = Color3.fromRGB(200, 40, 40)}, 0.15)
-    end)
-
-    -- ====== Button Functions ======
-    toggleBtn.MouseButton1Down:Connect(function()
-        mainFrame.Visible = not mainFrame.Visible
-    end)
-
-    closeBtn.MouseButton1Down:Connect(function()
-        ESP_SETTINGS.Enabled = false
-        for player, _ in pairs(ESP_Objects) do
-            removeESP(player)
-        end
-        gui:Destroy()
-    end)
-
-    -- ====== RGB Effect ======
-    task.spawn(function()
-        local hue = 0
-        while gui.Parent do
-            hue = (hue + 0.03) % 1
-            title.TextColor3 = Color3.fromHSV(hue, 1, 1)
-            mainStroke.Color = Color3.fromHSV(hue, 1, 1)
-            toggleStroke.Color = Color3.fromHSV((hue+0.3)%1, 1, 1)
-            task.wait(0.04)
-        end
-    end)
-
-    makeDraggable(mainFrame)
-    makeDraggable(toggleBtn)
-end
-
---============== ទាញយករូបភាព ==============
-local function loadImageAndStart()
-    local requestFunc = syn and syn.request or http_request or request
-    if requestFunc and writefile and getcustomasset then
-        local ok, response = pcall(function() return requestFunc({Url=IMAGE_URL, Method="GET"}) end)
-        if ok and response and response.StatusCode == 200 then
-            writefile(FILE_NAME, response.Body)
-            createGUI(getcustomasset(FILE_NAME))
-        else
-            createGUI("")
-        end
-    else
-        createGUI("")
-    end
-end
-
-loadImageAndStart()
-
-print("🌀 Evade VIP + Team ESP Loaded!")
-'''
-
-with open('/mnt/agents/output/Evade_Team_ESP_VIP.lua', 'w', encoding='utf-8') as f:
-    f.write(evade_team_esp)
-
-print("✅ File saved!")
-print(f"📦 Size: {len(evade_team_esp):,} characters")
+    local distLabel = Instance.new("
