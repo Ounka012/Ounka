@@ -1,7 +1,7 @@
 --[[
-    MKRA HUB (Stripped) + IMAGE BACKGROUND
-    Only: Kill Aura, KA NPCs, Kill Mobs
-    Original GUI with Image
+    MKRA HUB (Original Combat Logic + Image Background)
+    Features: Kill Aura (Players), Kill Aura NPCs (Remote/Direct), Kill Mobs
+    GUI: Original MKRA HUB style with rainbow bars, image background
 ]]
 
 -- ═══════════════════════════════════════════════════════════════
@@ -24,7 +24,7 @@ local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 local FILE_NAME = "bg.jpg"
 
 -- ═══════════════════════════════════════════════════════════════
--- CONFIG & THEME
+-- CONFIG & THEME (ដូចដើម)
 -- ═══════════════════════════════════════════════════════════════
 local CONFIG = {
     UI_NAME = "MkraHub_KillOnly",
@@ -84,12 +84,38 @@ local function GetRainbowColor(speed, offset)
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- COMBAT
+-- COMBAT (ORIGINAL MKRA HUB LOGIC)
 -- ═══════════════════════════════════════════════════════════════
 local Combat = {}
 
+-- ស្វែងរក Remote សម្រាប់វាយ NPC (ដូចកូដដើម)
+function Combat:GetKARemote()
+    -- ពិនិត្យតាមឈ្មោះទូទៅ
+    local searchNames = {"Attack", "Damage", "Hit", "Kill", "DealDamage", "Fire"}
+    for _, v in ipairs(Services.ReplicatedStorage:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            for _, n in ipairs(searchNames) do
+                if v.Name:lower():find(n:lower()) then
+                    return v
+                end
+            end
+        end
+    end
+    for _, v in ipairs(Services.Workspace:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            for _, n in ipairs(searchNames) do
+                if v.Name:lower():find(n:lower()) then
+                    return v
+                end
+            end
+        end
+    end
+    return nil
+end
+
 function Combat:GetKATargets()
     local targets = {}
+    -- អ្នកលេង
     for _, plr in ipairs(Services.Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character then
             local hum = plr.Character:FindFirstChildOfClass("Humanoid")
@@ -99,6 +125,7 @@ function Combat:GetKATargets()
             end
         end
     end
+    -- NPCs (បើបើក)
     if State.Settings.KillAuraNPC then
         for _, m in ipairs(Services.Workspace:GetDescendants()) do
             if m:IsA("Model") and not Services.Players:GetPlayerFromCharacter(m) then
@@ -113,6 +140,7 @@ function Combat:GetKATargets()
     return targets
 end
 
+-- Kill Aura (ដើម)
 function Combat:ToggleKillAura()
     if State.Connections.KillAura then
         pcall(function() State.Connections.KillAura:Disconnect() end)
@@ -120,6 +148,11 @@ function Combat:ToggleKillAura()
     end
 
     if State.Settings.KillAura then
+        local remote = nil
+        if State.Settings.KillAuraNPC then
+            remote = self:GetKARemote()
+        end
+
         State.Connections.KillAura = Services.RunService.Heartbeat:Connect(function()
             local char = GetCharacter()
             if not char then return end
@@ -129,15 +162,32 @@ function Combat:ToggleKillAura()
             local targets = self:GetKATargets()
             for _, t in pairs(targets) do
                 if (myRoot.Position - t.RootPart.Position).Magnitude <= State.Settings.KillAuraRange then
-                    pcall(function()
-                        t.Humanoid:TakeDamage(State.Settings.KillAuraDamage)
-                    end)
+                    -- អ្នកលេង៖ ប្រើ TakeDamage ជានិច្ច
+                    if t.IsPlayer then
+                        pcall(function() t.Humanoid:TakeDamage(State.Settings.KillAuraDamage) end)
+                    else
+                        -- NPC៖ ប្រើ Remote បើមាន បើមិនអញ្ចឹងកាត់ឈាមផ្ទាល់
+                        if remote then
+                            pcall(function()
+                                if remote:IsA("RemoteEvent") then
+                                    remote:FireServer(t.Humanoid, State.Settings.KillAuraDamage)
+                                else
+                                    remote:InvokeServer(t.Humanoid, State.Settings.KillAuraDamage)
+                                end
+                            end)
+                        else
+                            pcall(function()
+                                t.Humanoid.Health = math.max(0, t.Humanoid.Health - State.Settings.KillAuraDamage)
+                            end)
+                        end
+                    end
                 end
             end
         end)
     end
 end
 
+-- Kill Mobs (ដើម)
 function Combat:ToggleKillMobs()
     if State.Connections.KillMobs then
         pcall(function() State.Connections.KillMobs:Disconnect() end)
@@ -173,7 +223,7 @@ function Combat:ToggleKillMobs()
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- UI (Original MKRA HUB + Image Background)
+-- UI (MKRA HUB Original + Image Background)
 -- ═══════════════════════════════════════════════════════════════
 local UI = {}
 
@@ -198,14 +248,14 @@ function UI:CreateMainWindow(imageAsset)
     mainFrame.Parent = screenGui
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
 
-    -- ✨ IMAGE BACKGROUND inside MainFrame
+    -- ✨ រូបភាពផ្ទៃខាងក្រោយ
     local bgImage = Instance.new("ImageLabel", mainFrame)
     bgImage.Size = UDim2.new(1, 0, 1, 0)
     bgImage.BackgroundTransparency = 1
     bgImage.Image = imageAsset or ""
     bgImage.ScaleType = Enum.ScaleType.Stretch
-    bgImage.ImageTransparency = 0.3  -- adjust transparency as needed
-    bgImage.ZIndex = -1  -- behind everything
+    bgImage.ImageTransparency = 0.3
+    bgImage.ZIndex = -1
     Instance.new("UICorner", bgImage).CornerRadius = UDim.new(0, 12)
 
     -- Top Rainbow Bar
@@ -214,7 +264,7 @@ function UI:CreateMainWindow(imageAsset)
     -- Title Bar
     self:CreateTitleBar(mainFrame)
 
-    -- Content area (single combat tab)
+    -- ផ្ទាំង Combat តែមួយ
     self:CreateSingleCombatTab(mainFrame)
 
     -- Bottom Rainbow Bar
@@ -255,7 +305,7 @@ function UI:CreateTitleBar(parent)
     titleLabel.Size = UDim2.new(1, -40, 1, 0)
     titleLabel.Position = UDim2.new(0, 10, 0, 0)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = "⚔️ Kill Aura + Kill Mobs"
+    titleLabel.Text = "⚔️ Kill Aura + NPCs + Mobs"
     titleLabel.TextColor3 = THEME.Text
     titleLabel.Font = Enum.Font.GothamBold
     titleLabel.TextSize = 16
@@ -296,7 +346,7 @@ function UI:CreateSingleCombatTab(parent)
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 200)
     scrollFrame.Parent = contentFrame
 
-    -- Toggle helper
+    -- Helper functions
     local function addToggle(text, default, callback)
         local frame = Instance.new("Frame")
         frame.Size = UDim2.new(1, -10, 0, 30)
@@ -324,7 +374,6 @@ function UI:CreateSingleCombatTab(parent)
         end)
     end
 
-    -- TextBox helper
     local function addTextBox(label, default, callback)
         local frame = Instance.new("Frame")
         frame.Size = UDim2.new(1, -10, 0, 30)
@@ -358,7 +407,7 @@ function UI:CreateSingleCombatTab(parent)
         end)
     end
 
-    -- Add features
+    -- មុខងារទាំងអស់
     addToggle("Kill Aura", State.Settings.KillAura, function(v)
         State.Settings.KillAura = v
         Combat:ToggleKillAura()
@@ -374,6 +423,7 @@ function UI:CreateSingleCombatTab(parent)
 
     addToggle("KA NPCs", State.Settings.KillAuraNPC, function(v)
         State.Settings.KillAuraNPC = v
+        -- ចាប់ផ្ដើម Kill Aura ឡើងវិញដើម្បីអនុវត្តការផ្លាស់ប្ដូរ
         if State.Settings.KillAura then
             Combat:ToggleKillAura()
             Combat:ToggleKillAura()
@@ -391,7 +441,6 @@ end
 -- ═══════════════════════════════════════════════════════════════
 -- INITIALIZATION
 -- ═══════════════════════════════════════════════════════════════
--- Load image and create UI
 local function loadImageAndStart()
     local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
     local asset = ""
@@ -404,7 +453,7 @@ end
 
 loadImageAndStart()
 
--- Respawn handling
+-- ចាប់ផ្ដើមឡើងវិញពេលស្លាប់
 LocalPlayer.CharacterAdded:Connect(function()
     task.wait(0.5)
     if State.Settings.KillAura then
