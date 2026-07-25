@@ -296,7 +296,7 @@ function UI:CreateTitleBar(parent)
     titleLabel.Size = UDim2.new(1, -40, 1, 0)
     titleLabel.Position = UDim2.new(0, 10, 0, 0)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = "⚔️ Kill Aura + NPCs + Mobs"
+    titleLabel.Text = "⚔️ bs"
     titleLabel.TextColor3 = THEME.Text
     titleLabel.Font = Enum.Font.GothamBold
     titleLabel.TextSize = 16
