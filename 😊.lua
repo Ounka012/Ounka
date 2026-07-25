@@ -415,4 +415,4 @@ LocalPlayer.CharacterAdded:Connect(function()
         Combat:ToggleKillMobs()
         Combat:ToggleKillMobs()
     end
-end)ការ
+end)
