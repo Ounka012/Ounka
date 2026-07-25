@@ -10,6 +10,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
+local FILE_NAME = "bg.jpg"
 
 --============== ESP Settings ==============
 local ESP_SETTINGS = {
@@ -26,7 +27,6 @@ local ESP_SETTINGS = {
     TextSize = 13,
     TextFont = Enum.Font.GothamBold,
     TracerColor = Color3.fromRGB(255, 255, 255),
-    SkeletonColor = Color3.fromRGB(0, 255, 255),
     TeamColors = {
         ["Survivor"] = Color3.fromRGB(0, 200, 255),
         ["Monster"] = Color3.fromRGB(255, 50, 50),
@@ -125,7 +125,9 @@ local function createESP(player)
     teamBadge.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     teamBadge.BackgroundTransparency = 0.1
     teamBadge.BorderSizePixel = 0
-    Instance.new("UICorner", teamBadge).CornerRadius = UDim.new(0, 8)
+
+    local teamBadgeCorner = Instance.new("UICorner", teamBadge)
+    teamBadgeCorner.CornerRadius = UDim.new(0, 8)
 
     local teamBadgeText = Instance.new("TextLabel", teamBadge)
     teamBadgeText.Size = UDim2.new(1, 0, 1, 0)
@@ -161,13 +163,17 @@ local function createESP(player)
     healthBg.Position = UDim2.new(0.5, -35, 0, 34)
     healthBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     healthBg.BorderSizePixel = 0
-    Instance.new("UICorner", healthBg).CornerRadius = UDim.new(1, 0)
+
+    local healthBgCorner = Instance.new("UICorner", healthBg)
+    healthBgCorner.CornerRadius = UDim.new(1, 0)
 
     local healthFill = Instance.new("Frame", healthBg)
     healthFill.Size = UDim2.new(1, 0, 1, 0)
     healthFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
     healthFill.BorderSizePixel = 0
-    Instance.new("UICorner", healthFill).CornerRadius = UDim.new(1, 0)
+
+    local healthFillCorner = Instance.new("UICorner", healthFill)
+    healthFillCorner.CornerRadius = UDim.new(1, 0)
 
     local healthText = Instance.new("TextLabel", billboard)
     healthText.Size = UDim2.new(1, 0, 0, 12)
@@ -241,8 +247,6 @@ local function updateESP()
     end
 
     local camera = Workspace.CurrentCamera
-    if not camera then return end
-    
     local screenSize = camera.ViewportSize
     local localChar = LocalPlayer.Character
     local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
@@ -256,110 +260,96 @@ local function updateESP()
 
         if not char or not root or not hum or hum.Health <= 0 then
             data.folder.Enabled = false
+            continue
+        end
+
+        local isTeam = isTeammate(player)
+        local teamName = getTeamName(player)
+        local teamColor = getTeamColor(player)
+
+        if isTeam and not ESP_SETTINGS.ShowTeammates then
+            data.folder.Enabled = false
+            continue
+        end
+
+        if TeamCount[teamName] then
+            TeamCount[teamName] = TeamCount[teamName] + 1
+        end
+
+        local dist = localRoot and (root.Position - localRoot.Position).Magnitude or 0
+        if dist > ESP_SETTINGS.MaxDistance then
+            data.folder.Enabled = false
+            continue
+        end
+
+        data.folder.Enabled = true
+
+        if ESP_SETTINGS.ShowTeam then
+            data.teamBadge.Visible = true
+            data.teamBadgeText.Text = teamName:upper()
+            data.teamBadge.BackgroundColor3 = teamColor
+            data.teamBadgeText.TextColor3 = Color3.new(0, 0, 0)
         else
-            local isTeam = isTeammate(player)
-            local teamName = getTeamName(player)
-            local teamColor = getTeamColor(player)
+            data.teamBadge.Visible = false
+        end
 
-            if isTeam and not ESP_SETTINGS.ShowTeammates then
-                data.folder.Enabled = false
+        data.nameLabel.Text = player.Name
+        if ESP_SETTINGS.ShowTeam then
+            data.nameLabel.TextColor3 = teamColor
+        else
+            data.nameLabel.TextColor3 = Color3.new(1, 1, 1)
+        end
+
+        data.distLabel.Text = string.format("[%.0fm]", dist)
+
+        local health, maxHealth = getHealth(player)
+        local healthPercent = math.clamp(health / maxHealth, 0, 1)
+        data.healthFill.Size = UDim2.new(healthPercent, 0, 1, 0)
+        data.healthText.Text = string.format("%.0f HP", health)
+
+        if healthPercent > 0.6 then
+            data.healthFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+            data.healthText.TextColor3 = Color3.fromRGB(0, 255, 100)
+        elseif healthPercent > 0.3 then
+            data.healthFill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+            data.healthText.TextColor3 = Color3.fromRGB(255, 200, 0)
+        else
+            data.healthFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+            data.healthText.TextColor3 = Color3.fromRGB(255, 50, 50)
+        end
+
+        data.highlight.Adornee = char
+        data.highlight.FillColor = teamColor
+        data.highlight.OutlineColor = teamColor
+
+        data.boxStroke.Color = teamColor
+
+        if ESP_SETTINGS.ShowTracers then
+            local screenPos, onScreen = camera:WorldToViewportPoint(root.Position)
+            if onScreen then
+                data.tracer.Visible = true
+                data.tracer.BackgroundColor3 = teamColor
+                local startX = screenSize.X / 2
+                local startY = screenSize.Y
+                local endX = screenPos.X
+                local endY = screenPos.Y
+                local dx = endX - startX
+                local dy = endY - startY
+                local length = math.sqrt(dx * dx + dy * dy)
+                local angle = math.atan2(dy, dx)
+                data.tracer.Size = UDim2.new(0, length, 0, 1.5)
+                data.tracer.Position = UDim2.new(0, startX, 0, startY)
+                data.tracer.Rotation = math.deg(angle)
+                data.tracer.BackgroundTransparency = 0.3
             else
-                if TeamCount[teamName] then
-                    TeamCount[teamName] = TeamCount[teamName] + 1
-                end
-
-                local dist = localRoot and (root.Position - localRoot.Position).Magnitude or 0
-                if dist > ESP_SETTINGS.MaxDistance then
-                    data.folder.Enabled = false
-                else
-                    data.folder.Enabled = true
-
-                    if ESP_SETTINGS.ShowTeam then
-                        data.teamBadge.Visible = true
-                        data.teamBadgeText.Text = teamName:upper()
-                        data.teamBadge.BackgroundColor3 = teamColor
-                        data.teamBadgeText.TextColor3 = Color3.new(0, 0, 0)
-                    else
-                        data.teamBadge.Visible = false
-                    end
-
-                    data.nameLabel.Text = player.Name
-                    if ESP_SETTINGS.ShowName then
-                        data.nameLabel.Visible = true
-                        if ESP_SETTINGS.ShowTeam then
-                            data.nameLabel.TextColor3 = teamColor
-                        else
-                            data.nameLabel.TextColor3 = Color3.new(1, 1, 1)
-                        end
-                    else
-                        data.nameLabel.Visible = false
-                    end
-
-                    if ESP_SETTINGS.ShowDistance then
-                        data.distLabel.Visible = true
-                        data.distLabel.Text = string.format("[%.0fm]", dist)
-                    else
-                        data.distLabel.Visible = false
-                    end
-
-                    if ESP_SETTINGS.ShowHealth then
-                        local health, maxHealth = getHealth(player)
-                        local healthPercent = math.clamp(health / maxHealth, 0, 1)
-                        data.healthFill.Size = UDim2.new(healthPercent, 0, 1, 0)
-                        data.healthText.Text = string.format("%.0f HP", health)
-                        data.healthFill.Parent.Visible = true
-                        data.healthText.Visible = true
-
-                        if healthPercent > 0.6 then
-                            data.healthFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
-                            data.healthText.TextColor3 = Color3.fromRGB(0, 255, 100)
-                        elseif healthPercent > 0.3 then
-                            data.healthFill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
-                            data.healthText.TextColor3 = Color3.fromRGB(255, 200, 0)
-                        else
-                            data.healthFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-                            data.healthText.TextColor3 = Color3.fromRGB(255, 50, 50)
-                        end
-                    else
-                        data.healthFill.Parent.Visible = false
-                        data.healthText.Visible = false
-                    end
-
-                    data.highlight.Adornee = char
-                    data.highlight.FillColor = teamColor
-                    data.highlight.OutlineColor = teamColor
-                    data.boxStroke.Color = teamColor
-
-                    if ESP_SETTINGS.ShowTracers then
-                        local screenPos, onScreen = camera:WorldToViewportPoint(root.Position)
-                        if onScreen then
-                            data.tracer.Visible = true
-                            data.tracer.BackgroundColor3 = teamColor
-                            local startX = screenSize.X / 2
-                            local startY = screenSize.Y
-                            local endX = screenPos.X
-                            local endY = screenPos.Y
-                            local dx = endX - startX
-                            local dy = endY - startY
-                            local length = math.sqrt(dx * dx + dy * dy)
-                            local angle = math.atan2(dy, dx)
-                            data.tracer.Size = UDim2.new(0, length, 0, 1.5)
-                            data.tracer.Position = UDim2.new(0, startX, 0, startY)
-                            data.tracer.Rotation = math.deg(angle)
-                            data.tracer.BackgroundTransparency = 0.3
-                        else
-                            data.tracer.Visible = false
-                        end
-                    else
-                        data.tracer.Visible = false
-                    end
-                end
+                data.tracer.Visible = false
             end
+        else
+            data.tracer.Visible = false
         end
     end
 end
 
--- Auto create ESP for existing players
 for _, player in ipairs(Players:GetPlayers()) do
     if player ~= LocalPlayer then
         createESP(player)
@@ -379,7 +369,7 @@ end)
 RunService.RenderStepped:Connect(updateESP)
 
 --============== GUI ==============
-local function createGUI()
+local function createGUI(imageAsset)
     if CoreGui:FindFirstChild("EvadeFarm") then
         CoreGui:FindFirstChild("EvadeFarm"):Destroy()
     end
@@ -387,60 +377,62 @@ local function createGUI()
     local gui = Instance.new("ScreenGui", CoreGui)
     gui.Name = "EvadeFarm"
     gui.IgnoreGuiInset = true
-    gui.ResetOnSpawn = false
 
-    -- Toggle Button
-    local toggleBtn = Instance.new("TextButton", gui)
+    local toggleBtn = Instance.new("ImageButton", gui)
     toggleBtn.Size = UDim2.new(0, 55, 0, 55)
     toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    toggleBtn.Text = "👁️"
-    toggleBtn.Font = Enum.Font.GothamBold
-    toggleBtn.TextSize = 24
-    toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    toggleBtn.Image = imageAsset or ""
+    toggleBtn.ScaleType = Enum.ScaleType.Crop
     Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
     local toggleStroke = Instance.new("UIStroke", toggleBtn)
     toggleStroke.Thickness = 3
 
-    -- Main Frame
     local mainFrame = Instance.new("Frame", gui)
     mainFrame.Size = UDim2.new(0, 440, 0, 400)
     mainFrame.Position = UDim2.new(0.5, -220, 0.5, -200)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
-    mainFrame.BackgroundTransparency = 0.1
+    mainFrame.BackgroundTransparency = 1
     mainFrame.BorderSizePixel = 0
     mainFrame.Visible = true
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
     local mainStroke = Instance.new("UIStroke", mainFrame)
     mainStroke.Thickness = 3
 
-    -- Title
+    local bg = Instance.new("ImageLabel", mainFrame)
+    bg.Size = UDim2.new(1,0,1,0)
+    bg.BackgroundTransparency = 1
+    bg.Image = imageAsset or ""
+    bg.ScaleType = Enum.ScaleType.Stretch
+    bg.ImageTransparency = 0.3
+    bg.ZIndex = -1
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
+
     local title = Instance.new("TextLabel", mainFrame)
-    title.Size = UDim2.new(1, 0, 0, 45)
+    title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
     title.Text = "🌀 EVADE VIP + TEAM ESP"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 16
-    title.TextColor3 = Color3.new(1, 1, 1)
+    title.TextColor3 = Color3.new(1,1,1)
 
-    -- Close Button
     local closeBtn = Instance.new("TextButton", mainFrame)
-    closeBtn.Size = UDim2.new(0, 35, 0, 35)
-    closeBtn.Position = UDim2.new(1, -45, 0, 10)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+    closeBtn.Size = UDim2.new(0,35,0,35)
+    closeBtn.Position = UDim2.new(1,-45,0,10)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200,40,40)
     closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.TextColor3 = Color3.new(1,1,1)
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 14
-    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 10)
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
 
-    -- ESP Toggle Card
     local espCard = Instance.new("Frame", mainFrame)
     espCard.Size = UDim2.new(1, -40, 0, 55)
     espCard.Position = UDim2.new(0, 20, 0, 55)
     espCard.BackgroundColor3 = Color3.fromRGB(25, 25, 45)
     espCard.BackgroundTransparency = 0.2
-    Instance.new("UICorner", espCard).CornerRadius = UDim.new(0, 12)
+
+    local espCardCorner = Instance.new("UICorner", espCard)
+    espCardCorner.CornerRadius = UDim.new(0, 12)
 
     local espIcon = Instance.new("TextLabel", espCard)
     espIcon.Size = UDim2.new(0, 40, 0, 40)
@@ -470,31 +462,35 @@ local function createGUI()
     espDesc.TextColor3 = Color3.fromRGB(150, 150, 180)
     espDesc.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Toggle Switch
     local espToggle = Instance.new("Frame", espCard)
     espToggle.Size = UDim2.new(0, 52, 0, 28)
     espToggle.Position = UDim2.new(1, -67, 0.5, -14)
     espToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-    Instance.new("UICorner", espToggle).CornerRadius = UDim.new(1, 0)
+
+    local espToggleCorner = Instance.new("UICorner", espToggle)
+    espToggleCorner.CornerRadius = UDim.new(1, 0)
 
     local espKnob = Instance.new("Frame", espToggle)
     espKnob.Size = UDim2.new(0, 24, 0, 24)
     espKnob.Position = UDim2.new(0, 2, 0.5, -12)
     espKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Instance.new("UICorner", espKnob).CornerRadius = UDim.new(1, 0)
+
+    local espKnobCorner = Instance.new("UICorner", espKnob)
+    espKnobCorner.CornerRadius = UDim.new(1, 0)
 
     local espBtn = Instance.new("TextButton", espCard)
     espBtn.Size = UDim2.new(1, 0, 1, 0)
     espBtn.BackgroundTransparency = 1
     espBtn.Text = ""
 
-    -- Team Info Panel
     local teamPanel = Instance.new("Frame", mainFrame)
     teamPanel.Size = UDim2.new(1, -40, 0, 40)
     teamPanel.Position = UDim2.new(0, 20, 0, 118)
     teamPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 38)
     teamPanel.BackgroundTransparency = 0.15
-    Instance.new("UICorner", teamPanel).CornerRadius = UDim.new(0, 10)
+
+    local teamPanelCorner = Instance.new("UICorner", teamPanel)
+    teamPanelCorner.CornerRadius = UDim.new(0, 10)
 
     local survLabel = Instance.new("TextLabel", teamPanel)
     survLabel.Size = UDim2.new(0.33, 0, 1, 0)
@@ -523,7 +519,6 @@ local function createGUI()
     neutLabel.TextSize = 11
     neutLabel.TextColor3 = Color3.fromRGB(150, 255, 100)
 
-    -- Options Grid
     local optionsFrame = Instance.new("Frame", mainFrame)
     optionsFrame.Size = UDim2.new(1, -40, 0, 100)
     optionsFrame.Position = UDim2.new(0, 20, 0, 166)
@@ -537,7 +532,9 @@ local function createGUI()
         btn.BackgroundTransparency = 0.2
         btn.Text = ""
         btn.AutoButtonColor = false
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+
+        local btnCorner = Instance.new("UICorner", btn)
+        btnCorner.CornerRadius = UDim.new(0, 10)
 
         local btnIcon = Instance.new("TextLabel", btn)
         btnIcon.Size = UDim2.new(0, 30, 0, 30)
@@ -562,7 +559,9 @@ local function createGUI()
         check.Position = UDim2.new(1, -26, 0.5, -9)
         check.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
         check.BorderSizePixel = 0
-        Instance.new("UICorner", check).CornerRadius = UDim.new(0, 5)
+
+        local checkCorner = Instance.new("UICorner", check)
+        checkCorner.CornerRadius = UDim.new(0, 5)
 
         local checkMark = Instance.new("TextLabel", check)
         checkMark.Size = UDim2.new(1, 0, 1, 0)
@@ -599,7 +598,6 @@ local function createGUI()
     createOption(optionsFrame, 0, 52, "❤️", "Show Health", "ShowHealth")
     createOption(optionsFrame, 0.52, 52, "📍", "Show Tracers", "ShowTracers")
 
-    -- Team Options Row
     local teamOptions = Instance.new("Frame", mainFrame)
     teamOptions.Size = UDim2.new(1, -40, 0, 45)
     teamOptions.Position = UDim2.new(0, 20, 0, 272)
@@ -613,7 +611,9 @@ local function createGUI()
         btn.BackgroundTransparency = 0.2
         btn.Text = ""
         btn.AutoButtonColor = false
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+
+        local btnCorner = Instance.new("UICorner", btn)
+        btnCorner.CornerRadius = UDim.new(0, 10)
 
         local btnIcon = Instance.new("TextLabel", btn)
         btnIcon.Size = UDim2.new(0, 30, 0, 30)
@@ -638,7 +638,9 @@ local function createGUI()
         indicator.Position = UDim2.new(1, -18, 0.5, -4)
         indicator.BackgroundColor3 = color
         indicator.BorderSizePixel = 0
-        Instance.new("UICorner", indicator).CornerRadius = UDim.new(1, 0)
+
+        local indCorner = Instance.new("UICorner", indicator)
+        indCorner.CornerRadius = UDim.new(1, 0)
 
         if ESP_SETTINGS[settingKey] then
             indicator.BackgroundTransparency = 0
@@ -664,13 +666,14 @@ local function createGUI()
     createTeamToggle(teamOptions, 0, "🛡️", "Team Check", "TeamCheck", Color3.fromRGB(0, 255, 150))
     createTeamToggle(teamOptions, 0.52, "👥", "Show Teammates", "ShowTeammates", Color3.fromRGB(255, 200, 0))
 
-    -- Distance Slider
     local distFrame = Instance.new("Frame", mainFrame)
     distFrame.Size = UDim2.new(1, -40, 0, 50)
     distFrame.Position = UDim2.new(0, 20, 0, 325)
     distFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 45)
     distFrame.BackgroundTransparency = 0.2
-    Instance.new("UICorner", distFrame).CornerRadius = UDim.new(0, 12)
+
+    local distCorner = Instance.new("UICorner", distFrame)
+    distCorner.CornerRadius = UDim.new(0, 12)
 
     local distLabel = Instance.new("TextLabel", distFrame)
     distLabel.Size = UDim2.new(0, 200, 0, 18)
@@ -687,20 +690,26 @@ local function createGUI()
     distBarBg.Position = UDim2.new(0, 12, 0, 30)
     distBarBg.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     distBarBg.BorderSizePixel = 0
-    Instance.new("UICorner", distBarBg).CornerRadius = UDim.new(1, 0)
+
+    local distBarBgCorner = Instance.new("UICorner", distBarBg)
+    distBarBgCorner.CornerRadius = UDim.new(1, 0)
 
     local distBarFill = Instance.new("Frame", distBarBg)
     distBarFill.Size = UDim2.new(ESP_SETTINGS.MaxDistance / 3000, 0, 1, 0)
     distBarFill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
     distBarFill.BorderSizePixel = 0
-    Instance.new("UICorner", distBarFill).CornerRadius = UDim.new(1, 0)
+
+    local distBarFillCorner = Instance.new("UICorner", distBarFill)
+    distBarFillCorner.CornerRadius = UDim.new(1, 0)
 
     local distKnob = Instance.new("TextButton", distBarBg)
     distKnob.Size = UDim2.new(0, 16, 0, 16)
     distKnob.Position = UDim2.new(ESP_SETTINGS.MaxDistance / 3000, -8, 0.5, -8)
     distKnob.BackgroundColor3 = Color3.new(1, 1, 1)
     distKnob.Text = ""
-    Instance.new("UICorner", distKnob).CornerRadius = UDim.new(1, 0)
+
+    local distKnobCorner = Instance.new("UICorner", distKnob)
+    distKnobCorner.CornerRadius = UDim.new(1, 0)
 
     local distDragging = false
     distKnob.InputBegan:Connect(function(input)
@@ -724,7 +733,6 @@ local function createGUI()
         end
     end)
 
-    -- Status Label
     local statusLabel = Instance.new("TextLabel", mainFrame)
     statusLabel.Size = UDim2.new(1, -40, 0, 20)
     statusLabel.Position = UDim2.new(0, 20, 0, 380)
@@ -735,7 +743,6 @@ local function createGUI()
     statusLabel.TextColor3 = Color3.fromRGB(120, 120, 150)
     statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Update status & team counts
     task.spawn(function()
         while gui.Parent do
             local count = 0
@@ -756,7 +763,6 @@ local function createGUI()
         end
     end)
 
-    -- Toggle Animation
     local function animateToggle(state)
         if state then
             tween(espToggle, {BackgroundColor3 = Color3.fromRGB(0, 200, 100)}, 0.25)
@@ -776,7 +782,6 @@ local function createGUI()
         animateToggle(ESP_SETTINGS.Enabled)
     end)
 
-    -- Hover Effects
     closeBtn.MouseEnter:Connect(function()
         tween(closeBtn, {BackgroundColor3 = Color3.fromRGB(255, 80, 80)}, 0.15)
     end)
@@ -784,7 +789,6 @@ local function createGUI()
         tween(closeBtn, {BackgroundColor3 = Color3.fromRGB(200, 40, 40)}, 0.15)
     end)
 
-    -- Button Functions
     toggleBtn.MouseButton1Down:Connect(function()
         mainFrame.Visible = not mainFrame.Visible
     end)
@@ -797,7 +801,6 @@ local function createGUI()
         gui:Destroy()
     end)
 
-    -- RGB Effect
     task.spawn(function()
         local hue = 0
         while gui.Parent do
@@ -813,6 +816,21 @@ local function createGUI()
     makeDraggable(toggleBtn)
 end
 
-createGUI()
+local function loadImageAndStart()
+    local requestFunc = syn and syn.request or http_request or request
+    if requestFunc and writefile and getcustomasset then
+        local ok, response = pcall(function() return requestFunc({Url=IMAGE_URL, Method="GET"}) end)
+        if ok and response and response.StatusCode == 200 then
+            writefile(FILE_NAME, response.Body)
+            createGUI(getcustomasset(FILE_NAME))
+        else
+            createGUI("")
+        end
+    else
+        createGUI("")
+    end
+end
+
+loadImageAndStart()
 
 print("🌀 Evade VIP + Team ESP Loaded!")
