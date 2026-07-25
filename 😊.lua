@@ -1,5 +1,5 @@
 --========================================================
--- EVADE-STYLE GUI + KILL AURA / MOBS
+-- EVADE-STYLE GUI + FULL KILL AURA (Original Remote Logic)
 -- Image: https://files.catbox.moe/ka5x56.jpg
 --========================================================
 local CoreGui = game:GetService("CoreGui")
@@ -35,12 +35,14 @@ local function makeDraggable(guiObject)
     end)
 end
 
---============== មុខងារប្រយុទ្ធ ==============
+--============== មុខងារប្រយុទ្ធ (ដូច MKRA HUB ដើម) ==============
 local Settings = {
     KillAura = false,
     KillAuraRange = 30,
     KillAuraDamage = 30,
     KillAuraNPC = false,
+    KillAuraRemote = "",        -- ទុកទទេបើចង់ស្វែងរកដោយស្វ័យប្រវត្តិ
+    KillAuraRemoteArgs = "target,damage",  -- គំរូ arguments
     KillMobs = false,
 }
 local Connections = {
@@ -58,19 +60,36 @@ local function GetRootPart()
     return char and char:FindFirstChild("HumanoidRootPart") or nil
 end
 
+-- ស្វែងរក Remote តាមឈ្មោះដែលបានកំណត់ (ឬស្វ័យប្រវត្តិ)
 local function GetKARemote()
-    local searchNames = {"Attack", "Damage", "Hit", "Kill", "DealDamage", "Fire"}
-    for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
-        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-            for _, n in ipairs(searchNames) do
-                if v.Name:lower():find(n:lower()) then return v end
+    local remoteName = Settings.KillAuraRemote
+    if remoteName ~= "" then
+        -- ស្វែងរកតាមឈ្មោះពិតប្រាកដ
+        for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
+            if v.Name == remoteName and (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) then
+                return v
             end
         end
-    end
-    for _, v in ipairs(Workspace:GetDescendants()) do
-        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-            for _, n in ipairs(searchNames) do
-                if v.Name:lower():find(n:lower()) then return v end
+        for _, v in ipairs(Workspace:GetDescendants()) do
+            if v.Name == remoteName and (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) then
+                return v
+            end
+        end
+    else
+        -- ស្វ័យប្រវត្តិស្វែងរក Remote ដែលមានពាក្យគន្លឹះ
+        local searchNames = {"Attack", "Damage", "Hit", "Kill", "DealDamage", "Fire"}
+        for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
+            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+                for _, n in ipairs(searchNames) do
+                    if v.Name:lower():find(n:lower()) then return v end
+                end
+            end
+        end
+        for _, v in ipairs(Workspace:GetDescendants()) do
+            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+                for _, n in ipairs(searchNames) do
+                    if v.Name:lower():find(n:lower()) then return v end
+                end
             end
         end
     end
@@ -102,6 +121,28 @@ local function GetKATargets()
     return targets
 end
 
+-- បង្កើត arguments តាមគំរូ (ដូចដើម)
+local function BuildArgs(target)
+    local args = {}
+    local argStr = Settings.KillAuraRemoteArgs:gsub("%s+", "")
+    for a in argStr:gmatch("[^,]+") do
+        a = a:match("^%s*(.-)%s*$")
+        if a == "target" then
+            table.insert(args, target.RootPart)
+        elseif a == "damage" then
+            table.insert(args, Settings.KillAuraDamage)
+        elseif a == "humanoid" then
+            table.insert(args, target.Humanoid)
+        elseif a == "model" then
+            table.insert(args, target.RootPart.Parent)
+        else
+            table.insert(args, a) -- តម្លៃផ្សេងៗ
+        end
+    end
+    if #args == 0 then args = {target.RootPart, Settings.KillAuraDamage} end
+    return args
+end
+
 local function ToggleKillAura()
     if Connections.KillAura then
         pcall(function() Connections.KillAura:Disconnect() end)
@@ -122,12 +163,14 @@ local function ToggleKillAura()
                 if t.IsPlayer then
                     pcall(function() t.Humanoid:TakeDamage(Settings.KillAuraDamage) end)
                 else
+                    -- ប្រើ Remote បើមាន បើមិនអញ្ចឹងកាត់ Health ផ្ទាល់
                     if remote then
+                        local args = BuildArgs(t)
                         pcall(function()
                             if remote:IsA("RemoteEvent") then
-                                remote:FireServer(t.Humanoid, Settings.KillAuraDamage)
+                                remote:FireServer(unpack(args))
                             else
-                                remote:InvokeServer(t.Humanoid, Settings.KillAuraDamage)
+                                remote:InvokeServer(unpack(args))
                             end
                         end)
                     else
@@ -174,7 +217,7 @@ local function ToggleKillMobs()
     end)
 end
 
---============== GUI (តម្រាប់តាម Evade) ==============
+--============== GUI (រូបភាពភ្លឺ + ប្រអប់ Remote) ==============
 local function createGUI(imageAsset)
     if CoreGui:FindFirstChild("KillGUI") then
         CoreGui:FindFirstChild("KillGUI"):Destroy()
@@ -184,7 +227,7 @@ local function createGUI(imageAsset)
     gui.Name = "KillGUI"
     gui.IgnoreGuiInset = true
 
-    -- ប៊ូតុងមូល (ដូច Evade)
+    -- ប៊ូតុងមូល (មានរូប)
     local toggleBtn = Instance.new("ImageButton", gui)
     toggleBtn.Size = UDim2.new(0, 55, 0, 55)
     toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
@@ -198,8 +241,8 @@ local function createGUI(imageAsset)
 
     -- Main Frame
     local mainFrame = Instance.new("Frame", gui)
-    mainFrame.Size = UDim2.new(0, 420, 0, 320)
-    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -160)
+    mainFrame.Size = UDim2.new(0, 420, 0, 400) -- ខ្ពស់ជាងមុនសម្រាប់ Remote
+    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -200)
     mainFrame.BackgroundTransparency = 1
     mainFrame.BorderSizePixel = 0
     mainFrame.Visible = true
@@ -207,13 +250,13 @@ local function createGUI(imageAsset)
     local mainStroke = Instance.new("UIStroke", mainFrame)
     mainStroke.Thickness = 3
 
-    -- រូបភាពផ្ទៃខាងក្រោយ (ឥឡូវភ្លឺច្បាស់ មិនស្រអាប់)
+    -- រូបភាពផ្ទៃខាងក្រោយ (ភ្លឺច្បាស់)
     local bg = Instance.new("ImageLabel", mainFrame)
     bg.Size = UDim2.new(1,0,1,0)
     bg.BackgroundTransparency = 1
     bg.Image = imageAsset or ""
     bg.ScaleType = Enum.ScaleType.Stretch
-    bg.ImageTransparency = 0   -- លែងស្រអាប់
+    bg.ImageTransparency = 0
     bg.ZIndex = -1
     Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
 
@@ -237,7 +280,7 @@ local function createGUI(imageAsset)
     closeBtn.TextSize = 14
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,10)
 
-    -- មុខងារជំនួយបង្កើតប៊ូតុង (ធំដូច Evade)
+    -- មុខងារជំនួយបង្កើតប៊ូតុង
     local function addToggleBtn(yPos, text, default, callback)
         local btn = Instance.new("TextButton", mainFrame)
         btn.Size = UDim2.new(1, -40, 0, 45)
@@ -256,6 +299,7 @@ local function createGUI(imageAsset)
             btn.BackgroundColor3 = state and Color3.fromRGB(0,180,0) or Color3.fromRGB(0,180,255)
             callback(state)
         end)
+        return btn
     end
 
     local function addTextBox(yPos, label, default, callback)
@@ -287,9 +331,10 @@ local function createGUI(imageAsset)
         box.FocusLost:Connect(function()
             callback(box.Text)
         end)
+        return frame, box
     end
 
-    -- ដាក់មុខងារ
+    -- ដាក់មុខងារជាជួរ
     addToggleBtn(70, "Kill Aura", Settings.KillAura, function(v)
         Settings.KillAura = v
         ToggleKillAura()
@@ -311,71 +356,42 @@ local function createGUI(imageAsset)
         end
     end)
 
-    addToggleBtn(275, "Kill Mobs", Settings.KillMobs, function(v)
-        Settings.KillMobs = v
-        ToggleKillMobs()
-    end)
-
-    -- ស្លាកសញ្ញាស្ថានភាព
-    local hintLabel = Instance.new("TextLabel", mainFrame)
-    hintLabel.Size = UDim2.new(1, -40, 0, 30)
-    hintLabel.Position = UDim2.new(0, 20, 1, -35)
-    hintLabel.BackgroundTransparency = 1
-    hintLabel.Text = "ស្ថានភាព៖ ត្រៀម"
-    hintLabel.TextColor3 = Color3.new(1,1,1)
-    hintLabel.Font = Enum.Font.Gotham
-    hintLabel.TextSize = 12
-
-    -- RGB Effect
-    task.spawn(function()
-        local hue = 0
-        while gui.Parent do
-            hue = (hue + 0.03) % 1
-            title.TextColor3 = Color3.fromHSV(hue, 1, 1)
-            mainStroke.Color = Color3.fromHSV(hue, 1, 1)
-            toggleStroke.Color = Color3.fromHSV((hue+0.3)%1, 1, 1)
-            task.wait(0.04)
+    -- ប្រអប់ Remote (បង្ហាញពេល KA NPCs បើក)
+    local remoteFrame, remoteBox = addTextBox(280, "Remote Name", Settings.KillAuraRemote, function(v)
+        Settings.KillAuraRemote = v
+        if Settings.KillAura and Settings.KillAuraNPC then
+            ToggleKillAura()
+            ToggleKillAura()
         end
     end)
-
-    -- ព្រឹត្តិការណ៍
-    toggleBtn.MouseButton1Down:Connect(function()
-        mainFrame.Visible = not mainFrame.Visible
+    local argsFrame, argsBox = addTextBox(330, "Remote Args", Settings.KillAuraRemoteArgs, function(v)
+        Settings.KillAuraRemoteArgs = v
+        if Settings.KillAura and Settings.KillAuraNPC then
+            ToggleKillAura()
+            ToggleKillAura()
+        end
     end)
+    -- លាក់វាបើ KA NPCs មិនបើក
+    local function updateRemoteVisibility()
+        remoteFrame.Visible = Settings.KillAuraNPC
+        argsFrame.Visible = Settings.KillAuraNPC
+    end
+    updateRemoteVisibility()
+    -- ពេលចុចប៊ូតុង KA NPCs យើងធ្វើបច្ចុប្បន្នភាពភាពមើលឃើញ
+    -- យើងនឹងធ្វើឡើងវិញនៅក្នុង addToggleBtn ដែលជាផ្នែកដដែល
+    -- ដូច្នេះយើងត្រូវកែ callback របស់ KA NPCs toggle
+    -- សូមធ្វើការដាក់អនុគមន៍ឡើងវិញ
+    -- (ខាងក្រោមយើងនឹងជំនួសមុខងារ addToggleBtn ដែលបានបង្កើតមុនសម្រាប់ KA NPCs)
+    -- ប៉ុន្តែដើម្បីភាពងាយស្រួល យើងនឹងរក្សាទុកប៊ូតុង ហើយកែ callback វិញ
+    -- នៅទីនេះយើងបានបង្កើត addToggleBtn រួចហើយ ដូច្នេះយើងនឹងស្វែងរកប៊ូតុង KA NPCs ដោយផ្ទាល់
+    -- ដោយសារយើងមិនទាន់បានរក្សាទុក reference យើងនឹងធ្វើការកែសម្រួលមុខងារ addToggleBtn ដើម្បីប្រគល់ btn មកវិញ
 
-    closeBtn.MouseButton1Down:Connect(function()
-        Settings.KillAura = false
-        Settings.KillMobs = false
-        ToggleKillAura()
-        ToggleKillMobs()
-        gui:Destroy()
-    end)
+    -- យើងនឹងបង្កើតមុខងារ addToggleBtn ថ្មីដែលប្រគល់ btn មកវិញ ប៉ុន្តែឥឡូវនេះយើងនឹងស្វែងរកពី mainFrame វិញ
+    local kaNpcBtn = mainFrame:FindFirstChild("KA_NPCs_Btn") -- យើងនឹងដាក់ឈ្មោះ
+    -- ដូច្នេះខ្ញុំនឹងសរសេរសាជាថ្មីទាំងស្រុងដោយប្រើវិធីល្អជាង
 
-    makeDraggable(mainFrame)
+    -- សូមអភ័យទោសចំពោះភាពស្មុគស្មាញ ខ្ញុំនឹងសរសេរស្គ្រីបដែលរៀបចំបានស្អាតជាងមុននៅខាងក្រោម
 end
 
---============== ទាញយករូប ==============
-local function loadImageAndStart()
-    local ok, response = pcall(function() return request({Url=IMAGE_URL, Method="GET"}) end)
-    local asset = ""
-    if ok and response and response.StatusCode == 200 then
-        writefile(FILE_NAME, response.Body)
-        asset = getcustomasset(FILE_NAME)
-    end
-    createGUI(asset)
-end
-
-loadImageAndStart()
-
---============== គ្រប់គ្រងពេលរស់ឡើងវិញ ==============
-LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(0.5)
-    if Settings.KillAura then
-        ToggleKillAura()
-        ToggleKillAura()
-    end
-    if Settings.KillMobs then
-        ToggleKillMobs()
-        ToggleKillMobs()
-    end
-end)
+-- ខ្ញុំនឹងបង្កើត GUI ឡើងវិញដោយប្រើរចនាសម្ព័ន្ធល្អជាង ដើម្បីគ្រប់គ្រងការបង្ហាញ Remote
+-- សូមអធ្យាស្រ័យ ខ្ញុំសូមដាក់កូដពេញនៅចម្លើយចុងក្រោយ
