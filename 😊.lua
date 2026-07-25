@@ -3,6 +3,7 @@
     UI ផ្ទាល់ គ្មាន Rayfield គ្មាន URL
     រចនាដោយ Oun ka
     បន្ថែម៖ Auto F (No Walk) + Auto Click Ball (PC/Mobile)
+    កែសម្រួល៖ Kill Aura & Kill Mobs គ្មានកំណត់ចម្ងាយ (Full Map)
 ]]
 
 -- Services
@@ -36,7 +37,7 @@ local Settings = {
     GodMode = false,
     InstantRespawn = false,
     KillAura = false,
-    KillAuraRange = 30,
+    KillAuraRange = 30,         -- មិនត្រូវបានប្រើទៀតទេ
     KillAuraDamage = 30,
     KillAuraNPC = false,
     KillAuraRemote = "",
@@ -46,7 +47,7 @@ local Settings = {
     FlingAll = false,
     AutoClickBall = false,
     BallDistance = 5,
-    AutoF = false,               -- មុខងារ Auto F (No Walk)
+    AutoF = false,
     AutoFPaused = false
 }
 
@@ -128,7 +129,7 @@ local function toggleInstantRespawn()
     end
 end
 
--- ===== Kill Aura =====
+-- ===== Kill Aura (No Distance Limit) =====
 local kaConn
 local function getRemote()
     if Settings.KillAuraRemote == "" then return nil end
@@ -160,25 +161,23 @@ local function toggleKillAura()
     if Settings.KillAura then
         kaConn = RunService.Heartbeat:Connect(function()
             local char = LocalPlayer.Character; if not char then return end
-            local myRoot = char:FindFirstChild("HumanoidRootPart"); if not myRoot then return end
+            -- មិនចាំបាច់ត្រួតពិនិត្យចម្ងាយទៀតទេ (ដក myRoot និង Magnitude ចេញ)
             local targets = getTargets(); local remote = getRemote()
             for _, target in pairs(targets) do
-                if (myRoot.Position - target.RootPart.Position).Magnitude <= Settings.KillAuraRange then
-                    if target.IsPlayer then
-                        target.Humanoid:TakeDamage(Settings.KillAuraDamage)
-                    else
-                        if remote then
-                            local args = {}
-                            for _, a in ipairs(Settings.KillAuraRemoteArgs:gsub("%s+", ""):split(",")) do
-                                if a == "target" then table.insert(args, target.RootPart)
-                                elseif a == "damage" then table.insert(args, Settings.KillAuraDamage)
-                                elseif a == "humanoid" then table.insert(args, target.Humanoid) end
-                            end
-                            if #args == 0 then args = {target.RootPart, Settings.KillAuraDamage} end
-                            pcall(function() remote:FireServer(unpack(args)) end)
-                        else
-                            target.Humanoid.Health = math.max(0, target.Humanoid.Health - Settings.KillAuraDamage)
+                if target.IsPlayer then
+                    target.Humanoid:TakeDamage(Settings.KillAuraDamage)
+                else
+                    if remote then
+                        local args = {}
+                        for _, a in ipairs(Settings.KillAuraRemoteArgs:gsub("%s+", ""):split(",")) do
+                            if a == "target" then table.insert(args, target.RootPart)
+                            elseif a == "damage" then table.insert(args, Settings.KillAuraDamage)
+                            elseif a == "humanoid" then table.insert(args, target.Humanoid) end
                         end
+                        if #args == 0 then args = {target.RootPart, Settings.KillAuraDamage} end
+                        pcall(function() remote:FireServer(unpack(args)) end)
+                    else
+                        target.Humanoid.Health = math.max(0, target.Humanoid.Health - Settings.KillAuraDamage)
                     end
                 end
             end
@@ -186,19 +185,27 @@ local function toggleKillAura()
     end
 end
 
--- ===== Kill Mobs =====
+-- ===== Kill Mobs (No Distance Limit) =====
 local kmConn
 local function toggleKillMobs()
     if kmConn then kmConn:Disconnect() end
     if Settings.KillMobs then
         kmConn = RunService.Heartbeat:Connect(function()
             local char = LocalPlayer.Character; if not char then return end
-            local root = char:FindFirstChild("HumanoidRootPart"); if not root then return end
             local folder = Workspace:FindFirstChild("Mobs"); if not folder then return end
             for _, mob in folder:GetChildren() do
                 local mobRoot = mob:FindFirstChild("HumanoidRootPart"); local mobHum = mob:FindFirstChildOfClass("Humanoid")
-                if mobRoot and mobHum and mobHum.Health > 0 and (root.Position - mobRoot.Position).Magnitude < 25 then
-                    pcall(function() ReplicatedStorage.Events.Attack:FireServer(mobHum) end)
+                if mobRoot and mobHum and mobHum.Health > 0 then
+                    -- លុបការពិនិត្យចម្ងាយ (Magnitude < 25) ចេញ
+                    pcall(function()
+                        if ReplicatedStorage:FindFirstChild("Events") and
+                           ReplicatedStorage.Events:FindFirstChild("Attack") then
+                            ReplicatedStorage.Events.Attack:FireServer(mobHum)
+                        else
+                            -- បើគ្មាន Remote ក៏កាត់ Health ដោយផ្ទាល់
+                            mobHum.Health = math.max(0, mobHum.Health - 30)
+                        end
+                    end)
                 end
             end
         end)
@@ -586,8 +593,8 @@ local function createUI()
     titleBar.BackgroundColor3 = Color3.fromRGB(25,25,25); titleBar.BorderSizePixel = 0; titleBar.Parent = main
     Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0,10)
     local title = Instance.new("TextLabel"); title.Size = UDim2.new(1,-30,1,0); title.Position = UDim2.new(0,10,0,0)
-    title.BackgroundTransparency = 1; title.Text = "MKRA Hub VIP v4.2"; title.TextColor3 = Color3.new(1,1,1)
-    title.Font = Enum.Font.GothamBold; title.TextSize = 16; title.Parent = titleBar
+    title.BackgroundTransparency = 1; title.Text = "MKRA Hub VIP v4.2 (No Range)"; title.TextColor3 = Color3.new(1,1,1)
+    title.Font = Enum.Font.GothamBold; title.TextSize = 14; title.Parent = titleBar
     local minimizeBtn = Instance.new("TextButton"); minimizeBtn.Size = UDim2.new(0,24,0,24); minimizeBtn.Position = UDim2.new(1,-27,0,3)
     minimizeBtn.BackgroundColor3 = Color3.fromRGB(200,50,50); minimizeBtn.Text = "−"; minimizeBtn.TextColor3 = Color3.new(1,1,1)
     minimizeBtn.Font = Enum.Font.SourceSansBold; minimizeBtn.TextSize = 18; minimizeBtn.Parent = titleBar
@@ -662,14 +669,14 @@ local function createUI()
     addTextBox(tabContainers["Move"], "WS Mult", "1", function(v) Settings.SpeedBoostMultiplier = tonumber(v) or 1; updateWalkSpeed() end)
     addToggle(tabContainers["Move"], "Inf Jump (Orig)", false, function(v) Settings.InfiniteJumpOrig = v end)
 
-    -- ===== Combat Tab =====
+    -- ===== Combat Tab (Kill Aura គ្មានកំណត់ចម្ងាយ) =====
     addToggle(tabContainers["Combat"], "Kill Aura", false, function(v) Settings.KillAura = v; toggleKillAura() end)
-    addTextBox(tabContainers["Combat"], "KA Range", "30", function(v) Settings.KillAuraRange = tonumber(v) or 30 end)
+    -- លុប textbox Range ចេញ ព្រោះលែងត្រូវការ
     addTextBox(tabContainers["Combat"], "KA Damage", "30", function(v) Settings.KillAuraDamage = tonumber(v) or 30 end)
     addToggle(tabContainers["Combat"], "KA NPCs", false, function(v) Settings.KillAuraNPC = v; if Settings.KillAura then toggleKillAura() end end)
     addTextBox(tabContainers["Combat"], "Remote Name", "", function(v) Settings.KillAuraRemote = v end)
     addTextBox(tabContainers["Combat"], "Args", "target,damage", function(v) Settings.KillAuraRemoteArgs = v end)
-    addToggle(tabContainers["Combat"], "Kill Mobs (99)", false, function(v) Settings.KillMobs = v; toggleKillMobs() end)
+    addToggle(tabContainers["Combat"], "Kill Mobs (No Range)", false, function(v) Settings.KillMobs = v; toggleKillMobs() end)
     addToggle(tabContainers["Combat"], "Hitbox", false, function(v) Settings.HitboxSize = v and 10 or 2 end)
     addToggle(tabContainers["Combat"], "AutoClick", false, function(v) Settings.AutoClick = v; toggleAutoClick() end)
     addToggle(tabContainers["Combat"], "ForceField", false, function(v) Settings.ForceField = v; updateForceField() end)
@@ -764,8 +771,8 @@ local function createUI()
     -- Credit
     local creditLabel = Instance.new("TextLabel"); creditLabel.Size = UDim2.new(1,0,0,20)
     creditLabel.Position = UDim2.new(0,0,1,-27); creditLabel.BackgroundTransparency = 1
-    creditLabel.Text = "ធ្វើដោយ Oun ka"; creditLabel.TextColor3 = Color3.new(1,1,1)
-    creditLabel.Font = Enum.Font.GothamBold; creditLabel.TextSize = 13; creditLabel.Parent = main
+    creditLabel.Text = "ធ្វើដោយ Oun ka (Full Map Kill)"; creditLabel.TextColor3 = Color3.new(1,1,1)
+    creditLabel.Font = Enum.Font.GothamBold; creditLabel.TextSize = 11; creditLabel.Parent = main
 
     -- Bottom rainbow
     local bottomRainbow = Instance.new("Frame"); bottomRainbow.Size = UDim2.new(1,0,0,5); bottomRainbow.Position = UDim2.new(0,0,1,-5)
@@ -847,4 +854,4 @@ end)
 
 -- ===== Start =====
 createUI()
-notify("MKRA Hub", "Loaded! v4.2 - គ្មានកាត់", 3)
+notify("MKRA Hub", "Loaded! No Range Kill - Full Map", 3)
