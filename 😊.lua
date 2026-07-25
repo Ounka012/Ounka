@@ -1,5 +1,5 @@
 --========================================================
--- EVADE: SPIRAL FARM (SAFE DISTANCE DROP)
+-- EVADE: SPIRAL FARM (GROUND PATROL, SAME SPEED)
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -106,7 +106,7 @@ local function createGUI(imageAsset)
     local title = Instance.new("TextLabel", mainFrame)
     title.Size = UDim2.new(1,0,0,45)
     title.BackgroundTransparency = 1
-    title.Text = "🌀 BUBBLE SPIRAL (SAFE DROP)"
+    title.Text = "🌀 BUBBLE SPIRAL (GROUND)"
     title.Font = Enum.Font.GothamBlack
     title.TextSize = 14
     title.TextColor3 = Color3.new(1,1,1)
@@ -154,12 +154,11 @@ local function createGUI(imageAsset)
 
     --============== អថេរ ==============
     local isLooping = false
-    local safeHeight = 80
     local radius = 20
     local angle = 0
-    local hoverDistance = 8  -- ចម្ងាយពីលើ Bubble (អាចកែបាន: 5-15)
+    local hoverDistance = 8  -- ចម្ងាយពីលើ Bubble មុនធ្លាក់
 
-    --============== ហោះវង់ + ទៅជិតតែមិនជិតពេក + ធ្លាក់ ==============
+    --============== ហោះវង់លើដី + ប្រមូល Bubble ==============
     local function toggleAutoLoop()
         isLooping = not isLooping
         if isLooping then
@@ -171,14 +170,17 @@ local function createGUI(imageAsset)
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
+                -- ចាប់យកកម្ពស់ដីបច្ចុប្បន្ន
+                local groundY = root.Position.Y
+
                 while isLooping do
-                    -- ហោះវង់នៅ safeHeight
+                    -- ហោះវង់នៅលើដី (Y ថេរ = groundY)
                     local rad = math.rad(angle)
                     local x = math.cos(rad) * radius
                     local z = math.sin(rad) * radius
-                    local spiralTarget = Vector3.new(x, safeHeight, z)
+                    local spiralTarget = Vector3.new(x, groundY, z)
 
-                    hintLabel.Text = "🌀 ហោះល្បាត..."
+                    hintLabel.Text = "🌀 ល្បាតលើដី..."
                     hintLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
                     fly(spiralTarget)
 
@@ -193,21 +195,18 @@ local function createGUI(imageAsset)
                             if b and b.Parent then
                                 local bubblePos = b.Position
                                 
-                                -- 1. ហោះទៅពីលើ Bubble ដោយទុកចម្ងាយ hoverDistance studs
-                                local aboveBubble = bubblePos + Vector3.new(0, hoverDistance, 0)
-                                fly(aboveBubble)
+                                -- 1. ហោះឡើងទៅពីលើ Bubble (ចម្ងាយ hoverDistance)
+                                fly(bubblePos + Vector3.new(0, hoverDistance, 0))
                                 
                                 -- 2. រង់ចាំបន្តិចនៅពីលើ
                                 task.wait(0.1)
                                 
-                                -- 3. ធ្លាក់ចុះទៅ Bubble (ពីចម្ងាយ hoverDistance មក 1 stud ពីលើ)
-                                local dropTarget = bubblePos + Vector3.new(0, 1, 0)
-                                fly(dropTarget)
+                                -- 3. ធ្លាក់ចុះទៅជិត Bubble
+                                fly(bubblePos + Vector3.new(0, 1, 0))
                                 
-                                -- 4. ឡើងវិញភ្លាមទៅ safeHeight
-                                fly(Vector3.new(bubblePos.X, safeHeight, bubblePos.Z))
+                                -- 4. ត្រឡប់មកដីវិញភ្លាម
+                                fly(Vector3.new(bubblePos.X, groundY, bubblePos.Z))
                                 
-                                -- រង់ចាំបន្តិច
                                 task.wait(0.1)
                             end
                         end
