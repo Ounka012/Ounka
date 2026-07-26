@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>PayloadDisplayName</key>
-    <string>vpn-ounka DoH</string>
+    <string>DNS-ounka </string>
     <key>PayloadDescription</key>
     <string>Configures Encrypted DNS over HTTPS using vpn-ounka</string>
     <key>PayloadIdentifier</key>
