@@ -1,54 +1,177 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <!-- ផ្នែកកំណត់ Profile ទាំងមូល -->
-    <key>PayloadDisplayName</key>
-    <string>NextDNS Pro/VIP Config</string>
-    <key>PayloadDescription</key>
-    <string>ដំឡើង NextDNS Encrypted DNS លើគ្រប់បណ្តាញ</string>
-    <key>PayloadIdentifier</key>
-    <string>io.nextdns.profile.main</string>
-    <key>PayloadType</key>
-    <string>Configuration</string>
-    <key>PayloadVersion</key>
-    <integer>1</integer>
-    <key>PayloadUUID</key>
-    <string>11111111-2222-3333-4444-555555555555</string> <!-- អាចប្តូរបាន តែមិនចាំបាច់ -->
-    <key>PayloadRemovalDisallowed</key>
-    <false/>
+import SwiftUI
 
-    <!-- ផ្នែកកំណត់ DNS -->
-    <key>PayloadContent</key>
-    <array>
-        <dict>
-            <key>PayloadType</key>
-            <string>com.apple.dnsSettings.managed</string>
-            <key>PayloadVersion</key>
-            <integer>1</integer>
-            <key>PayloadIdentifier</key>
-            <string>io.nextdns.profile.dns</string>
-            <key>PayloadUUID</key>
-            <string>66666666-7777-8888-9999-aaaaaaaaaa</string>
-            <key>PayloadDisplayName</key>
-            <string>NextDNS Encrypted DNS</string>
-            <key>PayloadDescription</key>
-            <string>កំណត់ DNS Over HTTPS (DoH)</string>
+struct ContentView: View {
+    // អថេរគ្រប់គ្រងស្ថានភាព
+    @State private var isAutoTapping = false
+    @State private var tapCount = 0
+    @State private var interval: Double = 1.0 // វិនាទី
+    @State private var timer: Timer?
+    @State private var isTargetHighlighted = false
+    
+    var body: some View {
+        ZStack {
+            // ផ្ទៃខាងក្រោយពណ៌ខ្មៅងងឹត
+            Color.black.ignoresSafeArea()
             
-            <key>DNSSettings</key>
-            <dict>
-                <key>DNSProtocol</key>
-                <string>HTTPS</string>
-                <!-- សំខាន់បំផុត៖ ត្រូវប្តូរកន្លែងនេះជាលេខ ID ពិតរបស់អ្នក -->
-                <key>ServerURL</key>
-                <string>https://[ដាក់IDរបស់អ្នកនៅទីនេះ].dns.nextdns.io/dns-query</string>
-                <key>ServerAddresses</key>
-                <array>
-                    <string>45.90.28.0</string>
-                    <string>45.90.30.0</string>
-                </array>
-            </dict>
-        </dict>
-    </array>
-</dict>
-</plist>
+            VStack(spacing: 30) {
+                // ====== ចំណងជើង ======
+                Text("🖱️ Auto Clicker")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .padding(.top, 40)
+                
+                Spacer()
+                
+                // ====== គោលដៅចុច (Target Area) ======
+                VStack {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 30)
+                            .fill(isTargetHighlighted ? Color.green : Color.blue)
+                            .frame(width: 200, height: 200)
+                            .shadow(color: .blue.opacity(0.5), radius: 15)
+                            .animation(.easeInOut(duration: 0.2), value: isTargetHighlighted)
+                            .overlay(
+                                VStack(spacing: 10) {
+                                    Image(systemName: "hand.tap.fill")
+                                        .font(.system(size: 50))
+                                        .foregroundColor(.white)
+                                    Text("ចុចខ្ញុំ")
+                                        .font(.title2)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.white)
+                                    Text("(ឬចុចដោយស្វ័យប្រវត្តិ)")
+                                        .font(.caption)
+                                        .foregroundColor(.white.opacity(0.7))
+                                }
+                            )
+                            // អនុញ្ញាតឱ្យចុចដោយដៃផ្ទាល់
+                            .onTapGesture {
+                                handleTap()
+                            }
+                        
+                        // បង្ហាញចំនួនដងពីលើ
+                        Text("\(tapCount)")
+                            .font(.system(size: 80, weight: .heavy))
+                            .foregroundColor(.white.opacity(0.2))
+                            .offset(y: -140)
+                    }
+                    Text("ចំនួនចុច: \(tapCount)")
+                        .font(.headline)
+                        .foregroundColor(.gray)
+                }
+                
+                Spacer()
+                
+                // ====== បន្ទះកំណត់ពេល (Slider) ======
+                VStack(spacing: 8) {
+                    HStack {
+                        Text("⏱️ ចន្លោះពេល")
+                            .foregroundColor(.white)
+                            .fontWeight(.medium)
+                        Spacer()
+                        Text(String(format: "%.1f វិនាទី", interval))
+                            .foregroundColor(.cyan)
+                            .fontWeight(.bold)
+                    }
+                    Slider(value: $interval, in: 0.3...5.0, step: 0.1)
+                        .accentColor(.cyan)
+                        .disabled(isAutoTapping) // ហាមប្តូរពេលកំពុងដំណើរការ
+                }
+                .padding(.horizontal)
+                
+                // ====== ប៊ូតុង Start/Stop ======
+                Button(action: {
+                    isAutoTapping.toggle()
+                    if isAutoTapping {
+                        startAutoTap()
+                    } else {
+                        stopAutoTap()
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: isAutoTapping ? "stop.circle.fill" : "play.circle.fill")
+                            .font(.title2)
+                        Text(isAutoTapping ? "បញ្ឈប់" : "ចាប់ផ្ដើម")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(isAutoTapping ? Color.red : Color.green)
+                    .cornerRadius(20)
+                    .shadow(color: (isAutoTapping ? Color.red : Color.green).opacity(0.5), radius: 10)
+                }
+                .padding(.horizontal)
+                
+                // ====== ប៊ូតុង Reset ======
+                Button(action: {
+                    resetCounter()
+                }) {
+                    Text("🔄 កំណត់សូន្យវិញ")
+                        .font(.callout)
+                        .foregroundColor(.gray)
+                }
+                .padding(.bottom, 40)
+            }
+            .padding()
+        }
+        // កំណត់តម្លៃឱ្យអថេរពេលបិទ App
+        .onDisappear {
+            stopAutoTap()
+        }
+    }
+    
+    // ====== មុខងារចុច (ហៅបានទាំងដៃ និងស្វ័យប្រវត្តិ) ======
+    func handleTap() {
+        // ធ្វើឱ្យពន្លឺភ្លឹបភ្លែតៗ
+        isTargetHighlighted = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            isTargetHighlighted = false
+        }
+        // បង្កើនចំនួន
+        tapCount += 1
+        
+        // ធ្វើការរំញ័រស្រាលៗ (Haptic Feedback) បើចង់
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+        
+        print("បានចុចនៅពេល: \(Date())")
+    }
+    
+    // ====== ចាប់ផ្ដើម Timer ======
+    func startAutoTap() {
+        // បើមាន Timer ចាស់ លុបចោលសិន
+        timer?.invalidate()
+        
+        // បង្កើត Timer ថ្មី
+        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
+            // ត្រូវប្រាកដថា នៅតែកំពុងដំណើរការ
+            if self.isAutoTapping {
+                self.handleTap()
+            }
+        }
+    }
+    
+    // ====== បញ្ឈប់ Timer ======
+    func stopAutoTap() {
+        timer?.invalidate()
+        timer = nil
+        isAutoTapping = false
+        isTargetHighlighted = false
+    }
+    
+    // ====== កំណត់តម្លៃសូន្យ ======
+    func resetCounter() {
+        guard !isAutoTapping else { return } // មិនអនុញ្ញាតពេលកំពុងរត់
+        tapCount = 0
+    }
+}
+
+// ====== Preview ======
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
+}
