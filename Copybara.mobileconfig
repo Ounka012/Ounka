@@ -3,60 +3,40 @@
 <plist version="1.0">
 <dict>
     <key>PayloadDisplayName</key>
-    <string>NextDNS</string>
-    
+    <string>NextDNS DoH</string>
     <key>PayloadDescription</key>
-    <string>Configure NextDNS over HTTPS</string>
-    
-    <key>PayloadOrganization</key>
-    <string>NextDNS</string>
-    
+    <string>Configures Encrypted DNS over HTTPS using NextDNS</string>
     <key>PayloadIdentifier</key>
-    <string>com.nextdns.profile</string>
-    
+    <string>com.nextdns.mobileconfig</string>
     <key>PayloadUUID</key>
     <string>9F01A4B0-4A3C-43E2-9E8D-1A2B3C4D5E6F</string>
-    
     <key>PayloadVersion</key>
     <integer>1</integer>
-    
     <key>PayloadType</key>
     <string>Configuration</string>
-
     <key>PayloadContent</key>
     <array>
         <dict>
             <key>PayloadDisplayName</key>
-            <string>NextDNS DoH</string>
-            
+            <string>DNS Settings</string>
             <key>PayloadDescription</key>
-            <string>Encrypted DNS using NextDNS</string>
-            
+            <string>Configures DNS settings</string>
             <key>PayloadIdentifier</key>
-            <string>com.nextdns.profile.dns</string>
-            
+            <string>com.apple.dnsSettings.managed.nextdns</string>
             <key>PayloadUUID</key>
             <string>1A2B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D</string>
-            
             <key>PayloadVersion</key>
             <integer>1</integer>
-            
-            <!-- កែប្រែ PayloadType មកប្រើ managed ដើម្បីឱ្យ iOS ស្គាល់ Profile -->
             <key>PayloadType</key>
             <string>com.apple.dnsSettings.managed</string>
-            
             <key>DNSSettings</key>
             <dict>
                 <key>DNSProtocol</key>
                 <string>HTTPS</string>
-                
                 <key>ServerName</key>
                 <string>dns.nextdns.io</string>
-                
-                <!-- កុំភ្លេចប្តូរ YOUR_PROFILE_ID ទៅជា ID NextDNS របស់អ្នក -->
                 <key>ServerURL</key>
                 <string>https://dns.nextdns.io/YOUR_PROFILE_ID</string>
-                
                 <key>ServerAddresses</key>
                 <array>
                     <string>45.90.28.0</string>
