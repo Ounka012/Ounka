@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- ផ្នែកគ្រប់គ្រង Profile ទាំងមូល -->
+    <key>PayloadDisplayName</key>
+    <string>NextDNS Pro/VIP Profile</string>
+    <key>PayloadDescription</key>
+    <string>ប្រើប្រាស់ Encrypted DNS របស់ NextDNS សម្រាប់គ្រប់បណ្តាញ</string>
+    <key>PayloadIdentifier</key>
+    <string>io.nextdns.profile.main</string>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+    <key>PayloadUUID</key>
+    <string>11111111-2222-3333-4444-555555555555</string> <!-- ផ្លាស់ប្តូរទៅ UUID ថ្មីណាមួយក៏បាន -->
+    <key>PayloadRemovalDisallowed</key>
+    <false/>
+
+    <!-- ផ្នែកកំណត់ DNS -->
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>PayloadType</key>
+            <string>com.apple.dnsSettings.managed</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>PayloadIdentifier</key>
+            <string>io.nextdns.profile.dns</string>
+            <key>PayloadUUID</key>
+            <string>66666666-7777-8888-9999-aaaaaaaaaa</string> <!-- ផ្លាស់ប្តូរទៅ UUID ថ្មីណាមួយក៏បាន -->
+            <key>PayloadDisplayName</key>
+            <string>NextDNS Encrypted DNS</string>
+            <key>PayloadDescription</key>
+            <string>កំណត់ DNS Over HTTPS ឱ្យដំណើរការ</string>
+
+            <!-- ការកំណត់ DNS ពិតប្រាកដ -->
+            <key>DNSSettings</key>
+            <dict>
+                <key>DNSProtocol</key>
+                <string>HTTPS</string>
+                <key>ServerURL</key>
+                <string>https://[ដាក់លេខIDរបស់អ្នកនៅទីនេះ].dns.nextdns.io/dns-query</string>
+                <key>ServerAddresses</key>
+                <array>
+                    <string>45.90.28.0</string>
+                    <string>45.90.30.0</string>
+                </array>
+            </dict>
+        </dict>
+    </array>
+</dict>
+</plist>
