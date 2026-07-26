@@ -593,7 +593,7 @@ local function createUI()
     titleBar.BackgroundColor3 = Color3.fromRGB(25,25,25); titleBar.BorderSizePixel = 0; titleBar.Parent = main
     Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0,10)
     local title = Instance.new("TextLabel"); title.Size = UDim2.new(1,-30,1,0); title.Position = UDim2.new(0,10,0,0)
-    title.BackgroundTransparency = 1; title.Text = "MKRA Hub VIP v4.2 (No Range)"; title.TextColor3 = Color3.new(1,1,1)
+    title.BackgroundTransparency = 1; title.Text = "OUNCOPYBARA VIP v4.2 (ស្លាញគេម្នាក់ឯង)"; title.TextColor3 = Color3.new(1,1,1)
     title.Font = Enum.Font.GothamBold; title.TextSize = 14; title.Parent = titleBar
     local minimizeBtn = Instance.new("TextButton"); minimizeBtn.Size = UDim2.new(0,24,0,24); minimizeBtn.Position = UDim2.new(1,-27,0,3)
     minimizeBtn.BackgroundColor3 = Color3.fromRGB(200,50,50); minimizeBtn.Text = "−"; minimizeBtn.TextColor3 = Color3.new(1,1,1)
