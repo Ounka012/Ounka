@@ -854,4 +854,4 @@ end)
 
 -- ===== Start =====
 createUI()
-notify("MKRA Hub", "Loaded! No Range Kill - Full Map", 3)
+notify("OUNCOPYBARA", "Loaded! No Range Kill - Full Map", 3)
