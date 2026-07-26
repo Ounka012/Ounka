@@ -2,13 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- ផ្នែកកំណត់ Profile ទាំងមូល -->
     <key>PayloadDisplayName</key>
-    <string>Cloudflare Fast DNS (Game Booster)</string>
+    <string>NextDNS Boost Profile</string>
     <key>PayloadDescription</key>
-    <string>ជួយកាត់បន្ថយ Ping និង Lag សម្រាប់ការលេងហ្គេម និងអ៊ីនធឺណិតលឿនជាងមុន</string>
+    <string>កែលម្អល្បឿនអ៊ីនធឺណិត និងកាត់បន្ថយ Ping</string>
     <key>PayloadIdentifier</key>
-    <string>com.cloudflare.ios.dns.profile</string>
+    <string>io.nextdns.profile.main</string>
     <key>PayloadType</key>
     <string>Configuration</string>
     <key>PayloadVersion</key>
@@ -17,8 +16,6 @@
     <string>11111111-2222-3333-4444-555555555555</string>
     <key>PayloadRemovalDisallowed</key>
     <false/>
-
-    <!-- ផ្នែកកំណត់ DNS ដែលនឹងដំណើរការលើទូរស័ព្ទ -->
     <key>PayloadContent</key>
     <array>
         <dict>
@@ -27,25 +24,24 @@
             <key>PayloadVersion</key>
             <integer>1</integer>
             <key>PayloadIdentifier</key>
-            <string>com.cloudflare.ios.dns.settings</string>
+            <string>io.nextdns.profile.dns</string>
             <key>PayloadUUID</key>
             <string>66666666-7777-8888-9999-aaaaaaaaaa</string>
             <key>PayloadDisplayName</key>
-            <string>Cloudflare 1.1.1.1 (លឿនជាងគេ)</string>
+            <string>NextDNS Encrypted</string>
             <key>PayloadDescription</key>
-            <string>Encrypted DNS សម្រាប់បង្កើនល្បឿនបណ្តាញ</string>
-            
-            <!-- ការកំណត់ DNS ពិតប្រាកដ -->
+            <string>DNS Over HTTPS</string>
             <key>DNSSettings</key>
             <dict>
                 <key>DNSProtocol</key>
                 <string>HTTPS</string>
+                <!-- សំខាន់បំផុត៖ ត្រូវប្តូរ [ID] នេះជាលេខ ID គណនី NextDNS របស់អ្នក -->
                 <key>ServerURL</key>
-                <string>https://cloudflare-dns.com/dns-query</string>
+                <string>https://[ដាក់IDរបស់អ្នកនៅទីនេះ].dns.nextdns.io/dns-query</string>
                 <key>ServerAddresses</key>
                 <array>
-                    <string>1.1.1.1</string>
-                    <string>1.0.0.1</string>
+                    <string>45.90.28.0</string>
+                    <string>45.90.30.0</string>
                 </array>
             </dict>
         </dict>
