@@ -2,10 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- ផ្នែកកំណត់ Profile ទាំងមូល -->
     <key>PayloadDisplayName</key>
-    <string>NextDNS Boost Profile</string>
+    <string>NextDNS Pro/VIP Config</string>
     <key>PayloadDescription</key>
-    <string>កែលម្អល្បឿនអ៊ីនធឺណិត និងកាត់បន្ថយ Ping</string>
+    <string>ដំឡើង NextDNS Encrypted DNS លើគ្រប់បណ្តាញ</string>
     <key>PayloadIdentifier</key>
     <string>io.nextdns.profile.main</string>
     <key>PayloadType</key>
@@ -16,6 +17,8 @@
     <string>11111111-2222-3333-4444-555555555555</string>
     <key>PayloadRemovalDisallowed</key>
     <false/>
+
+    <!-- ផ្នែកកំណត់ DNS -->
     <key>PayloadContent</key>
     <array>
         <dict>
@@ -28,14 +31,15 @@
             <key>PayloadUUID</key>
             <string>66666666-7777-8888-9999-aaaaaaaaaa</string>
             <key>PayloadDisplayName</key>
-            <string>NextDNS Encrypted</string>
+            <string>NextDNS Encrypted DNS</string>
             <key>PayloadDescription</key>
-            <string>DNS Over HTTPS</string>
+            <string>កំណត់ DNS Over HTTPS (DoH)</string>
+            
             <key>DNSSettings</key>
             <dict>
                 <key>DNSProtocol</key>
                 <string>HTTPS</string>
-                <!-- សំខាន់បំផុត៖ ត្រូវប្តូរ [ID] នេះជាលេខ ID គណនី NextDNS របស់អ្នក -->
+                <!-- សំខាន់បំផុត៖ ត្រូវប្តូរកន្លែងនេះជាលេខ ID ពិតរបស់អ្នក -->
                 <key>ServerURL</key>
                 <string>https://[ដាក់IDរបស់អ្នកនៅទីនេះ].dns.nextdns.io/dns-query</string>
                 <key>ServerAddresses</key>
