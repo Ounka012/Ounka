@@ -22,15 +22,12 @@
     
     <key>PayloadType</key>
     <string>Configuration</string>
-    
-    <key>PayloadRemovalDisallowed</key>
-    <false/>
-    
+
     <key>PayloadContent</key>
     <array>
         <dict>
             <key>PayloadDisplayName</key>
-            <string>DNS Settings</string>
+            <string>NextDNS DoH</string>
             
             <key>PayloadDescription</key>
             <string>Encrypted DNS using NextDNS</string>
@@ -44,15 +41,15 @@
             <key>PayloadVersion</key>
             <integer>1</integer>
             
+            <!-- កែប្រែ PayloadType មកប្រើ managed ដើម្បីឱ្យ iOS ស្គាល់ Profile -->
             <key>PayloadType</key>
-            <string>com.apple.dnsSettings</string>
+            <string>com.apple.dnsSettings.managed</string>
             
             <key>DNSSettings</key>
             <dict>
                 <key>DNSProtocol</key>
                 <string>HTTPS</string>
                 
-                <!-- តម្រូវឱ្យមាន ServerName សម្រាប់ DoH -->
                 <key>ServerName</key>
                 <string>dns.nextdns.io</string>
                 
