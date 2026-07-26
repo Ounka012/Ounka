@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
     <key>PayloadDisplayName</key>
-    <string>NextDNS DoH</string>
+    <string>vpn-ounka DoH</string>
     <key>PayloadDescription</key>
-    <string>Configures Encrypted DNS over HTTPS using NextDNS</string>
+    <string>Configures Encrypted DNS over HTTPS using vpn-ounka</string>
     <key>PayloadIdentifier</key>
     <string>com.nextdns.mobileconfig</string>
     <key>PayloadUUID</key>
