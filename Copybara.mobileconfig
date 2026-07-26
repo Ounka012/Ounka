@@ -5,7 +5,7 @@
     <key>PayloadDisplayName</key>
     <string>DNS-ounka </string>
     <key>PayloadDescription</key>
-    <string>Configures Encrypted DNS over HTTPS using vpn-ounka</string>
+    <string>Configures Encrypted DNS over HTTPS using DNS-ounka</string>
     <key>PayloadIdentifier</key>
     <string>com.nextdns.mobileconfig</string>
     <key>PayloadUUID</key>
