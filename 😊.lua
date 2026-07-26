@@ -571,8 +571,8 @@ end
 
 -- ===== UI =====
 local function createUI()
-    if CoreGui:FindFirstChild("MKRA_Hub") then CoreGui.MKRA_Hub:Destroy() end
-    local gui = Instance.new("ScreenGui"); gui.Name = "MKRA_Hub"; gui.Parent = CoreGui
+    if CoreGui:FindFirstChild("OUNCOPYBARA") then CoreGui.OUNCOPYBARA:Destroy() end
+    local gui = Instance.new("ScreenGui"); gui.Name = "OUNCOPYBARA"; gui.Parent = CoreGui
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
     local main = Instance.new("Frame")
