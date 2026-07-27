@@ -1,11 +1,4 @@
---[[
-    MKRA Ultimate Hub | VIP EDITION v4.2 (No External Library)
-    UI ផ្ទាល់ គ្មាន Rayfield គ្មាន URL
-    រចនាដោយ Oun ka
-    បន្ថែម៖ Auto F (No Walk) + Auto Click Ball (PC/Mobile)
-]]
 
--- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -19,7 +12,6 @@ local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 local TeleportService = game:GetService("TeleportService")
 
--- Settings (បន្ថែម AutoF)
 local Settings = {
     Fly = false,
     FlySpeed = 120,
