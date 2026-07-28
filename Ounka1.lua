@@ -1,552 +1,469 @@
 --[[
-    ╔══════════════════════════════════════════════════════════════╗
-    ║         MKRA HUB - LITE VERSION (COMBAT & MOBS ONLY)         ║
-    ╚══════════════════════════════════════════════════════════════╝
-]]
+    99 Night VIP Pro - Ultimate Magnet Edition (Fixed & Optimized)
+    កែសម្រួល៖ បញ្ហា Memory Leak, JumpPower, និងបន្ថែម Player Magnet
+--]]
 
--- ═══════════════════════════════════════════════════════════════
--- SERVICES INITIALIZATION
--- ═══════════════════════════════════════════════════════════════
-local Services = {
-    Players = game:GetService("Players"),
-    RunService = game:GetService("RunService"),
-    Workspace = game:GetService("Workspace"),
-    ReplicatedStorage = game:GetService("ReplicatedStorage"),
-    CoreGui = game:GetService("CoreGui"),
-    StarterGui = game:GetService("StarterGui"),
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua'))()
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+
+-- State
+local FeatureStates = {
+    Noclip = false,
+    Fly = false,
+    EnemyESP = false,
+    MagnetCoal = false,
+    MagnetFuel = false,
+    MagnetHealing = false,
+    MagnetMetal = false,
+    MagnetPlayers = false,   -- បន្ថែមថ្មី
+    GoldChestESP = false,
+    DayLight = false,
+    SpeedX3 = false,
 }
 
-local LocalPlayer = Services.Players.LocalPlayer
-local Camera = Services.Workspace.CurrentCamera
+-- Config
+local FlySpeed = 50
+local MagnetRange = 500
+local MagnetStrength = 120
+local CurrentWalkSpeed = 16
+local CurrentJumpPower = 50
 
--- ═══════════════════════════════════════════════════════════════
--- CONFIGURATION & CONSTANTS
--- ═══════════════════════════════════════════════════════════════
-local CONFIG = {
-    UI_NAME = "MkraHub_" .. tostring(LocalPlayer.UserId),
-    RAINBOW_SPEED = 0.3,
-    DEFAULT_TIMEOUT = 3,
-}
+-- Connections
+local FlyConnection, NoclipConnection, MagnetConnection
+local DescendantAddedConnection -- បន្ថែមសម្រាប់ដោះស្រាយបញ្ហា Memory Leak
+local FlyAttachment, LinearVel, AlignOrient
 
-local THEME = {
-    Dark = Color3.fromRGB(20, 20, 20),
-    DarkMedium = Color3.fromRGB(25, 25, 25),
-    Medium = Color3.fromRGB(30, 30, 30),
-    Button = Color3.fromRGB(60, 60, 60),
-    Active = Color3.fromRGB(0, 120, 200),
-    Success = Color3.fromRGB(0, 140, 0),
-    Error = Color3.fromRGB(220, 50, 50),
-    Text = Color3.new(1, 1, 1),
-    Transparent = 0.05,
-}
+-- Cache
+local EnemyESP_Objects = {}
+local ChestESP_Objects = {}
+local MagnetTargets = {}
+local MagnetTargetSet = {}
 
--- ═══════════════════════════════════════════════════════════════
--- STATE MANAGEMENT
--- ═══════════════════════════════════════════════════════════════
-local State = {
-    Settings = {
-        -- Combat
-        KillAura = false,
-        KillAuraRange = 30,
-        KillAuraDamage = 30,
-        KillAuraNPC = false,
-        KillAuraRemote = "",
-        KillAuraRemoteArgs = "target,damage",
-        
-        -- Farming
-        KillMobs = false,
-    },
-    Connections = {
-        KillAura = nil,
-        KillMobs = nil,
-    },
-    UI = {
-        MainWindow = nil,
-    }
-}
+-- Keywords
+local CoalNames = {"coal", "charcoal", "carbon", "ore_coal", "coalore", "coal_ore", "rock_coal"}
+local FuelNames = {"fuel", "gas", "canister", "jerry", "petrol", "gasoline", "fuelcan", "gascan"}
+local HealingNames = {"medkit", "bandage", "health", "firstaid", "first aid", "potion", "stim", "heal", "aidkit", "healthpack", "medicine"}
+local MetalNames = {"iron", "metal", "steel", "copper", "bronze", "scrap", "ore_iron", "ironore", "iron_ore", "metalpiece", "ingot"}
 
--- ═══════════════════════════════════════════════════════════════
--- UTILITY FUNCTIONS
--- ═══════════════════════════════════════════════════════════════
-
---- Notification System
-local function Notify(title, text, duration)
-    pcall(function()
-        Services.StarterGui:SetCore("SendNotification", {
-            Title = title,
-            Text = text,
-            Duration = duration or CONFIG.DEFAULT_TIMEOUT
-        })
-    end)
-end
-
---- Rainbow Color Generator
-local RainbowCache = {}
-local function GetRainbowColor(speed, offset)
-    local t = tick()
-    local cacheKey = "rainbow"
-    
-    if not RainbowCache[cacheKey] or (t - RainbowCache[cacheKey].time > 0.1) then
-        local hue = (t * (speed or 1) + (offset or 0)) % 1
-        RainbowCache[cacheKey] = {
-            color = Color3.fromHSV(hue, 1, 1),
-            time = t
-        }
+-- Helpers
+local function containsKeyword(name, keywords)
+    name = string.lower(name)
+    for _, kw in ipairs(keywords) do
+        if string.find(name, kw) then return true end
     end
-    return RainbowCache[cacheKey].color
+    return false
 end
 
---- Get Valid Character
-local function GetCharacter()
+local function getModelTargetPart(model)
+    return model.PrimaryPart or model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Handle") or model:FindFirstChildWhichIsA("BasePart")
+end
+
+-- ==================== Enemy ESP ====================
+local function ClearEnemyESP()
+    for _, obj in pairs(EnemyESP_Objects) do if obj and obj.Parent then obj:Destroy() end end
+    EnemyESP_Objects = {}
+end
+
+local function ApplyEnemyESP()
+    ClearEnemyESP()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
+            local isPlayer = false
+            for _, p in pairs(Players:GetPlayers()) do
+                if p.Character == obj then isPlayer = true break end
+            end
+            if not isPlayer then
+                local highlight = Instance.new("Highlight")
+                highlight.FillColor = Color3.fromRGB(255,0,0)
+                highlight.OutlineColor = Color3.fromRGB(255,0,0)
+                highlight.FillTransparency = 0.5
+                highlight.Parent = obj
+                table.insert(EnemyESP_Objects, highlight)
+
+                local primary = obj:FindFirstChild("HumanoidRootPart") or obj.PrimaryPart
+                if primary then
+                    local billboard = Instance.new("BillboardGui")
+                    billboard.Size = UDim2.new(0,100,0,30)
+                    billboard.StudsOffset = Vector3.new(0,3,0)
+                    billboard.AlwaysOnTop = true
+                    billboard.Parent = primary
+                    local text = Instance.new("TextLabel")
+                    text.Size = UDim2.new(1,0,1,0)
+                    text.BackgroundTransparency = 1
+                    text.TextColor3 = Color3.fromRGB(255,0,0)
+                    text.TextStrokeTransparency = 0
+                    text.TextScaled = true
+                    text.Text = "☠ " .. obj.Name
+                    text.Parent = billboard
+                    table.insert(EnemyESP_Objects, billboard)
+                end
+            end
+        end
+    end
+end
+
+-- ==================== Gold Chest ESP ====================
+local function ClearChestESP()
+    for _, obj in pairs(ChestESP_Objects) do if obj and obj.Parent then obj:Destroy() end end
+    ChestESP_Objects = {}
+end
+
+local function ApplyGoldChestESP()
+    ClearChestESP()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and (obj.Name:lower():find("chest") or obj.Name:lower():find("treasure") or obj.Name:lower():find("box") or obj.Name:lower():find("crate")) then
+            if not obj:FindFirstChild("Humanoid") then
+                local highlight = Instance.new("Highlight")
+                highlight.FillColor = Color3.fromRGB(255,215,0)
+                highlight.OutlineColor = Color3.fromRGB(255,255,255)
+                highlight.FillTransparency = 0.4
+                highlight.Parent = obj
+                table.insert(ChestESP_Objects, highlight)
+
+                local primary = obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart")
+                if primary then
+                    local billboard = Instance.new("BillboardGui")
+                    billboard.Size = UDim2.new(0,120,0,30)
+                    billboard.StudsOffset = Vector3.new(0,3,0)
+                    billboard.AlwaysOnTop = true
+                    billboard.Parent = primary
+                    local text = Instance.new("TextLabel")
+                    text.Size = UDim2.new(1,0,1,0)
+                    text.BackgroundTransparency = 1
+                    text.TextColor3 = Color3.fromRGB(255,215,0)
+                    text.TextStrokeTransparency = 0
+                    text.TextScaled = true
+                    text.Text = "✨ ហិបមាស ✨"
+                    text.Parent = billboard
+                    table.insert(ChestESP_Objects, billboard)
+                end
+            end
+        end
+    end
+end
+
+-- ==================== Day Light ====================
+local function EnableDayLight()
+    Lighting.ClockTime = 14
+    Lighting.Brightness = 5
+    Lighting.Ambient = Color3.fromRGB(200,200,220)
+    Lighting.OutdoorAmbient = Color3.fromRGB(180,180,200)
+    Lighting.FogEnd = 100000
+end
+
+local function DisableDayLight()
+    Lighting.Brightness = 1
+    Lighting.Ambient = Color3.fromRGB(0,0,0)
+    Lighting.OutdoorAmbient = Color3.fromRGB(0,0,0)
+end
+
+-- ==================== Speed & Jump ====================
+local function ApplySpeedAndJump(character)
+    local hum = character and character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.WalkSpeed = FeatureStates.SpeedX3 and (CurrentWalkSpeed * 3) or CurrentWalkSpeed
+        hum.JumpPower = CurrentJumpPower
+        hum.UseJumpPower = true -- បន្ថែមសម្រាប់ Roblox Version ថ្មី
+    end
+end
+
+local function UpdateSpeedAndJump()
+    if LocalPlayer.Character then ApplySpeedAndJump(LocalPlayer.Character) end
+end
+
+-- ==================== Fly ====================
+local function StopFly()
+    FeatureStates.Fly = false
+    if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
+    if LinearVel then LinearVel:Destroy() LinearVel = nil end
+    if AlignOrient then AlignOrient:Destroy() AlignOrient = nil end
+    if FlyAttachment then FlyAttachment:Destroy() FlyAttachment = nil end
     local char = LocalPlayer.Character
-    return (char and char:FindFirstChild("Humanoid")) and char or nil
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hum then hum.PlatformStand = false end
+        if hrp then hrp.AssemblyLinearVelocity = Vector3.zero end
+    end
 end
 
---- Get Humanoid Root Part
-local function GetRootPart()
-    local char = GetCharacter()
-    return char and char:FindFirstChild("HumanoidRootPart") or nil
+local function StartFly()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+
+    hum.PlatformStand = true
+    hrp.AssemblyLinearVelocity = Vector3.zero
+
+    FlyAttachment = Instance.new("Attachment"); FlyAttachment.Parent = hrp
+    LinearVel = Instance.new("LinearVelocity")
+    LinearVel.Attachment0 = FlyAttachment
+    LinearVel.MaxForce = math.huge
+    LinearVel.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+    LinearVel.Parent = hrp
+    AlignOrient = Instance.new("AlignOrientation")
+    AlignOrient.Attachment0 = FlyAttachment
+    AlignOrient.MaxTorque = math.huge
+    AlignOrient.MaxAngularVelocity = math.huge
+    AlignOrient.Responsiveness = 200
+    AlignOrient.Parent = hrp
+
+    FeatureStates.Fly = true
+
+    if FlyConnection then FlyConnection:Disconnect() end
+    FlyConnection = RunService.RenderStepped:Connect(function()
+        if not FeatureStates.Fly or not LinearVel then return end
+        local camera = Workspace.CurrentCamera
+        local char2 = LocalPlayer.Character
+        if not char2 then return end
+        local hum2 = char2:FindFirstChildOfClass("Humanoid")
+        if not hum2 then return end
+
+        local moveDir = Vector3.zero
+        if hum2.MoveDirection.Magnitude > 0 then
+            moveDir = hum2.MoveDirection * FlySpeed
+        end
+        LinearVel.VectorVelocity = moveDir
+        AlignOrient.CFrame = CFrame.new(Vector3.zero, camera.CFrame.LookVector)
+    end)
 end
 
--- ═══════════════════════════════════════════════════════════════
--- COMBAT SYSTEM
--- ═══════════════════════════════════════════════════════════════
-local Combat = {}
+-- ==================== Noclip ====================
+local function StartNoclip()
+    if NoclipConnection then return end
+    NoclipConnection = RunService.Stepped:Connect(function()
+        if not FeatureStates.Noclip then return end
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
+            end
+        end
+    end)
+end
 
-function Combat:GetKARemote()
-    if State.Settings.KillAuraRemote == "" then return nil end
-    
-    local remoteName = State.Settings.KillAuraRemote
-    
-    for _, v in ipairs(Services.ReplicatedStorage:GetDescendants()) do
-        if v.Name == remoteName and (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) then
-            return v
+local function StopNoclip()
+    if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil end
+    local char = LocalPlayer.Character
+    if char then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = true end
         end
     end
-    
-    for _, v in ipairs(Services.Workspace:GetDescendants()) do
-        if v.Name == remoteName and (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) then
-            return v
-        end
-    end
-    
-    return nil
 end
 
-function Combat:GetKATargets()
-    local targets = {}
-    
-    -- Players
-    for _, plr in ipairs(Services.Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character then
-            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
-            local root = plr.Character:FindFirstChild("HumanoidRootPart")
-            if hum and root and hum.Health > 0 then
-                table.insert(targets, {
-                    Humanoid = hum,
-                    RootPart = root,
-                    IsPlayer = true
-                })
+-- ==================== Magnet System (Updated with Player Magnet) ====================
+local function isValidTarget(obj)
+    if not obj then return false end
+    local name = obj.Name
+    if FeatureStates.MagnetCoal and containsKeyword(name, CoalNames) then return true end
+    if FeatureStates.MagnetFuel and containsKeyword(name, FuelNames) then return true end
+    if FeatureStates.MagnetHealing and containsKeyword(name, HealingNames) then return true end
+    if FeatureStates.MagnetMetal and containsKeyword(name, MetalNames) then return true end
+    return false
+end
+
+local function isPlayerCharacter(obj)
+    if not FeatureStates.MagnetPlayers then return false end
+    if not obj:IsA("Model") then return false end
+    if not obj:FindFirstChildOfClass("Humanoid") then return false end
+    return obj ~= LocalPlayer.Character
+end
+
+local function tryAddTarget(obj)
+    local isAnyMagnetOn = FeatureStates.MagnetCoal or FeatureStates.MagnetFuel or FeatureStates.MagnetHealing or FeatureStates.MagnetMetal or FeatureStates.MagnetPlayers
+    if not isAnyMagnetOn then return end
+
+    if isPlayerCharacter(obj) then
+        local root = obj:FindFirstChild("HumanoidRootPart")
+        if root then
+            if not MagnetTargetSet[root] then
+                MagnetTargetSet[root] = true
+                table.insert(MagnetTargets, root)
+            end
+        end
+        return
+    end
+
+    if not isValidTarget(obj) then return end
+
+    local part = nil
+    if obj:IsA("BasePart") then part = obj
+    elseif obj:IsA("Model") then part = getModelTargetPart(obj)
+    elseif obj:IsA("Tool") then part = obj:FindFirstChild("Handle")
+    end
+    if not part then return end
+    if MagnetTargetSet[part] then return end
+
+    MagnetTargetSet[part] = true
+    table.insert(MagnetTargets, part)
+end
+
+local function scanForTargets()
+    table.clear(MagnetTargets)
+    table.clear(MagnetTargetSet)
+    if FeatureStates.MagnetPlayers then
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character then
+                tryAddTarget(plr.Character)
             end
         end
     end
-    
-    -- NPCs
-    if State.Settings.KillAuraNPC then
-        for _, m in ipairs(Services.Workspace:GetDescendants()) do
-            if m:IsA("Model") and not Services.Players:GetPlayerFromCharacter(m) then
-                local hum = m:FindFirstChildOfClass("Humanoid")
-                local root = m:FindFirstChild("HumanoidRootPart")
-                if hum and root and hum.Health > 0 then
-                    table.insert(targets, {
-                        Humanoid = hum,
-                        RootPart = root,
-                        IsPlayer = false
-                    })
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        tryAddTarget(obj)
+    end
+end
+
+local function onDescendantAdded(descendant)
+    tryAddTarget(descendant)
+end
+
+local function onPlayerAdded(plr)
+    if not FeatureStates.MagnetPlayers then return end
+    plr.CharacterAdded:Connect(function(char)
+        if FeatureStates.MagnetPlayers then
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if root then
+                if not MagnetTargetSet[root] then
+                    MagnetTargetSet[root] = true
+                    table.insert(MagnetTargets, root)
                 end
             end
         end
+    end)
+    if plr.Character then
+        local root = plr.Character:FindFirstChild("HumanoidRootPart")
+        if root and not MagnetTargetSet[root] then
+            MagnetTargetSet[root] = true
+            table.insert(MagnetTargets, root)
+        end
     end
-    
-    return targets
 end
 
-function Combat:ToggleKillAura()
-    if State.Connections.KillAura then
-        pcall(function() State.Connections.KillAura:Disconnect() end)
-        State.Connections.KillAura = nil
-    end
-    
-    if State.Settings.KillAura then
-        State.Connections.KillAura = Services.RunService.Heartbeat:Connect(function()
-            local char = GetCharacter()
-            if not char then return end
-            
-            local myRoot = GetRootPart()
-            if not myRoot then return end
-            
-            local targets = self:GetKATargets()
-            local remote = self:GetKARemote()
-            
-            for _, t in pairs(targets) do
-                if (myRoot.Position - t.RootPart.Position).Magnitude <= State.Settings.KillAuraRange then
-                    if t.IsPlayer then
-                        pcall(function() t.Humanoid:TakeDamage(State.Settings.KillAuraDamage) end)
-                    else
-                        if remote then
-                            local args = {}
-                            local argStr = State.Settings.KillAuraRemoteArgs:gsub("%s+", "")
-                            
-                            for a in argStr:gmatch("[^,]+") do
-                                a = a:match("^%s*(.-)%s*$")
-                                if a == "target" then table.insert(args, t.RootPart)
-                                elseif a == "damage" then table.insert(args, State.Settings.KillAuraDamage)
-                                elseif a == "humanoid" then table.insert(args, t.Humanoid) end
-                            end
-                            
-                            if #args == 0 then args = {t.RootPart, State.Settings.KillAuraDamage} end
-                            
-                            pcall(function()
-                                if remote:IsA("RemoteEvent") then
-                                    remote:FireServer(unpack(args))
-                                else
-                                    remote:InvokeServer(unpack(args))
-                                end
-                            end)
-                        else
-                            pcall(function()
-                                t.Humanoid.Health = math.max(0, t.Humanoid.Health - State.Settings.KillAuraDamage)
-                            end)
-                        end
-                    end
-                end
+for _, plr in ipairs(Players:GetPlayers()) do
+    if plr ~= LocalPlayer then onPlayerAdded(plr) end
+end
+Players.PlayerAdded:Connect(onPlayerAdded)
+
+local function magnetUpdate()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local playerPos = root.Position
+
+    for i = #MagnetTargets, 1, -1 do
+        local part = MagnetTargets[i]
+        if not part or not part.Parent then
+            MagnetTargetSet[part] = nil
+            table.remove(MagnetTargets, i)
+            continue
+        end
+
+        local delta = playerPos - part.Position
+        local distance = delta.Magnitude
+        if distance > 0.5 and distance < MagnetRange then
+            local direction = delta.Unit
+            if part.Anchored then
+                part.CFrame = part.CFrame + direction * (MagnetStrength * 0.05)
+            else
+                part.AssemblyLinearVelocity = direction * MagnetStrength
             end
-        end)
+        end
     end
 end
 
-function Combat:ToggleKillMobs()
-    if State.Connections.KillMobs then
-        pcall(function() State.Connections.KillMobs:Disconnect() end)
-        State.Connections.KillMobs = nil
-    end
-    
-    if State.Settings.KillMobs then
-        State.Connections.KillMobs = Services.RunService.Heartbeat:Connect(function()
-            local char = GetCharacter()
-            if not char then return end
-            
-            local root = GetRootPart()
-            if not root then return end
-            
-            local folder = Services.Workspace:FindFirstChild("Mobs")
-            if not folder then return end
-            
-            for _, mob in ipairs(folder:GetChildren()) do
-                local mobRoot = mob:FindFirstChild("HumanoidRootPart")
-                local mobHum = mob:FindFirstChildOfClass("Humanoid")
-                
-                if mobRoot and mobHum and mobHum.Health > 0 then
-                    if (root.Position - mobRoot.Position).Magnitude < 25 then
-                        pcall(function()
-                            if Services.ReplicatedStorage:FindFirstChild("Events") and
-                               Services.ReplicatedStorage.Events:FindFirstChild("Attack") then
-                                Services.ReplicatedStorage.Events.Attack:FireServer(mobHum)
-                            end
-                        end)
-                    end
-                end
-            end
-        end)
+local function StartMagnet()
+    if MagnetConnection then return end
+    scanForTargets()
+    MagnetConnection = RunService.Heartbeat:Connect(magnetUpdate)
+    DescendantAddedConnection = Workspace.DescendantAdded:Connect(onDescendantAdded) -- ភ្ជាប់ទៅ Variable ដើម្បីងាយ Disconnect
+end
+
+local function StopMagnet()
+    if MagnetConnection then MagnetConnection:Disconnect() MagnetConnection = nil end
+    if DescendantAddedConnection then DescendantAddedConnection:Disconnect() DescendantAddedConnection = nil end -- កែសម្រួលបញ្ហា Memory Leak
+    table.clear(MagnetTargets)
+    table.clear(MagnetTargetSet)
+end
+
+local function RefreshMagnet()
+    StopMagnet()
+    if FeatureStates.MagnetCoal or FeatureStates.MagnetFuel or FeatureStates.MagnetHealing or FeatureStates.MagnetMetal or FeatureStates.MagnetPlayers then
+        StartMagnet()
     end
 end
 
--- ═══════════════════════════════════════════════════════════════
--- UI SYSTEM
--- ═══════════════════════════════════════════════════════════════
-local UI = {}
-
-function UI:CreateMainWindow()
-    -- Cleanup old UI
-    local oldUI = Services.CoreGui:FindFirstChild(CONFIG.UI_NAME)
-    if oldUI then oldUI:Destroy() end
-    
-    -- Main ScreenGui
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = CONFIG.UI_NAME
-    screenGui.Parent = Services.CoreGui
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    
-    -- Main Frame
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Name = "MainWindow"
-    mainFrame.Size = UDim2.new(0, 320, 0, 500)
-    mainFrame.Position = UDim2.new(0.5, -160, 0.5, -250)
-    mainFrame.BackgroundColor3 = THEME.Dark
-    mainFrame.BackgroundTransparency = THEME.Transparent
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Active = true
-    mainFrame.Draggable = true
-    mainFrame.Parent = screenGui
-    
-    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
-    
-    -- Top Rainbow Bar
-    self:CreateRainbowBar(mainFrame, UDim2.new(0, 0, 0, 0), 4)
-    
-    -- Title Bar
-    self:CreateTitleBar(mainFrame)
-    
-    -- Tab Bar
-    self:CreateTabBar(mainFrame)
-    
-    -- Content Frame
-    local contentFrame = Instance.new("Frame")
-    contentFrame.Name = "ContentFrame"
-    contentFrame.Size = UDim2.new(1, -10, 1, -110)
-    contentFrame.Position = UDim2.new(0, 5, 0, 85)
-    contentFrame.BackgroundColor3 = THEME.DarkMedium
-    contentFrame.BorderSizePixel = 0
-    contentFrame.Parent = mainFrame
-    
-    Instance.new("UICorner", contentFrame).CornerRadius = UDim.new(0, 8)
-    
-    -- Create ScrollingFrame for content
-    local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Name = "ScrollContent"
-    scrollFrame.Size = UDim2.new(1, 0, 1, 0)
-    scrollFrame.BackgroundTransparency = 1
-    scrollFrame.BorderSizePixel = 0
-    scrollFrame.ScrollBarThickness = 6
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 400)
-    scrollFrame.Parent = contentFrame
-    
-    State.UI.MainWindow = {
-        ScreenGui = screenGui,
-        MainFrame = mainFrame,
-        ContentFrame = contentFrame,
-        ScrollFrame = scrollFrame
-    }
-    
-    -- Bottom Rainbow Bar
-    self:CreateRainbowBar(mainFrame, UDim2.new(0, 0, 1, -4), 4)
-    
-    return screenGui
-end
-
-function UI:CreateRainbowBar(parent, position, height)
-    local bar = Instance.new("Frame")
-    bar.Name = "RainbowBar"
-    bar.Size = UDim2.new(1, 0, 0, height)
-    bar.Position = position
-    bar.BackgroundTransparency = 1
-    bar.BorderSizePixel = 0
-    bar.Parent = parent
-    
-    for i = 0, 59 do
-        local segment = Instance.new("Frame")
-        segment.Size = UDim2.new(1/60, 0, 1, 0)
-        segment.Position = UDim2.new(i/60, 0, 0, 0)
-        segment.BackgroundColor3 = GetRainbowColor(CONFIG.RAINBOW_SPEED, i/60)
-        segment.BorderSizePixel = 0
-        segment.Parent = bar
+-- ==================== Character Restore ====================
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    task.wait(0.5)
+    ApplySpeedAndJump(newChar)
+    if FeatureStates.EnemyESP then ApplyEnemyESP() end
+    if FeatureStates.GoldChestESP then ApplyGoldChestESP() end
+    if FeatureStates.Noclip then StopNoclip(); StartNoclip() end
+    if FeatureStates.Fly then StopFly(); StartFly() end
+    if FeatureStates.MagnetCoal or FeatureStates.MagnetFuel or FeatureStates.MagnetHealing or FeatureStates.MagnetMetal or FeatureStates.MagnetPlayers then
+        StopMagnet()
+        StartMagnet()
     end
-end
+end)
 
-function UI:CreateTitleBar(parent)
-    local titleBar = Instance.new("Frame")
-    titleBar.Name = "TitleBar"
-    titleBar.Size = UDim2.new(1, 0, 0, 40)
-    titleBar.Position = UDim2.new(0, 0, 0, 4)
-    titleBar.BackgroundColor3 = THEME.Medium
-    titleBar.BorderSizePixel = 0
-    titleBar.Parent = parent
-    
-    Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 12)
-    
-    -- Title Label
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, -40, 1, 0)
-    titleLabel.Position = UDim2.new(0, 10, 0, 0)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = "✨ MKRA HUB ✨"
-    titleLabel.TextColor3 = THEME.Text
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextSize = 16
-    titleLabel.Parent = titleBar
-    
-    -- Close Button
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Name = "CloseBtn"
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -35, 0.5, -15)
-    closeBtn.BackgroundColor3 = THEME.Error
-    closeBtn.Text = "×"
-    closeBtn.TextSize = 20
-    closeBtn.TextColor3 = THEME.Text
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.BorderSizePixel = 0
-    closeBtn.Parent = titleBar
-    
-    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
-    
-    closeBtn.MouseButton1Click:Connect(function()
-        parent.Visible = false
-    end)
-end
+-- ==================== GUI ====================
+local Window = Rayfield:CreateWindow({
+    Name = "99 Night VIP Pro",
+    LoadingTitle = "Ultimate + Player Magnet",
+    LoadingSubtitle = "ដោយ mkra & Ounka",
+    ConfigurationSaving = { Enabled = false },
+    Discord = { Enabled = false },
+    KeySystem = false
+})
 
-function UI:CreateTabBar(parent)
-    local tabBar = Instance.new("Frame")
-    tabBar.Name = "TabBar"
-    tabBar.Size = UDim2.new(1, -10, 0, 32)
-    tabBar.Position = UDim2.new(0, 5, 0, 48)
-    tabBar.BackgroundColor3 = THEME.Button
-    tabBar.BorderSizePixel = 0
-    tabBar.Parent = parent
-    
-    Instance.new("UICorner", tabBar).CornerRadius = UDim.new(0, 8)
-    
-    local tabs = {"Combat", "Farm"}
-    
-    for i, tabName in ipairs(tabs) do
-        local btn = Instance.new("TextButton")
-        btn.Name = tabName .. "Btn"
-        btn.Size = UDim2.new(1/#tabs, -2, 1, -4)
-        btn.Position = UDim2.new((i-1)/#tabs, 1, 0, 2)
-        btn.BackgroundColor3 = (i == 1) and THEME.Active or THEME.Button
-        btn.Text = tabName
-        btn.TextColor3 = THEME.Text
-        btn.Font = Enum.Font.Gotham
-        btn.TextSize = 11
-        btn.BorderSizePixel = 0
-        btn.Parent = tabBar
-        
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-        
-        btn.MouseButton1Click:Connect(function()
-            for _, b in pairs(tabBar:GetChildren()) do
-                if b:IsA("TextButton") then
-                    b.BackgroundColor3 = THEME.Button
-                end
-            end
-            btn.BackgroundColor3 = THEME.Active
-            self:LoadTab(tabName)
-        end)
-    end
-    
-    self:LoadTab("Combat")
-end
+-- Enemy ESP Tab
+local ESPTab = Window:CreateTab("សត្រូវ ESP", "eye")
+ESPTab:CreateToggle({ Name = "☠ ESP សត្រូវ (ក្រហម)", CurrentValue = false, Callback = function(v) FeatureStates.EnemyESP = v; if v then ApplyEnemyESP() else ClearEnemyESP() end end })
 
-function UI:LoadTab(tabName)
-    local scroll = State.UI.MainWindow.ScrollFrame
-    scroll:ClearAllChildren()
-    
-    if tabName == "Combat" then
-        self:BuildCombatTab(scroll)
-    elseif tabName == "Farm" then
-        self:BuildFarmTab(scroll)
-    end
-    
-    -- Update canvas size
-    scroll.CanvasSize = UDim2.new(0, 0, 0, #scroll:GetChildren() * 35 + 20)
-end
+-- Noclip Tab
+local NoclipTab = Window:CreateTab("ដើរកាត់", "door-open")
+NoclipTab:CreateToggle({ Name = "Noclip", CurrentValue = false, Callback = function(v) FeatureStates.Noclip = v; if v then StartNoclip() else StopNoclip() end end })
 
-function UI:BuildCombatTab(container)
-    self:AddToggle(container, "Kill Aura", State.Settings.KillAura, function(v)
-        State.Settings.KillAura = v
-        Combat:ToggleKillAura()
-    end)
-    
-    self:AddTextBox(container, "KA Range", tostring(State.Settings.KillAuraRange), function(v)
-        State.Settings.KillAuraRange = tonumber(v) or 30
-    end)
-    
-    self:AddTextBox(container, "KA Damage", tostring(State.Settings.KillAuraDamage), function(v)
-        State.Settings.KillAuraDamage = tonumber(v) or 30
-    end)
-    
-    self:AddToggle(container, "KA NPCs", State.Settings.KillAuraNPC, function(v)
-        State.Settings.KillAuraNPC = v
-    end)
-end
+-- Fly Tab
+local FlyTab = Window:CreateTab("ហោះ", "navigation")
+FlyTab:CreateSlider({ Name = "ល្បឿនហោះ", Range = {10,200}, Increment = 5, CurrentValue = FlySpeed, Callback = function(v) FlySpeed = v end })
+FlyTab:CreateToggle({ Name = "ហោះ", CurrentValue = false, Callback = function(v) if v then StartFly() else StopFly() end end })
+FlyTab:CreateButton({ Name = "⬆ ឡើងលើ", Callback = function() if LinearVel and FeatureStates.Fly then LinearVel.VectorVelocity = Vector3.new(0, FlySpeed, 0) task.wait(0.5) if LinearVel then LinearVel.VectorVelocity = Vector3.zero end end end })
+FlyTab:CreateButton({ Name = "⬇ ចុះក្រោម", Callback = function() if LinearVel and FeatureStates.Fly then LinearVel.VectorVelocity = Vector3.new(0, -FlySpeed, 0) task.wait(0.5) if LinearVel then LinearVel.VectorVelocity = Vector3.zero end end end })
 
-function UI:BuildFarmTab(container)
-    self:AddToggle(container, "Kill Mobs", State.Settings.KillMobs, function(v)
-        State.Settings.KillMobs = v
-        Combat:ToggleKillMobs()
-    end)
-end
+-- VIP Magnet Tab
+local VIPTab = Window:CreateTab("VIP មេដែក", "star")
+VIPTab:CreateSection("ជ្រើសរើសធនធាន និងអ្នកលេង")
+VIPTab:CreateToggle({ Name = "🧲 ទាញធ្យូង", CurrentValue = false, Callback = function(v) FeatureStates.MagnetCoal = v; RefreshMagnet() end })
+VIPTab:CreateToggle({ Name = "⛽ ទាញសាំង", CurrentValue = false, Callback = function(v) FeatureStates.MagnetFuel = v; RefreshMagnet() end })
+VIPTab:CreateToggle({ Name = "💊 ទាញព្យាបាល", CurrentValue = false, Callback = function(v) FeatureStates.MagnetHealing = v; RefreshMagnet() end })
+VIPTab:CreateToggle({ Name = "🔩 ទាញដែក/លោហៈ", CurrentValue = false, Callback = function(v) FeatureStates.MagnetMetal = v; RefreshMagnet() end })
+VIPTab:CreateToggle({ Name = "👥 ទាញអ្នកលេង", CurrentValue = false, Callback = function(v) FeatureStates.MagnetPlayers = v; RefreshMagnet() end })
 
-function UI:AddToggle(container, text, default, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -10, 0, 30)
-    frame.Position = UDim2.new(0, 5, 0, #container:GetChildren() * 35)
-    frame.BackgroundTransparency = 1
-    frame.Parent = container
-    
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 1, 0)
-    btn.BackgroundColor3 = default and THEME.Success or THEME.Button
-    btn.Text = text .. ": " .. (default and "ON" or "OFF")
-    btn.TextColor3 = THEME.Text
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 11
-    btn.BorderSizePixel = 0
-    btn.Parent = frame
-    
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-    
-    local state = default
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.Text = text .. ": " .. (state and "ON" or "OFF")
-        btn.BackgroundColor3 = state and THEME.Success or THEME.Button
-        callback(state)
-    end)
-end
+VIPTab:CreateSection("ការកំណត់មេដែក")
+VIPTab:CreateSlider({ Name = "ចម្ងាយទាញ", Range = {50, 1000000}, Increment = 1000, CurrentValue = MagnetRange, Callback = function(v) MagnetRange = v end })
+VIPTab:CreateSlider({ Name = "កម្លាំងទាញ", Range = {50, 500}, Increment = 10, CurrentValue = MagnetStrength, Callback = function(v) MagnetStrength = v end })
 
-function UI:AddTextBox(container, label, default, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -10, 0, 30)
-    frame.Position = UDim2.new(0, 5, 0, #container:GetChildren() * 35)
-    frame.BackgroundTransparency = 1
-    frame.Parent = container
-    
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0, 100, 1, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = label
-    lbl.TextColor3 = THEME.Text
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 10
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = frame
-    
-    local box = Instance.new("TextBox")
-    box.Size = UDim2.new(1, -105, 1, 0)
-    box.Position = UDim2.new(0, 105, 0, 0)
-    box.BackgroundColor3 = THEME.Button
-    box.TextColor3 = THEME.Text
-    box.Text = default
-    box.Font = Enum.Font.Gotham
-    box.TextSize = 11
-    box.BorderSizePixel = 0
-    box.Parent = frame
-    
-    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
-    
-    box.FocusLost:Connect(function()
-        callback(box.Text)
-    end)
-end
+VIPTab:CreateSection("មុខងារផ្សេងទៀត")
+VIPTab:CreateToggle({ Name = "✨ ពន្លឺមាសលើហិប", CurrentValue = false, Callback = function(v) FeatureStates.GoldChestESP = v; if v then ApplyGoldChestESP() else ClearChestESP() end end })
+VIPTab:CreateToggle({ Name = "☀️ ពន្លឺថ្ងៃពេលយប់", CurrentValue = false, Callback = function(v) FeatureStates.DayLight = v; if v then EnableDayLight() else DisableDayLight() end end })
 
--- ═══════════════════════════════════════════════════════════════
--- INITIALIZATION
--- ═══════════════════════════════════════════════════════════════
-UI:CreateMainWindow()
+-- Speed Tab
+local SpeedTab = Window:CreateTab("VIP រត់លឿន", "zap")
+SpeedTab:CreateSection("ល្បឿន និងលោត")
+SpeedTab:CreateSlider({ Name = "ល្បឿនដើរ", Range = {16,300}, Increment = 1, CurrentValue = CurrentWalkSpeed, Callback = function(v) CurrentWalkSpeed = v; UpdateSpeedAndJump() end })
+SpeedTab:CreateSlider({ Name = "កម្លាំងលោត", Range = {50,500}, Increment = 5, CurrentValue = CurrentJumpPower, Callback = function(v) CurrentJumpPower = v; UpdateSpeedAndJump() end })
+SpeedTab:CreateToggle({ Name = "បង្កើនល្បឿន x3", CurrentValue = false, Callback = function(v) FeatureStates.SpeedX3 = v; UpdateSpeedAndJump() end })
+SpeedTab:CreateButton({ Name = "កំណត់ឡើងវិញ", Callback = function() CurrentWalkSpeed = 16; CurrentJumpPower = 50; UpdateSpeedAndJump() end })
 
-Notify(
-    "✨ MKRA HUB ✨",
-    "Successfully loaded! Lite Version Ready.",
-    5
-)
+Rayfield:Notify({ Title = "99 Night VIP Pro", Content = "អាប់ដេតរួចរាល់! ឥឡូវមានមេដែកទាញអ្នកលេងផងដែរ", Duration = 6, Image = "check" })
