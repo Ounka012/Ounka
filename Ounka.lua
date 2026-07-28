@@ -1,6 +1,6 @@
 --[[
-    99 Night VIP Pro - Ultimate Magnet Edition (Updated)
-    បន្ថែមមុខងារ៖ ទាញអ្នកលេង (Player Magnet)
+    99 Night VIP Pro - Ultimate Magnet Edition (Fixed & Optimized)
+    កែសម្រួល៖ បញ្ហា Memory Leak, JumpPower, និងបន្ថែម Player Magnet
 --]]
 
 local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua'))()
@@ -36,6 +36,7 @@ local CurrentJumpPower = 50
 
 -- Connections
 local FlyConnection, NoclipConnection, MagnetConnection
+local DescendantAddedConnection -- បន្ថែមសម្រាប់ដោះស្រាយបញ្ហា Memory Leak
 local FlyAttachment, LinearVel, AlignOrient
 
 -- Cache
@@ -168,6 +169,7 @@ local function ApplySpeedAndJump(character)
     if hum then
         hum.WalkSpeed = FeatureStates.SpeedX3 and (CurrentWalkSpeed * 3) or CurrentWalkSpeed
         hum.JumpPower = CurrentJumpPower
+        hum.UseJumpPower = true -- បន្ថែមសម្រាប់ Roblox Version ថ្មី
     end
 end
 
@@ -269,7 +271,6 @@ local function isValidTarget(obj)
     return false
 end
 
--- ពិនិត្យថាជាតួអង្គអ្នកលេងផ្សេង
 local function isPlayerCharacter(obj)
     if not FeatureStates.MagnetPlayers then return false end
     if not obj:IsA("Model") then return false end
@@ -281,7 +282,6 @@ local function tryAddTarget(obj)
     local isAnyMagnetOn = FeatureStates.MagnetCoal or FeatureStates.MagnetFuel or FeatureStates.MagnetHealing or FeatureStates.MagnetMetal or FeatureStates.MagnetPlayers
     if not isAnyMagnetOn then return end
 
-    -- ប្រសិនបើជាអ្នកលេង
     if isPlayerCharacter(obj) then
         local root = obj:FindFirstChild("HumanoidRootPart")
         if root then
@@ -293,7 +293,6 @@ local function tryAddTarget(obj)
         return
     end
 
-    -- ធនធានធម្មតា
     if not isValidTarget(obj) then return end
 
     local part = nil
@@ -311,7 +310,6 @@ end
 local function scanForTargets()
     table.clear(MagnetTargets)
     table.clear(MagnetTargetSet)
-    -- បន្ថែមតួអង្គអ្នកលេងដែលមានស្រាប់
     if FeatureStates.MagnetPlayers then
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr.Character then
@@ -319,7 +317,6 @@ local function scanForTargets()
             end
         end
     end
-    -- ធនធាន
     for _, obj in ipairs(Workspace:GetDescendants()) do
         tryAddTarget(obj)
     end
@@ -329,7 +326,6 @@ local function onDescendantAdded(descendant)
     tryAddTarget(descendant)
 end
 
--- នៅពេលអ្នកលេងថ្មីចូល
 local function onPlayerAdded(plr)
     if not FeatureStates.MagnetPlayers then return end
     plr.CharacterAdded:Connect(function(char)
@@ -352,7 +348,6 @@ local function onPlayerAdded(plr)
     end
 end
 
--- ភ្ជាប់ event សម្រាប់អ្នកលេងថ្មី
 for _, plr in ipairs(Players:GetPlayers()) do
     if plr ~= LocalPlayer then onPlayerAdded(plr) end
 end
@@ -390,11 +385,12 @@ local function StartMagnet()
     if MagnetConnection then return end
     scanForTargets()
     MagnetConnection = RunService.Heartbeat:Connect(magnetUpdate)
-    Workspace.DescendantAdded:Connect(onDescendantAdded)
+    DescendantAddedConnection = Workspace.DescendantAdded:Connect(onDescendantAdded) -- ភ្ជាប់ទៅ Variable ដើម្បីងាយ Disconnect
 end
 
 local function StopMagnet()
     if MagnetConnection then MagnetConnection:Disconnect() MagnetConnection = nil end
+    if DescendantAddedConnection then DescendantAddedConnection:Disconnect() DescendantAddedConnection = nil end -- កែសម្រួលបញ្ហា Memory Leak
     table.clear(MagnetTargets)
     table.clear(MagnetTargetSet)
 end
