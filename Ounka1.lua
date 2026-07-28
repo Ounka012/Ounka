@@ -1,6 +1,6 @@
 --========================================================
 -- 💎 VIP PRO FULL UI TEMPLATE | RGB Glow & Custom BG
--- រួមបញ្ចូលមុខងារ "វាយមួយងាប់" (OHK)
+-- រួមបញ្ចូលកុងតាក់ "បើក/បិទ" វាយមួយងាប់ (OHK Toggle)
 --========================================================
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -255,7 +255,7 @@ local function buildVIPFullUI(imageAsset)
     local homeTab = createTab("Home", "🏠")
     local settingsTab = createTab("Settings", "⚙️")
 
-    -- 🧩 BUTTON COMPONENT
+    -- 🧩 BUTTON COMPONENT (សម្រាប់ប៊ូតុងធម្មតា)
     local function addActionButton(parent, text, callback)
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, -10, 0, 42)
@@ -275,49 +275,52 @@ local function buildVIPFullUI(imageAsset)
         end)
     end
 
-    -- 🌟 ADD COMPONENTS (រួមបញ្ចូលប៊ូតុង OHK)
+    -- 🌟 ADD COMPONENTS (ដាក់បញ្ចូលក្នុង Home Tab)
     addActionButton(homeTab, "🚀 បើកមុខងារពិសេស 1", function()
         print("Feature 1 Clicked!")
     end)
-
     addActionButton(homeTab, "🔥 បើកមុខងារពិសេស 2", function()
         print("Feature 2 Clicked!")
     end)
 
-    -- 👉 ប៊ូតុង "វាយមួយងាប់" (OHK) ដែលអ្នកបានសុំ
-    addActionButton(homeTab, "💀 វាយមួយងាប់ (OHK)", function()
-        if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            return -- ការពារកំហុសប្រសិនបើតួអង្គអ្នកលេងរលាយ
-        end
-        
-        local mouse = LocalPlayer:GetMouse()
-        local target = mouse.Target
-        
-        -- ករណីទី 1: ចុចទៅលើតួអង្គផ្ទាល់
-        if target and target.Parent and target.Parent:FindFirstChild("Humanoid") then
-            target.Parent.Humanoid.Health = 0
+    -- 👉 **បន្ថែមកុងតាក់ "បើក/បិទ" សម្រាប់ OHK (ដែលអ្នកសុំ)**
+    local ohkEnabled = false
+    local ohkToggle = Instance.new("TextButton")
+    ohkToggle.Size = UDim2.new(1, -10, 0, 42)
+    ohkToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- ពណ៌ក្រហម (បិទ)
+    ohkToggle.Text = "💀 វាយមួយងាប់ (បិទ)"
+    ohkToggle.TextColor3 = Color3.new(1, 1, 1)
+    ohkToggle.Font = Enum.Font.GothamBold
+    ohkToggle.TextSize = 13
+    ohkToggle.Parent = homeTab
+    Instance.new("UICorner", ohkToggle).CornerRadius = UDim.new(0, 8)
+
+    ohkToggle.MouseButton1Click:Connect(function()
+        ohkEnabled = not ohkEnabled
+        if ohkEnabled then
+            -- បើកមុខងារ (ពណ៌បៃតង)
+            TweenService:Create(ohkToggle, TWEEN_FAST, {BackgroundColor3 = Color3.fromRGB(50, 200, 50)}):Play()
+            ohkToggle.Text = "💀 វាយមួយងាប់ (បើក)"
         else
-            -- ករណីទី 2: ស្វែងរកអ្នកលេងដែលនៅជិតខ្លួនបំផុត
-            local closestPlayer = nil
-            local closestDist = math.huge
-            local myRoot = LocalPlayer.Character.HumanoidRootPart
-            
-            for _, player in pairs(game.Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
-                    local dist = (myRoot.Position - player.Character.HumanoidRootPart.Position).Magnitude
-                    if dist < closestDist then
-                        closestDist = dist
-                        closestPlayer = player
-                    end
-                end
-            end
-            -- សម្លាប់អ្នកដែលនៅជិតបំផុត
-            if closestPlayer and closestPlayer.Character then
-                closestPlayer.Character:FindFirstChild("Humanoid").Health = 0
+            -- បិទមុខងារ (ពណ៌ក្រហម)
+            TweenService:Create(ohkToggle, TWEEN_FAST, {BackgroundColor3 = Color3.fromRGB(200, 50, 50)}):Play()
+            ohkToggle.Text = "💀 វាយមួយងាប់ (បិទ)"
+        end
+    end)
+
+    -- 🌟 ការចាប់យកការចុចកណ្ដុរសម្រាប់ OHK
+    local mouse = LocalPlayer:GetMouse()
+    mouse.Button1Down:Connect(function()
+        if ohkEnabled then
+            local target = mouse.Target
+            -- ការពារកុំឱ្យសម្លាប់ខ្លួនឯង
+            if target and target.Parent and target.Parent:FindFirstChild("Humanoid") and target.Parent ~= LocalPlayer.Character then
+                target.Parent.Humanoid.Health = 0
             end
         end
     end)
 
+    -- 🌟 ប៊ូតុងក្នុងផ្ទាំង Settings
     addActionButton(settingsTab, "🔄 Reset UI Position", function()
         mainFrame.Position = UDim2.new(0.5, -240, 0.5, -150)
     end)
@@ -350,14 +353,13 @@ local function buildVIPFullUI(imageAsset)
     closeBtn.MouseButton1Click:Connect(toggleWindow)
 end
 
--- 📥 ASSET LOADER (ទាញយករូបភាព Background ជាមួយការការពារកំហុស)
+-- 📥 ASSET LOADER (ទាញយករូបភាព Background)
 task.spawn(function()
     local asset = ""
     local ok, response = fetchImageContent(IMAGE_URL)
     
     if ok and response then
         local content
-        -- ពិនិត្យមើលថាតើ response ជា table (សម្រាប់ syn.request) ឬ string (សម្រាប់ HttpService)
         if type(response) == "table" and response.Body then
             content = response.Body
         elseif type(response) == "string" then
