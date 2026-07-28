@@ -1,260 +1,150 @@
---[[
-    Ouncopybara Hub - Fixed Hide/Show & Draggable
-    កែសម្រួល: 
-    - ប៊ូតុងលាក់នៅជាប់គែមអេក្រង់ (ងាយស្រួលចុចបើកមកវិញ)
-    - Active = true ជានិច្ច (ចុចបានទោះបីជាមើលមិនឃើញ)
-    - Hover Effect ពេលលាក់ (ភ្លឺឡើងពេលយក Mouse ទៅដាក់)
---]]
-
+--========================================================
+-- Standard UI Template with Custom Background
+--========================================================
 local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
--- Theme Colors
-local Theme = {
-    Bg = Color3.fromRGB(18, 18, 24),
-    Topbar = Color3.fromRGB(25, 25, 35),
-    Accent = Color3.fromRGB(0, 170, 255),
-    Text = Color3.fromRGB(240, 240, 245),
-    Border = Color3.fromRGB(45, 45, 55)
-}
+local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
+local FILE_NAME = "bg.jpg"
 
--- ScreenGui Setup
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "OuncopybaraGUI_Fixed"
-screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-if gethui then pcall(function() screenGui.Parent = gethui() end) end
-if not screenGui.Parent then screenGui.Parent = CoreGui end
-
--- ==================== STATE MANAGEMENT ====================
-local isMenuOpen = false
-local isFullyHidden = false
-local lastClickTime = 0
-
--- ==================== FLOATING TOGGLE BUTTON ====================
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Name = "ToggleBtn"
-toggleBtn.Size = UDim2.new(0, 50, 0, 50)
-toggleBtn.Position = UDim2.new(0, 20, 0.5, -25) -- ទីតាំងដើម
-toggleBtn.BackgroundColor3 = Theme.Bg
-toggleBtn.Text = ""
-toggleBtn.AutoButtonColor = false
-toggleBtn.Active = true -- សំខាន់! ធានាថាចុចបានជានិច្ច
-toggleBtn.Parent = screenGui
-
-Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1, 0)
-local btnStroke = Instance.new("UIStroke", toggleBtn)
-btnStroke.Color = Theme.Accent
-btnStroke.Thickness = 2
-btnStroke.Transparency = 0
-
-local btnIcon = Instance.new("ImageLabel", toggleBtn)
-btnIcon.Size = UDim2.new(0, 28, 0, 28)
-btnIcon.Position = UDim2.new(0.5, -14, 0.5, -14)
-btnIcon.BackgroundTransparency = 1
-btnIcon.Image = "rbxassetid://10747384494"
-btnIcon.ImageColor3 = Theme.Accent
-btnIcon.ImageTransparency = 0
-
--- Hover Effect Logic (សម្រាប់ពេលលាក់ ដើម្បីឱ្យដឹងកន្លែងចុច)
-toggleBtn.MouseEnter:Connect(function()
-    if isFullyHidden then
-        -- ពេលលាក់ យក Mouse ទៅដាក់វានឹងភ្លឺបន្តិច
-        TweenService:Create(btnStroke, TweenInfo.new(0.2), {Thickness = 3, Color = Color3.fromRGB(255, 255, 255)}):Play()
-        TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.5}):Play()
-    else
-        -- ពេលធម្មតា
-        TweenService:Create(btnStroke, TweenInfo.new(0.2), {Thickness = 3}):Play()
-    end
-end)
-
-toggleBtn.MouseLeave:Connect(function()
-    if isFullyHidden then
-        TweenService:Create(btnStroke, TweenInfo.new(0.2), {Thickness = 2, Color = Theme.Accent}):Play()
-        TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
-    else
-        TweenService:Create(btnStroke, TweenInfo.new(0.2), {Thickness = 2}):Play()
-    end
-end)
-
--- ==================== MAIN FRAME ====================
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 340, 0, 420)
-mainFrame.Position = UDim2.new(0.5, -170, 0.5, -210)
-mainFrame.BackgroundColor3 = Theme.Bg
-mainFrame.Visible = false
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = screenGui
-
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 14)
-Instance.new("UIStroke", mainFrame).Color = Theme.Border
-
--- Shadow
-local shadow = Instance.new("ImageLabel", mainFrame)
-shadow.Size = UDim2.new(1, 30, 1, 30)
-shadow.Position = UDim2.new(0, -15, 0, -10)
-shadow.BackgroundTransparency = 1
-shadow.Image = "rbxassetid://1316045217"
-shadow.ImageTransparency = 0.6
-shadow.ScaleType = Enum.ScaleType.Slice
-shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-shadow.ZIndex = -1
-
--- Topbar
-local topbar = Instance.new("Frame", mainFrame)
-topbar.Name = "Topbar"
-topbar.Size = UDim2.new(1, 0, 0, 45)
-topbar.BackgroundColor3 = Theme.Topbar
-topbar.BorderSizePixel = 0
-Instance.new("UICorner", topbar).CornerRadius = UDim.new(0, 14)
-
-local fixCorner = Instance.new("Frame", topbar)
-fixCorner.Size = UDim2.new(1, 0, 0, 14)
-fixCorner.Position = UDim2.new(0, 0, 1, -14)
-fixCorner.BackgroundColor3 = Theme.Topbar
-fixCorner.BorderSizePixel = 0
-
--- Title
-local title = Instance.new("TextLabel", topbar)
-title.Size = UDim2.new(1, -50, 1, 0)
-title.Position = UDim2.new(0, 15, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "Ouncopybara Hub"
-title.TextSize = 16
-title.Font = Enum.Font.GothamBold
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.TextColor3 = Theme.Text
-
--- Close Button
-local closeBtn = Instance.new("TextButton", topbar)
-closeBtn.Size = UDim2.new(0, 28, 0, 28)
-closeBtn.Position = UDim2.new(1, -38, 0.5, -14)
-closeBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-closeBtn.Text = "✕"
-closeBtn.TextColor3 = Color3.new(1,1,1)
-closeBtn.TextSize = 12
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.AutoButtonColor = false
-Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(1, 0)
-
--- Content Placeholder
-local contentFrame = Instance.new("Frame", mainFrame)
-contentFrame.Name = "Content"
-contentFrame.Size = UDim2.new(1, -20, 1, -60)
-contentFrame.Position = UDim2.new(0, 10, 0, 55)
-contentFrame.BackgroundTransparency = 1
-
--- ==================== FUNCTIONS ====================
-
--- 1. Toggle Menu Open/Close
-local function toggleMenu()
-    if isFullyHidden then return end
-    
-    isMenuOpen = not isMenuOpen
-    
-    if isMenuOpen then
-        mainFrame.Visible = true
-        mainFrame.Size = UDim2.new(0, 0, 0, 0)
-        mainFrame.BackgroundTransparency = 1
-        topbar.BackgroundTransparency = 1
-        title.TextTransparency = 1
-        closeBtn.BackgroundTransparency = 1
-        
-        TweenService:Create(mainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 340, 0, 420), BackgroundTransparency = 0
-        }):Play()
-        TweenService:Create(topbar, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
-        TweenService:Create(title, TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0.1), {TextTransparency = 0}):Play()
-        TweenService:Create(closeBtn, TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0.1), {BackgroundTransparency = 0}):Play()
-    else
-        local tw = TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1
-        })
-        tw:Play()
-        TweenService:Create(topbar, TweenInfo.new(0.15), {BackgroundTransparency = 1}):Play()
-        TweenService:Create(title, TweenInfo.new(0.15), {TextTransparency = 1}):Play()
-        TweenService:Create(closeBtn, TweenInfo.new(0.15), {BackgroundTransparency = 1}):Play()
-        tw.Completed:Wait()
-        if not isMenuOpen then mainFrame.Visible = false end
-    end
-end
-
--- 2. Toggle Full Hide/Show (លាក់/បង្ហាញ ទាំងអស់)
-local function toggleFullVisibility()
-    isFullyHidden = not isFullyHidden
-    
-    if isFullyHidden then
-        -- លាក់ទាំងស្រុង
-        if isMenuOpen then toggleMenu() end -- បិទមេនុឍជាមុនសិន
-        task.wait(0.25)
-        
-        -- Animation លាក់ប៊ូតុង (រត់ទៅជាប់គែមឆ្វេង ប៉ុន្តែនៅតែចុចបាន)
-        TweenService:Create(toggleBtn, TweenInfo.new(0.3), {
-            BackgroundTransparency = 1, 
-            Position = UDim2.new(0, -25, 0.5, -25) -- លាក់ពាក់កណ្តាលនៅគែមឆ្វេង
-        }):Play()
-        TweenService:Create(btnIcon, TweenInfo.new(0.2), {ImageTransparency = 1}):Play()
-        TweenService:Create(btnStroke, TweenInfo.new(0.2), {Transparency = 1}):Play()
-    else
-        -- បង្ហាញមកវិញ
-        toggleBtn.Position = UDim2.new(0, -25, 0.5, -25)
-        toggleBtn.BackgroundTransparency = 1
-        
-        TweenService:Create(toggleBtn, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            BackgroundTransparency = 0, 
-            Position = UDim2.new(0, 20, 0.5, -25) -- ត្រឡប់មកទីតាំងដើម
-        }):Play()
-        TweenService:Create(btnIcon, TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0.1), {ImageTransparency = 0}):Play()
-        TweenService:Create(btnStroke, TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0.1), {Transparency = 0}):Play()
-    end
-end
-
--- ==================== EVENT BINDINGS ====================
-
--- Logic សម្រាប់ Click និង Double Click
-toggleBtn.MouseButton1Click:Connect(function()
-    local currentTime = tick()
-    if currentTime - lastClickTime < 0.3 then
-        -- Double Click Detected -> Hide/Show All
-        toggleFullVisibility()
-    else
-        -- Single Click -> Open/Close Menu
-        toggleMenu()
-    end
-    lastClickTime = currentTime
-end)
-
-closeBtn.MouseButton1Click:Connect(toggleMenu)
-
--- ==================== DRAG SYSTEM (Universal) ====================
-local dragging, dragInput, dragStart, startPos
-
-local function startDrag(input)
-    dragging = true
-    dragStart = input.Position
-    startPos = mainFrame.Position
-    input.Changed:Connect(function()
-        if input.UserInputState == Enum.UserInputState.End then dragging = false end
+-- Helper: Draggable UI
+local function makeDraggable(guiObject)
+    local dragging, startPos, objPos
+    guiObject.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; startPos = input.Position; objPos = guiObject.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - startPos
+            guiObject.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
+        end
+    end)
+    guiObject.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
     end)
 end
 
-topbar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        startDrag(input)
-    end
-end)
+local function createGUI(imageAsset)
+    if CoreGui:FindFirstChild("CustomBgGUI") then CoreGui:FindFirstChild("CustomBgGUI"):Destroy() end
 
-topbar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
+    local gui = Instance.new("ScreenGui", CoreGui)
+    gui.Name = "CustomBgGUI"
+    gui.IgnoreGuiInset = true
 
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
+    -- Toggle Button (ជាមួយរូបភាព)
+    local toggleBtn = Instance.new("ImageButton", gui)
+    toggleBtn.Size = UDim2.new(0, 55, 0, 55)
+    toggleBtn.Position = UDim2.new(0, 20, 0.5, -27)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    toggleBtn.Image = imageAsset or ""
+    toggleBtn.ScaleType = Enum.ScaleType.Crop
+    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 50)
+    local toggleStroke = Instance.new("UIStroke", toggleBtn)
+    toggleStroke.Thickness = 3
+
+    -- Main Frame
+    local mainFrame = Instance.new("Frame", gui)
+    mainFrame.Size = UDim2.new(0, 420, 0, 220)
+    mainFrame.Position = UDim2.new(0.5, -210, 0.5, -110)
+    mainFrame.BackgroundTransparency = 1
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Visible = true
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
+    local mainStroke = Instance.new("UIStroke", mainFrame)
+    mainStroke.Thickness = 3
+
+    -- Background Image
+    local bg = Instance.new("ImageLabel", mainFrame)
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundTransparency = 1
+    bg.Image = imageAsset or ""
+    bg.ScaleType = Enum.ScaleType.Stretch
+    bg.ImageTransparency = 0.3
+    bg.ZIndex = -1
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 15)
+
+    -- Title
+    local title = Instance.new("TextLabel", mainFrame)
+    title.Size = UDim2.new(1, 0, 0, 45)
+    title.BackgroundTransparency = 1
+    title.Text = "⚡ CONTROL PANEL"
+    title.Font = Enum.Font.GothamBlack
+    title.TextSize = 14
+    title.TextColor3 = Color3.new(1, 1, 1)
+
+    -- Close Button
+    local closeBtn = Instance.new("TextButton", mainFrame)
+    closeBtn.Size = UDim2.new(0, 35, 0, 35)
+    closeBtn.Position = UDim2.new(1, -45, 0, 10)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 14
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 10)
+
+    -- Action Button
+    local actionBtn = Instance.new("TextButton", mainFrame)
+    actionBtn.Size = UDim2.new(1, -40, 0, 45)
+    actionBtn.Position = UDim2.new(0, 20, 0, 70)
+    actionBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+    actionBtn.Text = "ចុចទីនេះ"
+    actionBtn.TextColor3 = Color3.new(1, 1, 1)
+    actionBtn.Font = Enum.Font.GothamBold
+    actionBtn.TextSize = 13
+    Instance.new("UICorner", actionBtn).CornerRadius = UDim.new(0, 10)
+
+    -- Status Label
+    local hintLabel = Instance.new("TextLabel", mainFrame)
+    hintLabel.Size = UDim2.new(1, -40, 0, 30)
+    hintLabel.Position = UDim2.new(0, 20, 0, 130)
+    hintLabel.BackgroundTransparency = 1
+    hintLabel.Text = "ស្ថានភាព៖ រង់ចាំ..."
+    hintLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    hintLabel.Font = Enum.Font.Gotham
+    hintLabel.TextSize = 12
+
+    -- RGB Effect
+    task.spawn(function()
+        local hue = 0
+        while gui.Parent do
+            hue = (hue + 0.03) % 1
+            title.TextColor3 = Color3.fromHSV(hue, 1, 1)
+            mainStroke.Color = Color3.fromHSV(hue, 1, 1)
+            toggleStroke.Color = Color3.fromHSV((hue + 0.3) % 1, 1, 1)
+            task.wait(0.04)
+        end
+    end)
+
+    toggleBtn.MouseButton1Down:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
+    closeBtn.MouseButton1Down:Connect(function() gui:Destroy() end)
+
+    local isActive = false
+    actionBtn.MouseButton1Down:Connect(function()
+        isActive = not isActive
+        if isActive then
+            actionBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
+            actionBtn.Text = "⏹️ ឈប់"
+            hintLabel.Text = "ស្ថានភាព៖ បានបើក"
+        else
+            actionBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+            actionBtn.Text = "ចុចទីនេះ"
+            hintLabel.Text = "ស្ថានភាព៖ បានបិទ"
+        end
+    end)
+
+    makeDraggable(mainFrame)
+end
+
+-- Download and set image asset
+local ok, response = pcall(function() return request({Url = IMAGE_URL, Method = "GET"}) end)
+if ok and response and response.StatusCode == 200 then
+    writefile(FILE_NAME, response.Body)
+    createGUI(getcustomasset(FILE_NAME))
+else
+    createGUI("")
+end
