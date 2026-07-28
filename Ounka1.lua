@@ -1,6 +1,6 @@
 --========================================================
 -- 💎 VIP PRO FULL UI TEMPLATE | RGB Glow & Custom BG
--- កែលម្អដោយ AI សម្រាប់ដំណើរការល្អបំផុត
+-- រួមបញ្ចូលមុខងារ "វាយមួយងាប់" (OHK)
 --========================================================
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -275,13 +275,47 @@ local function buildVIPFullUI(imageAsset)
         end)
     end
 
-    -- 🌟 ADD COMPONENTS
+    -- 🌟 ADD COMPONENTS (រួមបញ្ចូលប៊ូតុង OHK)
     addActionButton(homeTab, "🚀 បើកមុខងារពិសេស 1", function()
         print("Feature 1 Clicked!")
     end)
 
     addActionButton(homeTab, "🔥 បើកមុខងារពិសេស 2", function()
         print("Feature 2 Clicked!")
+    end)
+
+    -- 👉 ប៊ូតុង "វាយមួយងាប់" (OHK) ដែលអ្នកបានសុំ
+    addActionButton(homeTab, "💀 វាយមួយងាប់ (OHK)", function()
+        if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            return -- ការពារកំហុសប្រសិនបើតួអង្គអ្នកលេងរលាយ
+        end
+        
+        local mouse = LocalPlayer:GetMouse()
+        local target = mouse.Target
+        
+        -- ករណីទី 1: ចុចទៅលើតួអង្គផ្ទាល់
+        if target and target.Parent and target.Parent:FindFirstChild("Humanoid") then
+            target.Parent.Humanoid.Health = 0
+        else
+            -- ករណីទី 2: ស្វែងរកអ្នកលេងដែលនៅជិតខ្លួនបំផុត
+            local closestPlayer = nil
+            local closestDist = math.huge
+            local myRoot = LocalPlayer.Character.HumanoidRootPart
+            
+            for _, player in pairs(game.Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+                    local dist = (myRoot.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                    if dist < closestDist then
+                        closestDist = dist
+                        closestPlayer = player
+                    end
+                end
+            end
+            -- សម្លាប់អ្នកដែលនៅជិតបំផុត
+            if closestPlayer and closestPlayer.Character then
+                closestPlayer.Character:FindFirstChild("Humanoid").Health = 0
+            end
+        end
     end)
 
     addActionButton(settingsTab, "🔄 Reset UI Position", function()
