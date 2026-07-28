@@ -1,9 +1,9 @@
 --[[
-    Ouncopybara Hub - Single Button Ultimate UI
-    មុខងារ: 
-    - Click 1: បើក/បិទ មេនុឺ
-    - Double Click: លាក់/បង្ហាញ ប៊ូតុងទាំងស្រុង (Hide Mode)
-    - Drag: អូសបានគ្រប់កន្លែង
+    Ouncopybara Hub - Fixed Hide/Show & Draggable
+    កែសម្រួល: 
+    - ប៊ូតុងលាក់នៅជាប់គែមអេក្រង់ (ងាយស្រួលចុចបើកមកវិញ)
+    - Active = true ជានិច្ច (ចុចបានទោះបីជាមើលមិនឃើញ)
+    - Hover Effect ពេលលាក់ (ភ្លឺឡើងពេលយក Mouse ទៅដាក់)
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -21,47 +21,59 @@ local Theme = {
 
 -- ScreenGui Setup
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "OuncopybaraGUI_Single"
+screenGui.Name = "OuncopybaraGUI_Fixed"
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 if gethui then pcall(function() screenGui.Parent = gethui() end) end
 if not screenGui.Parent then screenGui.Parent = CoreGui end
 
 -- ==================== STATE MANAGEMENT ====================
-local isMenuOpen = false      -- មេនុឺកំពុងបើក ឬបិទ
-local isFullyHidden = false   -- លាក់ទាំងស្រុង (Hidden Mode)
-local lastClickTime = 0       -- សម្រាប់គណនា Double Click
+local isMenuOpen = false
+local isFullyHidden = false
+local lastClickTime = 0
 
 -- ==================== FLOATING TOGGLE BUTTON ====================
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Name = "ToggleBtn"
 toggleBtn.Size = UDim2.new(0, 50, 0, 50)
-toggleBtn.Position = UDim2.new(0, 20, 0.5, -25)
+toggleBtn.Position = UDim2.new(0, 20, 0.5, -25) -- ទីតាំងដើម
 toggleBtn.BackgroundColor3 = Theme.Bg
 toggleBtn.Text = ""
 toggleBtn.AutoButtonColor = false
+toggleBtn.Active = true -- សំខាន់! ធានាថាចុចបានជានិច្ច
 toggleBtn.Parent = screenGui
 
 Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1, 0)
 local btnStroke = Instance.new("UIStroke", toggleBtn)
 btnStroke.Color = Theme.Accent
 btnStroke.Thickness = 2
+btnStroke.Transparency = 0
 
 local btnIcon = Instance.new("ImageLabel", toggleBtn)
 btnIcon.Size = UDim2.new(0, 28, 0, 28)
 btnIcon.Position = UDim2.new(0.5, -14, 0.5, -14)
 btnIcon.BackgroundTransparency = 1
-btnIcon.Image = "rbxassetid://10747384494" -- Icon Capybara
+btnIcon.Image = "rbxassetid://10747384494"
 btnIcon.ImageColor3 = Theme.Accent
+btnIcon.ImageTransparency = 0
 
--- Hover Effect
+-- Hover Effect Logic (សម្រាប់ពេលលាក់ ដើម្បីឱ្យដឹងកន្លែងចុច)
 toggleBtn.MouseEnter:Connect(function()
-    if not isFullyHidden then
+    if isFullyHidden then
+        -- ពេលលាក់ យក Mouse ទៅដាក់វានឹងភ្លឺបន្តិច
+        TweenService:Create(btnStroke, TweenInfo.new(0.2), {Thickness = 3, Color = Color3.fromRGB(255, 255, 255)}):Play()
+        TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.5}):Play()
+    else
+        -- ពេលធម្មតា
         TweenService:Create(btnStroke, TweenInfo.new(0.2), {Thickness = 3}):Play()
     end
 end)
+
 toggleBtn.MouseLeave:Connect(function()
-    if not isFullyHidden then
+    if isFullyHidden then
+        TweenService:Create(btnStroke, TweenInfo.new(0.2), {Thickness = 2, Color = Theme.Accent}):Play()
+        TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+    else
         TweenService:Create(btnStroke, TweenInfo.new(0.2), {Thickness = 2}):Play()
     end
 end)
@@ -175,24 +187,24 @@ local function toggleFullVisibility()
     
     if isFullyHidden then
         -- លាក់ទាំងស្រុង
-        if isMenuOpen then toggleMenu() end -- បិទមេនុឺជាមុនសិន
+        if isMenuOpen then toggleMenu() end -- បិទមេនុឍជាមុនសិន
         task.wait(0.25)
         
-        -- Animation លាក់ប៊ូតុង
+        -- Animation លាក់ប៊ូតុង (រត់ទៅជាប់គែមឆ្វេង ប៉ុន្តែនៅតែចុចបាន)
         TweenService:Create(toggleBtn, TweenInfo.new(0.3), {
             BackgroundTransparency = 1, 
-            Position = UDim2.new(0, -60, 0.5, -25)
+            Position = UDim2.new(0, -25, 0.5, -25) -- លាក់ពាក់កណ្តាលនៅគែមឆ្វេង
         }):Play()
         TweenService:Create(btnIcon, TweenInfo.new(0.2), {ImageTransparency = 1}):Play()
         TweenService:Create(btnStroke, TweenInfo.new(0.2), {Transparency = 1}):Play()
     else
         -- បង្ហាញមកវិញ
-        toggleBtn.Position = UDim2.new(0, -60, 0.5, -25)
+        toggleBtn.Position = UDim2.new(0, -25, 0.5, -25)
         toggleBtn.BackgroundTransparency = 1
         
         TweenService:Create(toggleBtn, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
             BackgroundTransparency = 0, 
-            Position = UDim2.new(0, 20, 0.5, -25)
+            Position = UDim2.new(0, 20, 0.5, -25) -- ត្រឡប់មកទីតាំងដើម
         }):Play()
         TweenService:Create(btnIcon, TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0.1), {ImageTransparency = 0}):Play()
         TweenService:Create(btnStroke, TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0.1), {Transparency = 0}):Play()
