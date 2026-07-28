@@ -1,10 +1,12 @@
 --========================================================
 -- 💎 VIP PRO FULL UI TEMPLATE | RGB Glow & Custom BG
+-- កែលម្អដោយ AI សម្រាប់ដំណើរការល្អបំផុត
 --========================================================
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
 -- ប្រើ CoreGui បើមាន ឬប្រើ PlayerGui តាមស្តង់ដារ
@@ -17,6 +19,21 @@ local DEFAULT_ACCENT = Color3.fromRGB(0, 180, 255)
 
 local TWEEN_FAST = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TWEEN_SMOOTH = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
+-- 🛠️ HELPER: HTTP REQUEST WRAPPER (ដើម្បីឱ្យដំណើរការគ្រប់ executor)
+local function fetchImageContent(url)
+    local success, response
+    if syn and syn.request then
+        success, response = pcall(function() return syn.request({Url = url, Method = "GET"}) end)
+    elseif request then
+        success, response = pcall(function() return request({Url = url, Method = "GET"}) end)
+    elseif http_request then
+        success, response = pcall(function() return http_request({Url = url, Method = "GET"}) end)
+    else
+        success, response = pcall(function() return HttpService:GetAsync(url) end)
+    end
+    return success, response
+end
 
 -- 🛠️ HELPER: DRAGGABLE MAIN WINDOW
 local function makeDraggable(topBar, mainFrame)
@@ -299,16 +316,33 @@ local function buildVIPFullUI(imageAsset)
     closeBtn.MouseButton1Click:Connect(toggleWindow)
 end
 
--- 📥 ASSET LOADER (ទាញយករូបភាព Background)
+-- 📥 ASSET LOADER (ទាញយករូបភាព Background ជាមួយការការពារកំហុស)
 task.spawn(function()
     local asset = ""
-    local ok, response = pcall(function() 
-        return request({Url = IMAGE_URL, Method = "GET"}) 
-    end)
+    local ok, response = fetchImageContent(IMAGE_URL)
     
-    if ok and response and response.StatusCode == 200 then
-        writefile(FILE_NAME, response.Body)
-        asset = getcustomasset(FILE_NAME)
+    if ok and response then
+        local content
+        -- ពិនិត្យមើលថាតើ response ជា table (សម្រាប់ syn.request) ឬ string (សម្រាប់ HttpService)
+        if type(response) == "table" and response.Body then
+            content = response.Body
+        elseif type(response) == "string" then
+            content = response
+        end
+        
+        if content then
+            local writeSuccess, writeErr = pcall(function()
+                writefile(FILE_NAME, content)
+            end)
+            if writeSuccess then
+                local assetSuccess, assetPath = pcall(function()
+                    return getcustomasset(FILE_NAME)
+                end)
+                if assetSuccess then
+                    asset = assetPath
+                end
+            end
+        end
     end
     
     buildVIPFullUI(asset)
