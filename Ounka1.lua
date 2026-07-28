@@ -1,5 +1,5 @@
 --========================================================
--- 💎 VIP MODERN UI TEMPLATE | Glassmorphism & Animation
+-- 💎 VIP MODERN UI TEMPLATE | Draggable Toggle & Main GUI
 --========================================================
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -8,13 +8,13 @@ local TweenService = game:GetService("TweenService")
 -- ⚙️ CONFIGURATION
 local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 local FILE_NAME = "vip_bg.jpg"
-local THEME_COLOR = Color3.fromRGB(0, 180, 255) -- ពណ៌គោល (Accent Color)
+local THEME_COLOR = Color3.fromRGB(0, 180, 255)
 
 -- 🎨 ANIMATION SETTINGS
 local TWEEN_INFO = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local HOVER_TWEEN = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
--- 🛠️ HELPER: Draggable Function
+-- 🛠️ HELPER: Draggable Function សម្រាប់ Main Frame
 local function makeDraggable(guiObject)
     local dragging, startPos, objPos
     guiObject.InputBegan:Connect(function(input)
@@ -30,6 +30,41 @@ local function makeDraggable(guiObject)
     end)
     guiObject.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+-- 🛠️ HELPER: Draggable ពិសេសសម្រាប់ Toggle Button (ដើម្បីកុំឱ្យច្រឡំរវាង Click និង Drag)
+local function makeToggleDraggable(button, onClickCallback)
+    local dragging = false
+    local startPos, objPos
+    local hasMoved = false
+
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            hasMoved = false
+            startPos = input.Position
+            objPos = button.Position
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - startPos
+            if delta.Magnitude > 5 then -- ប្រសិនបើរំកិលលើសពី 5 pixels ទើបចាត់ទុកថា Drag
+                hasMoved = true
+            end
+            button.Position = UDim2.new(objPos.X.Scale, objPos.X.Offset + delta.X, objPos.Y.Scale, objPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    button.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging and not hasMoved then
+                onClickCallback() -- បើអត់បានអូសទេ គឺវាធ្វើការជា Click បើក/បិទ GUI
+            end
             dragging = false
         end
     end)
@@ -78,13 +113,13 @@ local function createVIPGUI(imageAsset)
     end)
 
     -- 🪟 MAIN WINDOW (Glassmorphism)
-    local mainFrame = Instance.new("CanvasGroup", screenGui) -- CanvasGroup makes transparency smooth
+    local mainFrame = Instance.new("CanvasGroup", screenGui)
     mainFrame.Name = "MainWindow"
     mainFrame.Size = UDim2.new(0, 450, 0, 280)
     mainFrame.Position = UDim2.new(0.5, -225, 0.5, -140)
     mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
-    mainFrame.BackgroundTransparency = 0.05 -- Glass effect
-    mainFrame.GroupTransparency = 1 -- Start hidden for animation
+    mainFrame.BackgroundTransparency = 0.05
+    mainFrame.GroupTransparency = 1
     mainFrame.Visible = false
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
     
@@ -93,7 +128,7 @@ local function createVIPGUI(imageAsset)
     mainStroke.Transparency = 0.9
     mainStroke.Thickness = 1
 
-    -- 🖼️ Background Image with Blur Simulation
+    -- 🖼️ Background Image
     local bgImage = Instance.new("ImageLabel", mainFrame)
     bgImage.Size = UDim2.new(1, 0, 1, 0)
     bgImage.BackgroundTransparency = 1
@@ -102,7 +137,6 @@ local function createVIPGUI(imageAsset)
     bgImage.ScaleType = Enum.ScaleType.Crop
     Instance.new("UICorner", bgImage).CornerRadius = UDim.new(0, 12)
     
-    -- Dark Overlay Gradient
     local overlay = Instance.new("Frame", mainFrame)
     overlay.Size = UDim2.new(1, 0, 1, 0)
     overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -124,7 +158,7 @@ local function createVIPGUI(imageAsset)
     title.TextColor3 = Color3.new(1, 1, 1)
     title.TextXAlignment = Enum.TextXAlignment.Left
     
-    -- ❌ Close Button (Minimalist)
+    -- ❌ Close Button
     local closeBtn = Instance.new("TextButton", header)
     closeBtn.Size = UDim2.new(0, 30, 0, 30)
     closeBtn.Position = UDim2.new(1, -40, 0, 10)
@@ -157,18 +191,6 @@ local function createVIPGUI(imageAsset)
     actionBtn.TextSize = 14
     Instance.new("UICorner", actionBtn).CornerRadius = UDim.new(0, 8)
     addHoverEffect(actionBtn, THEME_COLOR)
-    
-    -- Gradient for Button
-    local btnGrad = Instance.new("UIGradient", actionBtn)
-    btnGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
-    })
-    btnGrad.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0, 0.8),
-        NumberSequenceKeypoint.new(1, 0.9)
-    })
-    btnGrad.Rotation = 45
 
     -- 📊 STATUS CARD
     local statusCard = Instance.new("Frame", content)
@@ -176,8 +198,6 @@ local function createVIPGUI(imageAsset)
     statusCard.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     statusCard.BackgroundTransparency = 0.95
     Instance.new("UICorner", statusCard).CornerRadius = UDim.new(0, 8)
-    Instance.new("UIStroke", statusCard).Color = Color3.fromRGB(255, 255, 255)
-    Instance.new("UIStroke", statusCard).Transparency = 0.9
     
     local statusLabel = Instance.new("TextLabel", statusCard)
     statusLabel.Size = UDim2.new(1, -20, 1, 0)
@@ -196,11 +216,9 @@ local function createVIPGUI(imageAsset)
         mainFrame.Visible = true
         
         if isOpen then
-            -- Open Animation
             TweenService:Create(mainFrame, TWEEN_INFO, {GroupTransparency = 0, Position = UDim2.new(0.5, -225, 0.5, -140)}):Play()
             TweenService:Create(toggleBtn, TWEEN_INFO, {Rotation = 180}):Play()
         else
-            -- Close Animation
             local closeTween = TweenService:Create(mainFrame, TWEEN_INFO, {GroupTransparency = 1, Position = UDim2.new(0.5, -225, 0.5, -100)})
             closeTween:Play()
             TweenService:Create(toggleBtn, TWEEN_INFO, {Rotation = 0}):Play()
@@ -209,20 +227,21 @@ local function createVIPGUI(imageAsset)
         end
     end
 
-    -- 🔗 CONNECTIONS
-    toggleBtn.MouseButton1Click:Connect(toggleMenu)
+    -- 🔗 CONNECTIONS & DRAGGABLE SETTINGS
+    makeToggleDraggable(toggleBtn, toggleMenu) -- ដាក់ Drag លើ Toggle Button
+    makeDraggable(mainFrame) -- ដាក់ Drag លើ Main Window
+
     closeBtn.MouseButton1Click:Connect(function() 
         if isOpen then toggleMenu() end 
     end)
 
-    -- Action Logic
     local isActive = false
     actionBtn.MouseButton1Click:Connect(function()
         isActive = not isActive
         if isActive then
             TweenService:Create(actionBtn, HOVER_TWEEN, {BackgroundColor3 = Color3.fromRGB(40, 200, 40)}):Play()
             actionBtn.Text = "⏹️ បិទមុខងារ"
-            statusLabel.Text = "✅ ស្ថានភាព៖ កំពុងដំណើរការ (Active)"
+            statusLabel.Text = "✅ ស្ថានភាព៖ កំពុងដំណើរការ"
             statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
         else
             TweenService:Create(actionBtn, HOVER_TWEEN, {BackgroundColor3 = THEME_COLOR}):Play()
@@ -231,11 +250,9 @@ local function createVIPGUI(imageAsset)
             statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
         end
     end)
-
-    makeDraggable(mainFrame)
 end
 
--- 📥 ASSET LOADER (Safe Download)
+-- 📥 ASSET LOADER
 task.spawn(function()
     local asset = ""
     local ok, response = pcall(function() 
@@ -245,8 +262,6 @@ task.spawn(function()
     if ok and response and response.StatusCode == 200 then
         writefile(FILE_NAME, response.Body)
         asset = getcustomasset(FILE_NAME)
-    else
-        warn("[VIP GUI] Failed to load custom BG, using fallback.")
     end
     
     createVIPGUI(asset)
