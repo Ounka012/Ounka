@@ -52,12 +52,12 @@ BANNER = f"""
    ███████║╚██████╔╝███████╗██║  ██║╚██████╔╝██║ ╚████║   ██║   ███████╗██║  ██║
    ╚══════╝ ╚══▀▀═╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
 {Colors.RESET}
-v3. ☺️{Colors.RESET}
-{Colors.GREEN}  Automated SQL Injection Testing Tool{Colors.RESET}
-{Colors.RED}{Colors.BOLD! ⚠️ !{Colors.RESET}
+{Colors.YELLOW}{Colors.BOLD}  ⚡ SQLHunter 2026 Advanced  v.1 ⚡{Colors.RESET}
+{Colors.GREEN}   Automated SQL Injection Testing Tool{Colors.RESET}
+{Colors.RED}{Colors.BOLD}  ⚠️  មួយៗ!{Colors.RESET}
 """
 
-# ========== LOGGING  FUNCTIONS ==========
+# ========== LOGGING FUNCTIONS ==========
 def log_info(msg):
     print(f"{Colors.BLUE}[*]{Colors.RESET} {msg}")
 
