@@ -55,7 +55,7 @@ BANNER = f"""
 {Colors.RESET}
 {Colors.YELLOW}{Colors.BOLD}  ⚡ SQLHunter 2026 Optimized Edition ⚡{Colors.RESET}
 {Colors.GREEN}   Automated SQL Injection Testing Tool{Colors.RESET}
-{Colors.RED}{Colors.BOLD}  ⚠️  Educational Use Only!{Colors.RESET}
+{Colors.RED}{Colors.BOLD}  ⚠️  !{Colors.RESET}
 """
 
 # ========== LOGGING FUNCTIONS ==========
