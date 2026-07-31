@@ -374,7 +374,7 @@ local function buildUI(imageAsset)
     titleLabel.Size = UDim2.new(0.55, -60, 1, 0)
     titleLabel.Position = UDim2.new(0, 16, 0, 0)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = " VIP EVADE ULTIMATE"
+    titleLabel.Text = "\u26A1 VIP EVADE ULTIMATE"
     titleLabel.Font = Enum.Font.GothamBlack
     titleLabel.TextSize = 15
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -384,7 +384,7 @@ local function buildUI(imageAsset)
     vipLabel.Size = UDim2.new(0.45, -20, 1, 0)
     vipLabel.Position = UDim2.new(0.55, 0, 0, 0)
     vipLabel.BackgroundTransparency = 1
-    vipLabel.Text = " VIP LEVEL: " .. VIP_LEVEL
+    vipLabel.Text = "\uD83D\uDC51 VIP LEVEL: " .. VIP_LEVEL
     vipLabel.Font = Enum.Font.GothamBlack
     vipLabel.TextSize = 14
     vipLabel.TextColor3 = currentVipColor
@@ -407,7 +407,7 @@ local function buildUI(imageAsset)
     closeBtn.Position = UDim2.new(1, -40, 0, 8)
     closeBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
     closeBtn.BackgroundTransparency = 0.2
-    closeBtn.Text = "✕"
+    closeBtn.Text = "\u2715"
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 13
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
@@ -514,7 +514,7 @@ local function buildUI(imageAsset)
             if requiredLevel and VIP_LEVEL < requiredLevel then
                 local originalText = text.Text
                 local originalColor = text.TextColor3
-                text.Text = "🔒 ត្រូវការ VIP Lv." .. requiredLevel
+                text.Text = "\uD83D\uDD12 \u178F\u17D2\u179A\u17BC\u179C\u1780\u17B6\u179A VIP Lv." .. requiredLevel
                 text.TextColor3 = Color3.fromRGB(255, 80, 80)
                 task.delay(1.2, function()
                     if text and text.Parent then
@@ -556,92 +556,107 @@ local function buildUI(imageAsset)
         end)
     end
 
-    local CoreTab = createTab("Core", "🔥")
-    local SurvivalTab = createTab("Survive", "️")
-    local MobilityTab = createTab("Move", "🏃")
-    local FarmTab = createTab("Farm", "💰")
-    local ESPTab = createTab("ESP", "👁️")
-    local VisionTab = createTab("Vision", "🌞")
-    local MiscTab = createTab("Misc", "")
-    local MorphTab = createTab("Morph", "🗿")
-    local HUDTab = createTab("HUD", "")
-    local UtilTab = createTab("Util", "⚙️")
+    local CoreTab = createTab("Core", "\uD83D\uDD25")
+    local SurvivalTab = createTab("Survive", "\uD83D\uDEE1\uFE0F")
+    local MobilityTab = createTab("Move", "\uD83C\uDFC3")
+    local FarmTab = createTab("Farm", "\uD83D\uDCB0")
+    local ESPTab = createTab("ESP", "\uD83D\uDC41\uFE0F")
+    local VisionTab = createTab("Vision", "\uD83C\uDF1E")
+    local MiscTab = createTab("Misc", "\uD83C\uDFAD")
+    local MorphTab = createTab("Morph", "\uD83D\uDDFF")
+    local HUDTab = createTab("HUD", "\uD83D\uDCCA")
+    local UtilTab = createTab("Util", "\u2699\uFE0F")
 
-    addToggle(CoreTab, "🔥 Kill All", "សម្លាប់ NPC ទាំងអស់ (Req: Lv.2)", "KillAll")
-    addToggle(CoreTab, " Auto Trap", "ដាក់អន្ាក់", "AutoTrap")
-    addToggle(CoreTab, "👻 Silent Walk", "ដើរលឿន 120", "SilentWalk")
-    addToggle(SurvivalTab, "🛡️ God Mode", "ForceField + ការពារ (Req: Lv.2)", "GodMode")
-    addToggle(SurvivalTab, " Anti-Down", "ការពារដួល", "AntiDown")
-    addToggle(SurvivalTab, "🥤 Auto Cola", "ប្រើ Cola ស្វយ", "AutoCola")
-    addToggle(SurvivalTab, "🏃 Auto Escape", "គេច Bot HP ទាប", "AutoEscape")
-    addToggle(SurvivalTab, "🧱 Remove Barriers", "បំបាត់របាំង", "RemoveBarriers")
-    addToggle(SurvivalTab, "💧 No Water Dmg", "មិនខូច HP ទឹក", "NoWaterDmg")
-    addToggle(MobilityTab, "💨 Speed Hack", "ល្បឿន 80", "Speed")
-    addToggle(MobilityTab, "🦘 Jump Boost", "លោតខ្ពស់", "Jump")
-    addToggle(MobilityTab, "🌌 Low Gravity", "ទំនាញទាប", "Gravity")
-    addToggle(MobilityTab, "🔄 BHOP", "Auto Jump", "BHop")
-    addToggle(MobilityTab, "♾️ Infinite Jump", "លោតគ្មានកំណត់", "InfiniteJump")
-    addToggle(MobilityTab, "🚀 Trimping", "ល្ឿនផ្ទុះ (Req: Lv.3)", "Trimping")
-    addToggle(MobilityTab, "🧊 Infinite Slide", "រអិលឥតប់", "InfiniteSlide")
-    addToggle(MobilityTab, "✈️ Fly", "ហោះឆ្លងជញជាំង (Req: Lv.3)", "Fly")
-    addToggle(MobilityTab, "🦵 Hip Height", "កែកមពស់ជើង", "HipHeight")
-    addToggle(MobilityTab, "🔭 Adjust FOV", "FOV 120", "AdjustFOV")
-    addToggle(MobilityTab, "💨 Auto Dash", "Dash ស្វ័យ", "AutoDash")
-    addToggle(MobilityTab, "🦘 Auto Jump No Key", "លោតដោយស្វ័យ", "AutoJumpNoKey")
-    addToggle(FarmTab, " Auto Farm All", "Coin, XP, Token", "AutoFarm")
-    addToggle(FarmTab, "🍬 Auto Candy", "Candy លឿន", "AutoFarmCandy")
-    addToggle(FarmTab, "⏳ AFK Mode", "Farm មិនដើរ", "AFKFarm")
-    addToggle(FarmTab, "🏆 Auto Win XP", "្នះគ្រប់ជុំ (Req: Lv.2)", "AutoFarmXP")
-    addToggle(FarmTab, "💵 Auto Cash", "Revive ភ្ាម", "AutoFarmCash")
-    addToggle(FarmTab, "🔄 Instant Revive", "រស់ឡើងវិញ", "AutoInstantRevive")
-    addToggle(FarmTab, "🤝 Auto Carry", "ដឹកស្វ័យ", "AutoCarry")
-    addToggle(FarmTab, " Auto Respawn", "Respawn", "AutoRespawn")
-    addToggle(FarmTab, "📞 Teleport Downed", "ទៅអ្នកដេក", "TeleportToDowned")
-    addToggle(FarmTab, "🗳️ Auto Vote", "បោះឆ្នោត", "AutoVote")
-    addToggle(FarmTab, "🔄 Auto Revive", "Revive អ្នកដទៃ", "AutoRevive")
-    addToggle(ESPTab, "👁️ Player ESP", "ឈ្មោះ+ចម្ាយ", "VIPESP")
-    addToggle(ESPTab, "📦 Box ESP", "ប្រអប់", "ESPBoxes")
-    addToggle(ESPTab, "📏 Tracers", "បន្ាត់", "ESPTracers")
-    addToggle(ESPTab, "❤️ Health ESP", "បង្ហាញ HP", "ESPHealth")
-    addToggle(ESPTab, "🌈 Rainbow", "ន្ទធនូ", "ESPRainbow")
-    addToggle(ESPTab, "👾 Monsters ESP", "បង្ហាញ NPC", "MonstersESP")
-    addToggle(ESPTab, "🩹 Downed ESP", "បង្ហាញអ្នកដេក", "DownedESP")
-    addToggle(ESPTab, "💰 Collectables ESP", "បង្ហាញកាក់/XP", "CollectablesESP")
-    addToggle(ESPTab, "🔧 Tool ESP", "បង្ហាញឧបករណ៍", "ToolESP")
-    addToggle(ESPTab, "✨ Highlight", "គូសពន្លឺ", "PlayersHighlight")
-    addToggle(VisionTab, "☀️ Full Bright", "ភ្លឺទាំងអស់", "FullBright")
-    addToggle(VisionTab, "📸 No Cam Shake", "កាមេរ៉ាមិនញ័រ", "NoCameraShake")
-    addToggle(VisionTab, " FPS Boost", "បង្កើន FPS", "FPSBoost")
-    addToggle(MiscTab, "👆 Auto Interact", "ចុច E ស្័យ", "AutoInteract")
-    addToggle(MiscTab, "🎵 Auto Whistle", "ផ្លុំកញ្ចែ", "AutoWhistle")
-    addToggle(MiscTab, "🎲 Auto Random Vote", "បោះឆ្នោតចៃដន្យ", "AutoRandomVote")
-    addToggle(MiscTab, "🌤️ Weather Adjust", "កែអាកាសធាតុ", "WeatherAdjust")
-    addToggle(MiscTab, " Remove Darkness", "បំបាត់ងងឹត", "RemoveDarkness")
-    addToggle(MiscTab, "🛍️ Buy Usables", "ទិញរបស់", "BuyUsables")
-    addToggle(MiscTab, "💡 No Light Flicker", "បំបាត់ពន្លឺភ្លឹប", "NoLightFlicker")
-    addToggle(MiscTab, "💬 Show Chat", "បង្ហាញឆាត", "ShowGlobalChat")
-    addToggle(MiscTab, "🎁 Redeem Codes", "ចុច Redeem", "RedeemCodes")
-    addToggle(MiscTab, "💃 All Emotes", "ប្រើ Emotes", "AllEmotes")
-    addToggle(MorphTab, " Giant Morph", "ធំ x3 (អ្នកផ្សេងមើលឃើញ)", "GiantMorph")
-    addToggle(MorphTab, "🐜 Tiny Morph", "តូច x0.4 (អ្នកផ្សេងមើលឃើញ)", "TinyMorph")
-    addToggle(MorphTab, "💪 Muscle Morph", "សាច់ដុំធំ x2 (អ្នកផ្សេងមើលឃើញ)", "MuscleMorph")
-    addToggle(MorphTab, " Invisible", "លាក់ខ្លួន (Req: Lv.4)", "InvisibleMorph")
-    addToggle(MorphTab, " Visible to Others", "អ្នកលេងផ្សេងមើលឃើញ Morph (Req: Lv.2)", "VisibleToOthers")
+    -- Core Tab
+    addToggle(CoreTab, "\uD83D\uDD25 Kill All", "\u179F\u1798\u17D2\u179B\u17B6\u1794\u17CB NPC \u1791\u17B6\u1784\u17A2\u179F\u179F (Req: Lv.2)", "KillAll")
+    addToggle(CoreTab, "\uD83E\uDEA4 Auto Trap", "\u1791\u17B6\u1784\u17A2\u1793\u17D2\u1791\u17B6\u1784\u17CB", "AutoTrap")
+    addToggle(CoreTab, "\uD83D\uDC7B Silent Walk", "\u1791\u17C6\u179A\u179B\u17BE\u1793 120", "SilentWalk")
+
+    -- Survival Tab
+    addToggle(SurvivalTab, "\uD83D\uDEE1\uFE0F God Mode", "ForceField + \u1780\u17B6\u179A\u1794\u17B6\u179A (Req: Lv.2)", "GodMode")
+    addToggle(SurvivalTab, "\uD83D\uDED1 Anti-Down", "\u1780\u17B6\u179A\u1794\u17B6\u179A\u1791\u17C2\u179B", "AntiDown")
+    addToggle(SurvivalTab, "\uD83E\uDD64 Auto Cola", "\u1794\u17D2\u179A\u17BE\u179F Cola \u179F\u17D2\u179C\u17C3\u1799", "AutoCola")
+    addToggle(SurvivalTab, "\uD83C\uDFC3 Auto Escape", "\u1782\u17C2\u1785 Bot HP \u1791\u17B6\u1794", "AutoEscape")
+    addToggle(SurvivalTab, "\uD83E\uDDF1 Remove Barriers", "\u1794\u17C6\u1794\u17B6\u1791\u17CB\u179A\u1794\u17B6\u1784\u17CB", "RemoveBarriers")
+    addToggle(SurvivalTab, "\uD83D\uDCAB No Water Dmg", "\u1798\u17B7\u1793\u1781\u17BC\u1785 HP \u1791\u17B9\u1780", "NoWaterDmg")
+
+    -- Mobility Tab
+    addToggle(MobilityTab, "\uD83D\uDCA8 Speed Hack", "\u179B\u17D2\u1794\u17BE\u1793 80", "Speed")
+    addToggle(MobilityTab, "\uD83E\uDD98 Jump Boost", "\u179B\u17C4\u178F\u1781\u17D2\u1796\u179F\u17CB", "Jump")
+    addToggle(MobilityTab, "\uD83C\uDF0C Low Gravity", "\u1791\u17C6\u1793\u17B6\u1789\u1791\u17B6\u1794", "Gravity")
+    addToggle(MobilityTab, "\uD83D\uDD04 BHOP", "Auto Jump", "BHop")
+    addToggle(MobilityTab, "\u267E\uFE0F Infinite Jump", "\u179B\u17C4\u178F\u1782\u17D2\u1798\u17B6\u1793\u1780\u17C6\u1793\u178F\u17CB", "InfiniteJump")
+    addToggle(MobilityTab, "\uD83D\uDE80 Trimping", "\u179B\u17D2\u1794\u17BE\u1793\u1795\u17D2\u1791\u17BB\u1791\u17C7 (Req: Lv.3)", "Trimping")
+    addToggle(MobilityTab, "\uD83E\uDDCA Infinite Slide", "\u179A\u17A0\u17B7\u179B\u17A0\u17C1\u1791\u17CB", "InfiniteSlide")
+    addToggle(MobilityTab, "\u2708\uFE0F Fly", "\u17A0\u17C4\u17C7\u1786\u17D2\u179B\u1784\u1787\u1789\u17D2\u1787\u17B6\u1784\u17CB (Req: Lv.3)", "Fly")
+    addToggle(MobilityTab, "\uD83E\uDDB5 Hip Height", "\u1780\u17C2\u1780\u1798\u17D2\u1796\u179F\u17CB\u1787\u17C6\u1793\u17B8\u1784", "HipHeight")
+    addToggle(MobilityTab, "\uD83D\uDD2D Adjust FOV", "FOV 120", "AdjustFOV")
+    addToggle(MobilityTab, "\uD83D\uDCA8 Auto Dash", "Dash \u179F\u17D2\u179C\u17C3\u1799", "AutoDash")
+    addToggle(MobilityTab, "\uD83E\uDD98 Auto Jump No Key", "\u179B\u17C4\u178F\u1791\u17C4\u1799\u179F\u17D2\u179C\u17C3\u1799", "AutoJumpNoKey")
+
+    -- Farm Tab
+    addToggle(FarmTab, "\uD83D\uDCB0 Auto Farm All", "Coin, XP, Token", "AutoFarm")
+    addToggle(FarmTab, "\uD83C\uDF6C Auto Candy", "Candy \u179B\u17BE\u1793", "AutoFarmCandy")
+    addToggle(FarmTab, "\u23F3 AFK Mode", "Farm \u1798\u17B7\u1793\u1791\u17C6\u179A", "AFKFarm")
+    addToggle(FarmTab, "\uD83C\uDFC6 Auto Win XP", "\u1787\u1793\u17C7\u1782\u17D2\u179A\u1794\u1787\u17BC\u1794 (Req: Lv.2)", "AutoFarmXP")
+    addToggle(FarmTab, "\uD83D\uDCB5 Auto Cash", "Revive \u1797\u17D2\u179B\u17B6\u1798", "AutoFarmCash")
+    addToggle(FarmTab, "\uD83D\uDD04 Instant Revive", "\u179A\u179F\u17A0\u17C6\u1791\u1784\u179C\u17B7\u1789", "AutoInstantRevive")
+    addToggle(FarmTab, "\uD83E\uDD1D Auto Carry", "\u1791\u17B8\u1780\u179F\u17D2\u179C\u17C3\u1799", "AutoCarry")
+    addToggle(FarmTab, "\uD83D\uDC80 Auto Respawn", "Respawn", "AutoRespawn")
+    addToggle(FarmTab, "\uD83D\uDCDE Teleport Downed", "\u1791\u17C4\u179C\u17A2\u1793\u1780\u1791\u17C2\u1780", "TeleportToDowned")
+    addToggle(FarmTab, "\uD83D\uDDF3\uFE0F Auto Vote", "\u1794\u17C4\u1791\u17CB\u1786\u17D2\u1793\u17C4\u178F", "AutoVote")
+    addToggle(FarmTab, "\uD83D\uDD04 Auto Revive", "Revive \u17A2\u1793\u1780\u1791\u1791\u17BE", "AutoRevive")
+
+    -- ESP Tab
+    addToggle(ESPTab, "\uD83D\uDC41\uFE0F Player ESP", "\u1787\u17D2\u1798\u17BE\u179F+\u1785\u1798\u17D2\u1793\u17B6\u1799", "VIPESP")
+    addToggle(ESPTab, "\uD83D\uDCE6 Box ESP", "\u1794\u17D2\u179A\u17A0\u1794\u17CB", "ESPBoxes")
+    addToggle(ESPTab, "\uD83D\uDCCF Tracers", "\u1794\u1793\u17D2\u1791\u17B6\u178F\u17CB", "ESPTracers")
+    addToggle(ESPTab, "\u2764\uFE0F Health ESP", "\u1794\u1784\u17D2\u17A0\u17B6\u1789 HP", "ESPHealth")
+    addToggle(ESPTab, "\uD83C\uDF08 Rainbow", "\u17A0\u1793\u17D2\u1791\u1791\u1793\u17BB", "ESPRainbow")
+    addToggle(ESPTab, "\uD83D\uDC7E Monsters ESP", "\u1794\u1784\u17D2\u17A0\u17B6\u1789 NPC", "MonstersESP")
+    addToggle(ESPTab, "\uD83E\uDE79 Downed ESP", "\u1794\u1784\u17D2\u17A0\u17B6\u1789\u17A2\u1793\u1780\u1791\u17C2\u1780", "DownedESP")
+    addToggle(ESPTab, "\uD83D\uDCB0 Collectables ESP", "\u1794\u1784\u17D2\u17A0\u17B6\u1789\u1780\u17B6\u1780\u17CB/XP", "CollectablesESP")
+    addToggle(ESPTab, "\uD83D\uDD27 Tool ESP", "\u1794\u1784\u17D2\u17A0\u17B6\u1789\u17A7\u1794\u1780\u179A\u1793\u17CB", "ToolESP")
+    addToggle(ESPTab, "\u2728 Highlight", "\u1782\u17BC\u179F\u1796\u1793\u17D2\u179B\u17BE\u1799", "PlayersHighlight")
+
+    -- Vision Tab
+    addToggle(VisionTab, "\u2600\uFE0F Full Bright", "\u1797\u17D2\u179B\u17BE\u1799\u1791\u17B6\u1784\u17A2\u179F\u179F", "FullBright")
+    addToggle(VisionTab, "\uD83D\uDCF8 No Cam Shake", "\u1780\u17B6\u1798\u17C2\u179A\u17C6\u17B6\u1798\u17B7\u1793\u1789\u17B6\u179A", "NoCameraShake")
+    addToggle(VisionTab, "\u26A1 FPS Boost", "\u1794\u1784\u17D2\u1780\u17BE\u1793 FPS", "FPSBoost")
+
+    -- Misc Tab
+    addToggle(MiscTab, "\uD83D\uDC46 Auto Interact", "\u1785\u17BB\u1785 E \u179F\u17D2\u179C\u17C3\u1799", "AutoInteract")
+    addToggle(MiscTab, "\uD83C\uDFB5 Auto Whistle", "\u1795\u17D2\u179B\u17BB\u1798\u1780\u1789\u17D2\u1785\u17C2", "AutoWhistle")
+    addToggle(MiscTab, "\uD83C\uDFB2 Auto Random Vote", "\u1794\u17C4\u1791\u17CB\u1786\u17D2\u1793\u17C4\u178F\u1785\u17C1\u1791\u1793\u17D2\u1791\u1799", "AutoRandomVote")
+    addToggle(MiscTab, "\uD83C\uDF24\uFE0F Weather Adjust", "\u1780\u17C2\u17A2\u1780\u17B6\u179F\u178A\u17B6\u178F\u17BB", "WeatherAdjust")
+    addToggle(MiscTab, "\uD83C\uDF11 Remove Darkness", "\u1794\u17C6\u1794\u17B6\u1791\u17CB\u1784\u1784\u17D2\u17A0\u17B9\u178F", "RemoveDarkness")
+    addToggle(MiscTab, "\uD83D\uDECD\uFE0F Buy Usables", "\u1791\u17B7\u1789\u179A\u1794\u179F\u17CB", "BuyUsables")
+    addToggle(MiscTab, "\uD83D\uDCA1 No Light Flicker", "\u1794\u17C6\u1794\u17B6\u1791\u17CB\u1796\u1793\u17D2\u179B\u17BE\u1799\u1797\u17D2\u179B\u17B9\u1794", "NoLightFlicker")
+    addToggle(MiscTab, "\uD83D\uDCAC Show Chat", "\u1794\u1784\u17D2\u17A0\u17B6\u1789\u1786\u17B6\u178F", "ShowGlobalChat")
+    addToggle(MiscTab, "\uD83C\uDF81 Redeem Codes", "\u1785\u17BB\u1785 Redeem", "RedeemCodes")
+    addToggle(MiscTab, "\uD83D\uDC83 All Emotes", "\u1794\u17D2\u179A\u17BE\u179F Emotes", "AllEmotes")
+
+    -- Morph Tab
+    addToggle(MorphTab, "\uD83D\uDDFF Giant Morph", "\u1792\u17C6 x3 (\u17A2\u1793\u1780\u1795\u17D2\u179F\u17C2\u1784\u1798\u17BE\u179B\u1782\u17BE\u1789)", "GiantMorph")
+    addToggle(MorphTab, "\uD83D\uDC1C Tiny Morph", "\u1791\u17BC\u1785 x0.4 (\u17A2\u1793\u1780\u1795\u17D2\u179F\u17C2\u1784\u1798\u17BE\u179B\u1782\u17BE\u1789)", "TinyMorph")
+    addToggle(MorphTab, "\uD83D\uDCAA Muscle Morph", "\u179F\u17B6\u1785\u17CB\u1791\u17BC\u1798\u1792\u17C6 x2 (\u17A2\u1793\u1780\u1795\u17D2\u179F\u17C2\u1784\u1798\u17BE\u179B\u1782\u17BE\u1789)", "MuscleMorph")
+    addToggle(MorphTab, "\uD83D\uDC7B Invisible", "\u179B\u17B6\u1780\u1781\u17D2\u179B\u17BB\u1793 (Req: Lv.4)", "InvisibleMorph")
+    addToggle(MorphTab, "\uD83C\uDF10 Visible to Others", "\u17A2\u1793\u1780\u179B\u17C2\u1784\u1795\u17D2\u179F\u17C2\u1784\u1798\u17BE\u179B\u1782\u17BE\u1789 Morph (Req: Lv.2)", "VisibleToOthers")
     
     local copyPlayerBtn = Instance.new("TextButton", MorphTab)
     copyPlayerBtn.Size = UDim2.new(1, -4, 0, 50)
     copyPlayerBtn.BackgroundColor3 = Color3.fromRGB(180, 100, 220)
-    copyPlayerBtn.Text = "🎭 Copy Player (Req: Lv.3)\nចម្លងរូបរាងពីអ្នកលេងផ្សេង"
+    copyPlayerBtn.Text = "\uD83C\uDFAD Copy Player (Req: Lv.3)\n\u1785\u1798\u17D2\u179B\u1784\u179A\u17BC\u1794\u179A\u17B6\u1784\u1796\u17B8\u17A2\u1793\u1780\u179B\u17C2\u1784\u1795\u17D2\u179F\u17C2\u1784"
     copyPlayerBtn.TextColor3 = Color3.new(1, 1, 1)
     copyPlayerBtn.Font = Enum.Font.GothamBold
     copyPlayerBtn.TextSize = 12
     Instance.new("UICorner", copyPlayerBtn).CornerRadius = UDim.new(0, 10)
     copyPlayerBtn.MouseButton1Click:Connect(function()
         if VIP_LEVEL < 3 then
-            copyPlayerBtn.Text = "🔒 ត្រូវការ VIP Lv.3"
+            copyPlayerBtn.Text = "\uD83D\uDD12 \u178F\u17D2\u179A\u17BC\u179C\u1780\u17B6\u179A VIP Lv.3"
             task.delay(1.5, function()
                 if copyPlayerBtn and copyPlayerBtn.Parent then
-                    copyPlayerBtn.Text = "🎭 Copy Player (Req: Lv.3)\nចម្លងរូបរាងពីអ្នកលេងផ្សេង"
+                    copyPlayerBtn.Text = "\uD83C\uDFAD Copy Player (Req: Lv.3)\n\u1785\u1798\u17D2\u179B\u1784\u179A\u17BC\u1794\u179A\u17B6\u1784\u1796\u17B8\u17A2\u1793\u1780\u179B\u17C2\u1784\u1795\u17D2\u179F\u17C2\u1784"
                 end
             end)
             return
@@ -649,16 +664,20 @@ local function buildUI(imageAsset)
         openPlayerList()
     end)
     
-    addButton(MorphTab, "🔄 Reset Morph (កំណត់ដើមវិញ)", function()
+    addButton(MorphTab, "\uD83D\uDD04 Reset Morph (\u1780\u17C6\u1793\u178F\u17CB\u1791\u17C6\u1798\u179C\u17B7\u1789)", function()
         resetAllMorphs()
     end)
-    addToggle(HUDTab, "⏱️ Round Timer", "ម៉ោង", "ShowRoundTimer")
-    addToggle(HUDTab, "📢 Game Status", "សថានភាព", "ShowGameStatus")
-    addToggle(HUDTab, "🎮 FPS Counter", "FPS", "ShowFPS")
-    addButton(UtilTab, "🔄 Rejoin", function()
+
+    -- HUD Tab
+    addToggle(HUDTab, "\u23F1\uFE0F Round Timer", "\u1798\u17C9\u17C4\u1784", "ShowRoundTimer")
+    addToggle(HUDTab, "\uD83D\uDCE2 Game Status", "\u179F\u17D2\u1790\u17B6\u1793\u1797\u17B6\u1794", "ShowGameStatus")
+    addToggle(HUDTab, "\uD83C\uDFAE FPS Counter", "FPS", "ShowFPS")
+
+    -- Util Tab
+    addButton(UtilTab, "\uD83D\uDD04 Rejoin", function()
         pcall(function() TeleportService:Teleport(Workspace.PlaceId, LocalPlayer) end)
     end)
-    addButton(UtilTab, " Disable All", function()
+    addButton(UtilTab, "\u274C Disable All", function()
         for k, _ in pairs(Toggles) do Toggles[k] = false end
         resetAllMorphs()
     end)
@@ -740,7 +759,7 @@ local function buildUI(imageAsset)
     local plTitle = Instance.new("TextLabel", plFrame)
     plTitle.Size = UDim2.new(1, 0, 0, 40)
     plTitle.BackgroundTransparency = 1
-    plTitle.Text = "🎭 ជ្រើសរើសអ្នកលេងដើម្បីចម្លងរូបរាង"
+    plTitle.Text = "\uD83C\uDFAD \u1787\u17D2\u179A\u17BE\u179F\u179A\u17BE\u179F\u17A2\u1793\u1780\u179B\u17C2\u1784\u1791\u17C6\u1798\u17D2\u1794\u17B8\u1785\u1798\u17D2\u179B\u1784\u179A\u17BC\u1794\u179A\u17B6\u1784"
     plTitle.TextColor3 = ACCENT
     plTitle.Font = Enum.Font.GothamBold
     plTitle.TextSize = 14
@@ -749,7 +768,7 @@ local function buildUI(imageAsset)
     plClose.Size = UDim2.new(0, 30, 0, 30)
     plClose.Position = UDim2.new(1, -35, 0, 5)
     plClose.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-    plClose.Text = "✕"
+    plClose.Text = "\u2715"
     plClose.TextColor3 = Color3.new(1, 1, 1)
     plClose.Font = Enum.Font.GothamBold
     plClose.TextSize = 13
@@ -776,7 +795,7 @@ local function buildUI(imageAsset)
                 local btn = Instance.new("TextButton", plScroll)
                 btn.Size = UDim2.new(1, -4, 0, 35)
                 btn.BackgroundColor3 = Color3.fromRGB(50, 40, 60)
-                btn.Text = "👤 " .. plr.Name
+                btn.Text = "\uD83D\uDC64 " .. plr.Name
                 btn.TextColor3 = Color3.new(1, 1, 1)
                 btn.Font = Enum.Font.GothamBold
                 btn.TextSize = 13
@@ -801,10 +820,460 @@ local function buildUI(imageAsset)
     task.spawn(function()
         while gui.Parent do
             task.wait(0.5)
-            local t = "👑 VIP Level: " .. VIP_LEVEL .. "\n"
+            local t = "\uD83D\uDC51 VIP Level: " .. VIP_LEVEL .. "\n"
             if Toggles.ShowFPS then
                 t = t .. "FPS: " .. math.floor(1 / RunService.Heartbeat:Wait()) .. "\n"
             end
             if Toggles.ShowRoundTimer then
                 pcall(function()
-                    local pg
+                    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+                    if pg then
+                        for _, x in pg:GetDescendants() do
+                            if x:IsA("TextLabel") and (x.Text:match("Round") or x.Text:match("Timer") or x.Text:match("Ends")) then
+                                t = t .. x.Text .. "\n"
+                            end
+                        end
+                    end
+                end)
+            end
+            if Toggles.ShowGameStatus then
+                pcall(function()
+                    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+                    if pg then
+                        for _, x in pg:GetDescendants() do
+                            if x:IsA("TextLabel") and (x.Text:match("Next round") or x.Text:match("Voting") or x.Text:match("Playing")) then
+                                t = t .. x.Text .. "\n"
+                            end
+                        end
+                    end
+                end)
+            end
+            hud.Text = t
+        end
+    end)
+
+    return gui
+end
+
+-- ==================== OTHER FUNCTIONS ====================
+local function getNPCs()
+    local npcs = {}
+    local myChar = LocalPlayer.Character
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj ~= myChar then
+            local hum = obj:FindFirstChildOfClass("Humanoid")
+            local root = obj:FindFirstChild("HumanoidRootPart")
+            if hum and root and hum.Health > 0 and not Players:GetPlayerFromCharacter(obj) then
+                table.insert(npcs, {Model = obj, Humanoid = hum, RootPart = root})
+            end
+        end
+    end
+    return npcs
+end
+
+local function getCollectables()
+    local items = {}
+    for _, part in ipairs(Workspace:GetDescendants()) do
+        if part:IsA("BasePart") and part.CanCollide then
+            local n = part.Name:lower()
+            if n:find("coin") or n:find("candy") or n:find("token") or n:find("gem") or n:find("xp") or n:find("gift") or n:find("box") then
+                table.insert(items, part)
+            elseif part:FindFirstChildOfClass("Sparkles") or part:FindFirstChildOfClass("Highlight") then
+                table.insert(items, part)
+            end
+        end
+    end
+    return items
+end
+
+local function runKillAll()
+    local conn
+    conn = RunService.Heartbeat:Connect(function()
+        if not (Toggles.KillAll or Toggles.AutoFarmXP) then conn:Disconnect(); return end
+        for _, npc in ipairs(getNPCs()) do
+            pcall(function() npc.Model:Destroy() end)
+        end
+    end)
+    return conn
+end
+
+local function runGodMode()
+    local charData = {}
+    local function onChar(char)
+        local hum = char:WaitForChild("Humanoid")
+        local ff = Instance.new("ForceField", char)
+        local conn = hum.HealthChanged:Connect(function()
+            if hum.Health < 100 then
+                pcall(function() hum.Health = 100 end)
+            end
+        end)
+        charData[char] = {ff, conn}
+        hum.Died:Connect(function()
+            if charData[char] then
+                pcall(function() charData[char][1]:Destroy() end)
+                pcall(function() charData[char][2]:Disconnect() end)
+                charData[char] = nil
+            end
+        end)
+    end
+    local charAdd = LocalPlayer.CharacterAdded:Connect(onChar)
+    if LocalPlayer.Character and Toggles.GodMode then
+        onChar(LocalPlayer.Character)
+    end
+    return function()
+        charAdd:Disconnect()
+        for _, data in pairs(charData) do
+            pcall(function() data[1]:Destroy() end)
+            pcall(function() data[2]:Disconnect() end)
+        end
+        charData = {}
+    end
+end
+
+local function runSpeed()
+    local conn = RunService.Heartbeat:Connect(function()
+        if not Toggles.Speed then conn:Disconnect(); return end
+        pcall(function()
+            local char = LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then hum.WalkSpeed = 80 end
+            end
+        end)
+    end)
+    return conn
+end
+
+local function runFly()
+    local flyRender, bv, bg
+    local conn = RunService.Heartbeat:Connect(function()
+        if not Toggles.Fly then
+            if flyRender then flyRender:Disconnect() end
+            if bv then bv:Destroy() end
+            if bg then bg:Destroy() end
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum then hum.PlatformStand = false end
+                end
+            end)
+            conn:Disconnect()
+            return
+        end
+        pcall(function()
+            local char = LocalPlayer.Character
+            if not char then return end
+            local root = char:FindFirstChild("HumanoidRootPart")
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if not root or not hum then return end
+            if not root:FindFirstChild("FlyBV") then
+                bv = Instance.new("BodyVelocity", root)
+                bv.Name = "FlyBV"
+                bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+                bg = Instance.new("BodyGyro", root)
+                bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+                hum.PlatformStand = true
+                flyRender = RunService.RenderStepped:Connect(function()
+                    local dir = hum.MoveDirection
+                    bv.Velocity = dir.Magnitude > 0 and dir * 80 or Vector3.zero
+                    bg.CFrame = Camera.CFrame
+                end)
+            end
+        end)
+    end)
+    return conn
+end
+
+local function runInfJump()
+    local conn = UserInputService.JumpRequest:Connect(function()
+        if Toggles.InfiniteJump then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum then hum:ChangeState("Jumping") end
+                end
+            end)
+        end
+    end)
+    return conn
+end
+
+local function runAutoFarm()
+    local conn = RunService.Heartbeat:Connect(function()
+        if not (Toggles.AutoFarm or Toggles.AFKFarm or Toggles.AutoFarmCandy) then
+            conn:Disconnect(); return
+        end
+        pcall(function()
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+            local nearest, minDist = nil, 100
+            for _, item in ipairs(getCollectables()) do
+                local d = (item.Position - root.Position).Magnitude
+                if d < minDist then minDist = d; nearest = item end
+            end
+            if nearest and minDist > 5 then
+                root.CFrame = nearest.CFrame * CFrame.new(0, 3, 0)
+            end
+        end)
+    end)
+    return conn
+end
+
+local function runTeleportDowned()
+    local conn = RunService.Heartbeat:Connect(function()
+        if not Toggles.TeleportToDowned then conn:Disconnect(); return end
+        pcall(function()
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer then
+                    local target = plr.Character
+                    if target then
+                        local hum = target:FindFirstChildOfClass("Humanoid")
+                        local tr = target:FindFirstChild("HumanoidRootPart")
+                        if hum and tr and hum.Health <= 0 then
+                            root.CFrame = tr.CFrame * CFrame.new(0, 3, 0)
+                            break
+                        end
+                    end
+                end
+            end
+        end)
+    end)
+    return conn
+end
+
+local function runAutoReviveCarry()
+    local conn = RunService.Heartbeat:Connect(function()
+        if not (Toggles.AutoFarmCash or Toggles.AutoInstantRevive or Toggles.AutoCarry or Toggles.AutoRevive) then
+            conn:Disconnect(); return
+        end
+        pcall(function()
+            local pg = LocalPlayer:FindFirstChild("PlayerGui")
+            if pg then
+                for _, g in ipairs(pg:GetChildren()) do
+                    for _, b in ipairs(g:GetDescendants()) do
+                        if b:IsA("TextButton") then
+                            local text = b.Text:lower()
+                            if (Toggles.AutoFarmCash or Toggles.AutoInstantRevive or Toggles.AutoRevive) and (text:find("revive") or text:find("respawn")) then
+                                b:Fire()
+                            end
+                            if Toggles.AutoCarry and text:find("carry") then
+                                b:Fire()
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end)
+    return conn
+end
+
+local function runAutoRespawn()
+    local conn
+    conn = LocalPlayer.CharacterAdded:Connect(function(char)
+        local hum = char:WaitForChild("Humanoid")
+        hum.Died:Connect(function()
+            if Toggles.AutoRespawn then
+                task.wait(0.5)
+                LocalPlayer:LoadCharacter()
+            end
+        end)
+    end)
+    return conn
+end
+
+local espLabels, espBoxes, espHighlights = {}, {}, {}
+local function runESP(gui)
+    local renderConn
+    renderConn = RunService.RenderStepped:Connect(function()
+        if not (Toggles.VIPESP or Toggles.ESPBoxes or Toggles.ESPTracers or Toggles.ESPRainbow or Toggles.PlayersHighlight) then
+            for _, lbl in pairs(espLabels) do pcall(function() lbl:Destroy() end) end; espLabels = {}
+            for _, box in pairs(espBoxes) do pcall(function() box:Destroy() end) end; espBoxes = {}
+            for _, hl in pairs(espHighlights) do pcall(function() hl:Destroy() end) end; espHighlights = {}
+            renderConn:Disconnect()
+            return
+        end
+        pcall(function()
+            local cam = Camera
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer then
+                    local char = plr.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        local root = char.HumanoidRootPart
+                        local pos, onScreen = cam:WorldToViewportPoint(root.Position)
+                        if onScreen then
+                            local col = (plr.TeamColor == LocalPlayer.TeamColor) and Color3.new(0,1,0) or Color3.new(1,0,0)
+                            if Toggles.PlayersHighlight or Toggles.ESPRainbow then
+                                if not espHighlights[plr] then
+                                    espHighlights[plr] = Instance.new("Highlight")
+                                    espHighlights[plr].Parent = char
+                                end
+                                espHighlights[plr].FillColor = Toggles.ESPRainbow and Color3.fromHSV(tick()%5/5,1,1) or col
+                            else
+                                if espHighlights[plr] then espHighlights[plr]:Destroy(); espHighlights[plr] = nil end
+                            end
+                            if Toggles.VIPESP then
+                                if not espLabels[plr] then
+                                    espLabels[plr] = Instance.new("TextLabel")
+                                    espLabels[plr].BackgroundTransparency = 0.2
+                                    espLabels[plr].BackgroundColor3 = Color3.fromRGB(30,20,25)
+                                    espLabels[plr].TextScaled = true
+                                    espLabels[plr].ZIndex = 10
+                                    espLabels[plr].Parent = gui
+                                    Instance.new("UICorner", espLabels[plr]).CornerRadius = UDim.new(0,6)
+                                    Instance.new("UIStroke", espLabels[plr]).Color = ACCENT; espLabels[plr].UIStroke.Thickness = 1.5
+                                end
+                                local lbl = espLabels[plr]
+                                local dist = math.floor((root.Position - cam.CFrame.Position).Magnitude)
+                                local hpText = Toggles.ESPHealth and (" | HP: "..math.floor(char.Humanoid.Health)) or ""
+                                lbl.Text = plr.Name .. " | " .. dist .. "m" .. hpText
+                                lbl.Size = UDim2.new(0, 160, 0, 24)
+                                lbl.Position = UDim2.new(0, pos.X-80, 0, pos.Y-70)
+                                lbl.TextColor3 = col
+                                lbl.Visible = true
+                            else
+                                if espLabels[plr] then espLabels[plr]:Destroy(); espLabels[plr] = nil end
+                            end
+                            if Toggles.ESPBoxes then
+                                if not espBoxes[plr] then
+                                    espBoxes[plr] = Instance.new("Frame")
+                                    espBoxes[plr].BackgroundTransparency = 1
+                                    espBoxes[plr].BorderSizePixel = 2
+                                    espBoxes[plr].BorderColor3 = col
+                                    espBoxes[plr].ZIndex = 9
+                                    espBoxes[plr].Parent = gui
+                                end
+                                local s = math.max(30, 300/dist)
+                                espBoxes[plr].Size = UDim2.new(0, s*1.5, 0, s*2)
+                                espBoxes[plr].Position = UDim2.new(0, pos.X - s*1.5/2, 0, pos.Y - s*2)
+                                espBoxes[plr].Visible = true
+                            else
+                                if espBoxes[plr] then espBoxes[plr]:Destroy(); espBoxes[plr] = nil end
+                            end
+                        else
+                            if espLabels[plr] then espLabels[plr].Visible = false end
+                            if espBoxes[plr] then espBoxes[plr].Visible = false end
+                        end
+                    end
+                end
+            end
+        end)
+    end)
+    return renderConn
+end
+
+local function runFullBright()
+    local oldAmbient = Lighting.Ambient
+    local oldBrightness = Lighting.Brightness
+    pcall(function()
+        Lighting.Ambient = Color3.new(1,1,1)
+        Lighting.Brightness = 2
+    end)
+    return function()
+        pcall(function()
+            Lighting.Ambient = oldAmbient
+            Lighting.Brightness = oldBrightness
+        end)
+    end
+end
+
+local function runAdjustFOV()
+    local oldFOV = Camera.FieldOfView
+    pcall(function() Camera.FieldOfView = 120 end)
+    return function() pcall(function() Camera.FieldOfView = oldFOV end) end
+end
+
+-- ==================== CONTROLLER ====================
+local cleaners = {}
+local function setToggle(flag, startFunc, ...)
+    if cleaners[flag] then
+        pcall(cleaners[flag])
+        cleaners[flag] = nil
+    end
+    if Toggles[flag] then
+        cleaners[flag] = startFunc(...)
+    end
+end
+
+local function monitorToggles(gui)
+    local checks = {
+        ["KillAll"] = runKillAll,
+        ["AutoFarmXP"] = runKillAll,
+        ["GodMode"] = runGodMode,
+        ["Speed"] = runSpeed,
+        ["Fly"] = runFly,
+        ["InfiniteJump"] = runInfJump,
+        ["AutoFarm"] = runAutoFarm,
+        ["AFKFarm"] = runAutoFarm,
+        ["AutoFarmCandy"] = runAutoFarm,
+        ["TeleportToDowned"] = runTeleportDowned,
+        ["AutoFarmCash"] = runAutoReviveCarry,
+        ["AutoInstantRevive"] = runAutoReviveCarry,
+        ["AutoCarry"] = runAutoReviveCarry,
+        ["AutoRevive"] = runAutoReviveCarry,
+        ["AutoRespawn"] = runAutoRespawn,
+        ["VIPESP"] = function() return runESP(gui) end,
+        ["ESPBoxes"] = function() return runESP(gui) end,
+        ["ESPTracers"] = function() return runESP(gui) end,
+        ["ESPHealth"] = function() return runESP(gui) end,
+        ["ESPRainbow"] = function() return runESP(gui) end,
+        ["PlayersHighlight"] = function() return runESP(gui) end,
+        ["FullBright"] = runFullBright,
+        ["AdjustFOV"] = runAdjustFOV,
+        ["GiantMorph"] = runMorphSystem,
+        ["TinyMorph"] = runMorphSystem,
+        ["InvisibleMorph"] = runMorphSystem,
+        ["MuscleMorph"] = runMorphSystem,
+        ["VisibleToOthers"] = runMorphSystem,
+    }
+
+    local states = {}
+    for flag, _ in pairs(checks) do
+        states[flag] = Toggles[flag]
+    end
+
+    local conn = RunService.Heartbeat:Connect(function()
+        for flag, startFunc in pairs(checks) do
+            if Toggles[flag] ~= states[flag] then
+                states[flag] = Toggles[flag]
+                setToggle(flag, startFunc)
+            end
+        end
+    end)
+    return conn
+end
+
+-- ==================== START ====================
+task.spawn(function()
+    local asset = ""
+    pcall(function()
+        if request and writefile and getcustomasset then
+            local res = request({Url = IMAGE_URL, Method = "GET"})
+            if res and res.StatusCode == 200 then
+                writefile("vip_bg.jpg", res.Body)
+                asset = getcustomasset("vip_bg.jpg")
+            end
+        end
+    end)
+
+    local gui = buildUI(asset)
+    local monitorConn = monitorToggles(gui)
+
+    gui.AncestryChanged:Connect(function()
+        if not gui.Parent then
+            monitorConn:Disconnect()
+            for _, cleaner in pairs(cleaners) do
+                pcall(cleaner)
+            end
+            cleaners = {}
+        end
+    end)
+end)
+
+print("\u2705 VIP Evade Ultimate Loaded Successfully!")
