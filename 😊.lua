@@ -2,7 +2,6 @@
     VIP EVADE ULTIMATE | Full Features (60+ Toggles)
     រចនាឡើងសម្រាប់ Evade បច្ចុប្បន្ន
     No Memory Leak | Auto-Adapt Logic | VIP Level System | Character Morph System | Multiplayer Replication
-    Fixed: attempt to index nil with 'Disconnect'
 ]]
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -70,7 +69,7 @@ local Toggles = {
     ShowRoundTimer = false, ShowGameStatus = false, ShowFPS = false,
     -- 🎭 MORPH SYSTEM
     GiantMorph = false, TinyMorph = false, InvisibleMorph = false, MuscleMorph = false,
-    -- 🌐 REPLICATION SYSTEM
+    -- 🌐 REPLICATION SYSTEM (ថ្មី!)
     VisibleToOthers = false,
 }
 
@@ -275,7 +274,7 @@ local function buildUI(imageAsset)
             if requiredLevel and VIP_LEVEL < requiredLevel then
                 local originalText = text.Text
                 local originalColor = text.TextColor3
-                text.Text = " ត្រូវការ VIP Lv." .. requiredLevel
+                text.Text = "🔒 ត្រូវការ VIP Lv." .. requiredLevel
                 text.TextColor3 = Color3.fromRGB(255, 80, 80)
                 task.delay(1.2, function()
                     if text and text.Parent then
@@ -321,7 +320,7 @@ local function buildUI(imageAsset)
     local SurvivalTab = createTab("Survive", "🛡️")
     local MobilityTab = createTab("Move", "🏃")
     local FarmTab = createTab("Farm", "💰")
-    local ESPTab = createTab("ESP", "️")
+    local ESPTab = createTab("ESP", "👁️")
     local VisionTab = createTab("Vision", "🌞")
     local MiscTab = createTab("Misc", "🎭")
     local MorphTab = createTab("Morph", "🗿")
@@ -329,55 +328,55 @@ local function buildUI(imageAsset)
     local UtilTab = createTab("Util", "⚙️")
 
     addToggle(CoreTab, "🔥 Kill All", "សម្លាប់ NPC ទាំងអស់ (Req: Lv.2)", "KillAll")
-    addToggle(CoreTab, " Auto Trap", "ដាក់អន្ាក់", "AutoTrap")
+    addToggle(CoreTab, "🪤 Auto Trap", "ដាក់អន្ទាក់", "AutoTrap")
     addToggle(CoreTab, "👻 Silent Walk", "ដើរលឿន 120", "SilentWalk")
 
     addToggle(SurvivalTab, "🛡️ God Mode", "ForceField + ការពារ (Req: Lv.2)", "GodMode")
     addToggle(SurvivalTab, "🛑 Anti-Down", "ការពារដួល", "AntiDown")
-    addToggle(SurvivalTab, "🥤 Auto Cola", "ប្រើ Cola សវ័យ", "AutoCola")
+    addToggle(SurvivalTab, "🥤 Auto Cola", "ប្រើ Cola ស្វ័យ", "AutoCola")
     addToggle(SurvivalTab, "🏃 Auto Escape", "គេច Bot HP ទាប", "AutoEscape")
     addToggle(SurvivalTab, "🧱 Remove Barriers", "បំបាត់របាំង", "RemoveBarriers")
-    addToggle(SurvivalTab, " No Water Dmg", "មិនខូច HP ទឹក", "NoWaterDmg")
+    addToggle(SurvivalTab, "💧 No Water Dmg", "មិនខូច HP ទឹក", "NoWaterDmg")
 
     addToggle(MobilityTab, "💨 Speed Hack", "ល្បឿន 80", "Speed")
     addToggle(MobilityTab, "🦘 Jump Boost", "លោតខ្ពស់", "Jump")
     addToggle(MobilityTab, "🌌 Low Gravity", "ទំនាញទាប", "Gravity")
     addToggle(MobilityTab, "🔄 BHOP", "Auto Jump", "BHop")
     addToggle(MobilityTab, "♾️ Infinite Jump", "លោតគ្មានកំណត់", "InfiniteJump")
-    addToggle(MobilityTab, "🚀 Trimping", "ល្ឿនផ្ទុះ (Req: Lv.3)", "Trimping")
+    addToggle(MobilityTab, "🚀 Trimping", "ល្បឿនផ្ទុះ (Req: Lv.3)", "Trimping")
     addToggle(MobilityTab, "🧊 Infinite Slide", "រអិលឥតឈប់", "InfiniteSlide")
     addToggle(MobilityTab, "✈️ Fly", "ហោះឆ្លងជញ្ជាំង (Req: Lv.3)", "Fly")
     addToggle(MobilityTab, "🦵 Hip Height", "កែកម្ពស់ជើង", "HipHeight")
     addToggle(MobilityTab, "🔭 Adjust FOV", "FOV 120", "AdjustFOV")
-    addToggle(MobilityTab, "💨 Auto Dash", "Dash ស្វយ", "AutoDash")
+    addToggle(MobilityTab, "💨 Auto Dash", "Dash ស្វ័យ", "AutoDash")
     addToggle(MobilityTab, "🦘 Auto Jump No Key", "លោតដោយស្វ័យ", "AutoJumpNoKey")
 
     addToggle(FarmTab, "💰 Auto Farm All", "Coin, XP, Token", "AutoFarm")
     addToggle(FarmTab, "🍬 Auto Candy", "Candy លឿន", "AutoFarmCandy")
     addToggle(FarmTab, "⏳ AFK Mode", "Farm មិនដើរ", "AFKFarm")
-    addToggle(FarmTab, " Auto Win XP", "ឈ្នះគ្រប់ជុំ (Req: Lv.2)", "AutoFarmXP")
+    addToggle(FarmTab, "🏆 Auto Win XP", "ឈ្នះគ្រប់ជុំ (Req: Lv.2)", "AutoFarmXP")
     addToggle(FarmTab, "💵 Auto Cash", "Revive ភ្លាម", "AutoFarmCash")
     addToggle(FarmTab, "🔄 Instant Revive", "រស់ឡើងវិញ", "AutoInstantRevive")
     addToggle(FarmTab, "🤝 Auto Carry", "ដឹកស្វ័យ", "AutoCarry")
     addToggle(FarmTab, "💀 Auto Respawn", "Respawn", "AutoRespawn")
     addToggle(FarmTab, "📞 Teleport Downed", "ទៅអ្នកដេក", "TeleportToDowned")
     addToggle(FarmTab, "🗳️ Auto Vote", "បោះឆ្នោត", "AutoVote")
-    addToggle(FarmTab, " Auto Revive", "Revive អ្កដទៃ", "AutoRevive")
+    addToggle(FarmTab, "🔄 Auto Revive", "Revive អ្នកដទៃ", "AutoRevive")
 
     addToggle(ESPTab, "👁️ Player ESP", "ឈ្មោះ+ចម្ងាយ", "VIPESP")
-    addToggle(ESPTab, " Box ESP", "ប្រអប់", "ESPBoxes")
+    addToggle(ESPTab, "📦 Box ESP", "ប្រអប់", "ESPBoxes")
     addToggle(ESPTab, "📏 Tracers", "បន្ទាត់", "ESPTracers")
     addToggle(ESPTab, "❤️ Health ESP", "បង្ហាញ HP", "ESPHealth")
     addToggle(ESPTab, "🌈 Rainbow", "ឥន្ទធនូ", "ESPRainbow")
-    addToggle(ESPTab, "👾 Monsters ESP", "បង្ាញ NPC", "MonstersESP")
+    addToggle(ESPTab, "👾 Monsters ESP", "បង្ហាញ NPC", "MonstersESP")
     addToggle(ESPTab, "🩹 Downed ESP", "បង្ហាញអ្នកដេក", "DownedESP")
-    addToggle(ESPTab, " Collectables ESP", "បង្ហាញកាក់/XP", "CollectablesESP")
-    addToggle(ESPTab, "🔧 Tool ESP", "បង្ហាញបករណ៍", "ToolESP")
-    addToggle(ESPTab, "✨ Highlight", "គូសពន្ល", "PlayersHighlight")
+    addToggle(ESPTab, "💰 Collectables ESP", "បង្ហាញកាក់/XP", "CollectablesESP")
+    addToggle(ESPTab, "🔧 Tool ESP", "បង្ហាញឧបករណ៍", "ToolESP")
+    addToggle(ESPTab, "✨ Highlight", "គូសពន្លឺ", "PlayersHighlight")
 
-    addToggle(VisionTab, "☀️ Full Bright", "ភលឺទាំងអស់", "FullBright")
-    addToggle(VisionTab, " No Cam Shake", "កាមេរ៉ាមិនញ័រ", "NoCameraShake")
-    addToggle(VisionTab, "⚡ FPS Boost", "បង្ើន FPS", "FPSBoost")
+    addToggle(VisionTab, "☀️ Full Bright", "ភ្លឺទាំងអស់", "FullBright")
+    addToggle(VisionTab, "📸 No Cam Shake", "កាមេរ៉ាមិនញ័រ", "NoCameraShake")
+    addToggle(VisionTab, "⚡ FPS Boost", "បង្កើន FPS", "FPSBoost")
 
     addToggle(MiscTab, "👆 Auto Interact", "ចុច E ស្វ័យ", "AutoInteract")
     addToggle(MiscTab, "🎵 Auto Whistle", "ផ្លុំកញ្ចែ", "AutoWhistle")
@@ -386,15 +385,17 @@ local function buildUI(imageAsset)
     addToggle(MiscTab, "🌑 Remove Darkness", "បំបាត់ងងឹត", "RemoveDarkness")
     addToggle(MiscTab, "🛍️ Buy Usables", "ទិញរបស់", "BuyUsables")
     addToggle(MiscTab, "💡 No Light Flicker", "បំបាត់ពន្លឺភ្លឹប", "NoLightFlicker")
-    addToggle(MiscTab, "💬 Show Chat", "បង្ាញឆាត", "ShowGlobalChat")
-    addToggle(MiscTab, " Redeem Codes", "ចុច Redeem", "RedeemCodes")
-    addToggle(MiscTab, "💃 All Emotes", "បរើ Emotes", "AllEmotes")
+    addToggle(MiscTab, "💬 Show Chat", "បង្ហាញឆាត", "ShowGlobalChat")
+    addToggle(MiscTab, "🎁 Redeem Codes", "ចុច Redeem", "RedeemCodes")
+    addToggle(MiscTab, "💃 All Emotes", "ប្រើ Emotes", "AllEmotes")
 
     -- 🎭 MORPH TAB
-    addToggle(MorphTab, "🗿 Giant Morph", "ធំ x3 (អ្នកផសេងមើលឃើញ)", "GiantMorph")
+    addToggle(MorphTab, "🗿 Giant Morph", "ធំ x3 (អ្នកផ្សេងមើលឃើញ)", "GiantMorph")
     addToggle(MorphTab, "🐜 Tiny Morph", "តូច x0.4 (អ្នកផ្សេងមើលឃើញ)", "TinyMorph")
-    addToggle(MorphTab, "💪 Muscle Morph", "សាច់ដុំធំ x2 (អនកផ្សេងមើលឃើញ)", "MuscleMorph")
+    addToggle(MorphTab, "💪 Muscle Morph", "សាច់ដុំធំ x2 (អ្នកផ្សេងមើលឃើញ)", "MuscleMorph")
     addToggle(MorphTab, "👻 Invisible", "លាក់ខ្លួន (Req: Lv.4)", "InvisibleMorph")
+    
+    -- 🌐 REPLICATION TOGGLE (ថ្មី!)
     addToggle(MorphTab, "🌐 Visible to Others", "អ្នកលេងផ្សេងមើលឃើញ Morph (Req: Lv.2)", "VisibleToOthers")
     
     local copyPlayerBtn = Instance.new("TextButton", MorphTab)
@@ -407,7 +408,7 @@ local function buildUI(imageAsset)
     Instance.new("UICorner", copyPlayerBtn).CornerRadius = UDim.new(0, 10)
     copyPlayerBtn.MouseButton1Click:Connect(function()
         if VIP_LEVEL < 3 then
-            copyPlayerBtn.Text = "🔒 តរូវការ VIP Lv.3"
+            copyPlayerBtn.Text = "🔒 ត្រូវការ VIP Lv.3"
             task.delay(1.5, function()
                 if copyPlayerBtn and copyPlayerBtn.Parent then
                     copyPlayerBtn.Text = "🎭 Copy Player (Req: Lv.3)\nចម្លងរូបរាងពីអ្នកលេងផ្សេង"
@@ -608,7 +609,7 @@ local function buildUI(imageAsset)
     return gui
 end
 
--- ==================== MORPH SYSTEM WITH REPLICATION (FIXED) ====================
+-- ==================== MORPH SYSTEM WITH REPLICATION ====================
 local morphState = {
     scale = 1,
     invisible = false,
@@ -618,12 +619,15 @@ local morphState = {
     replicated = false,
 }
 
+-- 🌐 កំណត់ Network Ownership ដើម្បីឱ្យ Character Replicate ទៅ Client ផ្សេង
 local function setNetworkOwnership(char)
     pcall(function()
         local root = char:FindFirstChild("HumanoidRootPart")
         if root then
+            -- ធ្វើឱ្យ Character របស់យើងអាចគ្រប់គ្រងបានដោយ Client (Local)
             root:SetNetworkOwner(LocalPlayer)
         end
+        -- កំណត់ Network Ownership សម្រាប់ Parts ទាំងអស់
         for _, part in ipairs(char:GetDescendants()) do
             if part:IsA("BasePart") then
                 pcall(function() part:SetNetworkOwner(LocalPlayer) end)
@@ -632,11 +636,13 @@ local function setNetworkOwnership(char)
     end)
 end
 
+-- អនុវត្ត Scale ទៅតួអង្គ (ជាមួយ Replication)
 local function applyScaleToChar(char, scale, replicate)
     pcall(function()
         local hum = char:FindFirstChildOfClass("Humanoid")
         if not hum then return end
         
+        -- ប្រើ HumanoidDescription សម្រាប់ Replication
         if replicate and Toggles.VisibleToOthers then
             local desc = hum:FindFirstChildOfClass("HumanoidDescription")
             if desc then
@@ -644,10 +650,12 @@ local function applyScaleToChar(char, scale, replicate)
                 desc.BodyWidthScale = scale
                 desc.BodyDepthScale = scale
                 desc.HeadScale = scale
+                -- Apply ដើម្បី Replicate ទៅ Client ផ្សេង
                 pcall(function() hum:ApplyDescription(desc) end)
             end
         end
         
+        -- កំណត់ Scale ដោយផ្ទាល់ (Local)
         local scales = {"BodyHeightScale", "BodyWidthScale", "BodyDepthScale", "HeadScale"}
         for _, name in ipairs(scales) do
             local s = hum:FindFirstChild(name)
@@ -656,11 +664,13 @@ local function applyScaleToChar(char, scale, replicate)
     end)
 end
 
+-- អនុវត្ត Muscle Morph (ជាមួយ Replication)
 local function applyMuscleToChar(char, enable, replicate)
     pcall(function()
         local hum = char:FindFirstChildOfClass("Humanoid")
         if not hum then return end
         
+        -- ប្រើ HumanoidDescription សម្រាប់ Replication
         if replicate and Toggles.VisibleToOthers then
             local desc = hum:FindFirstChildOfClass("HumanoidDescription")
             if desc then
@@ -671,6 +681,7 @@ local function applyMuscleToChar(char, enable, replicate)
             end
         end
         
+        -- កែសម្រួល MeshParts ដោយផ្ទាល់ (Local)
         for _, part in ipairs(char:GetDescendants()) do
             if part:IsA("MeshPart") or part:IsA("BasePart") then
                 if part.Name:match("Torso") or part.Name:match("UpperArm") or part.Name:match("UpperLeg") then
@@ -685,10 +696,12 @@ local function applyMuscleToChar(char, enable, replicate)
     end)
 end
 
+-- អនុវត្ត Invisible (ជាមួយ Replication)
 local function applyInvisibleToChar(char, enable, replicate)
     pcall(function()
         local transparency = enable and 1 or 0
         
+        -- ប្រើ Transparency ដែលអាច Replicate បាន
         if replicate and Toggles.VisibleToOthers then
             for _, part in ipairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then
@@ -696,6 +709,7 @@ local function applyInvisibleToChar(char, enable, replicate)
                 end
             end
         else
+            -- ប្រើ LocalTransparencyModifier សម្រាប់ Local ប៉ុណ្ណោះ
             for _, part in ipairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then
                     part.LocalTransparencyModifier = transparency
@@ -703,6 +717,7 @@ local function applyInvisibleToChar(char, enable, replicate)
             end
         end
         
+        -- លាក់ឈ្មោះលើក្បាល
         local head = char:FindFirstChild("Head")
         if head then
             local billboard = head:FindFirstChildOfClass("BillboardGui")
@@ -725,9 +740,9 @@ function resetAllMorphs()
     
     local char = LocalPlayer.Character
     if char then
-        pcall(applyScaleToChar, char, 1, false)
-        pcall(applyInvisibleToChar, char, false, false)
-        pcall(applyMuscleToChar, char, false, false)
+        applyScaleToChar(char, 1, false)
+        applyInvisibleToChar(char, false, false)
+        applyMuscleToChar(char, false, false)
     end
     print("🔄 Morph ទាំងអស់បានកំណត់ដើមវិញ!")
 end
@@ -741,7 +756,7 @@ function copyPlayerAppearance(targetPlayer)
         
         local targetChar = targetPlayer.Character
         if not targetChar then
-            warn("️ អ្នកលេងនេះមិនមានតួអង្គទេ!")
+            warn("⚠️ អ្នកលេងនេះមិនមានតួអង្គទេ!")
             return
         end
         
@@ -754,10 +769,11 @@ function copyPlayerAppearance(targetPlayer)
         
         if success and desc then
             morphState.copiedDesc = desc
+            -- Apply ជាមួយ Replication
             if Toggles.VisibleToOthers then
                 pcall(function() hum:ApplyDescription(desc) end)
             else
-                pcall(function() hum:ApplyDescription(desc, true) end)
+                pcall(function() hum:ApplyDescription(desc, true) end) -- true = no replication
             end
             print("✅ បានចម្លងរូបរាងពី: " .. targetPlayer.Name)
         else
@@ -770,20 +786,25 @@ local function applyAllMorphs()
     local char = LocalPlayer.Character
     if not char then return end
     
-    pcall(setNetworkOwnership, char)
+    -- កំណត់ Network Ownership មុន
+    setNetworkOwnership(char)
     
+    -- កំណត់ Scale
     local scale = 1
     if Toggles.GiantMorph then scale = 3 end
     if Toggles.TinyMorph then scale = 0.4 end
     morphState.scale = scale
-    pcall(applyScaleToChar, char, scale, true)
+    applyScaleToChar(char, scale, true)
     
+    -- Invisible
     morphState.invisible = Toggles.InvisibleMorph
-    pcall(applyInvisibleToChar, char, Toggles.InvisibleMorph, true)
+    applyInvisibleToChar(char, Toggles.InvisibleMorph, true)
     
+    -- Muscle
     morphState.muscle = Toggles.MuscleMorph
-    pcall(applyMuscleToChar, char, Toggles.MuscleMorph, true)
+    applyMuscleToChar(char, Toggles.MuscleMorph, true)
     
+    -- Copied Description
     if morphState.copiedDesc then
         pcall(function()
             local hum = char:FindFirstChildOfClass("Humanoid")
@@ -800,72 +821,64 @@ local function applyAllMorphs()
     morphState.replicated = Toggles.VisibleToOthers
 end
 
--- ✅ FIXED: runMorphSystem with full nil protection
 local function runMorphSystem()
-    pcall(applyAllMorphs)
+    applyAllMorphs()
     
-    local conn = nil
-    local charConn = nil
-    
-    conn = RunService.Heartbeat:Connect(function()
+    local conn = RunService.Heartbeat:Connect(function()
         local char = LocalPlayer.Character
         if not char then return end
         
         local anyActive = Toggles.GiantMorph or Toggles.TinyMorph or Toggles.InvisibleMorph or Toggles.MuscleMorph or morphState.copiedDesc
         
         if not anyActive and morphState.scale == 1 and not morphState.invisible and not morphState.muscle then
-            if conn then
-                pcall(function() conn:Disconnect() end)
-                conn = nil
-            end
+            conn:Disconnect()
             return
         end
         
+        -- កំណត់ Network Ownership ប្រសិនបើមិនទាន់
         if not morphState.replicated and Toggles.VisibleToOthers then
-            pcall(setNetworkOwnership, char)
+            setNetworkOwnership(char)
             morphState.replicated = true
         end
         
+        -- អនុវត្ត Scale
         local targetScale = 1
         if Toggles.GiantMorph then targetScale = 3 end
         if Toggles.TinyMorph then targetScale = 0.4 end
         if targetScale ~= morphState.scale then
             morphState.scale = targetScale
-            pcall(applyScaleToChar, char, targetScale, true)
+            applyScaleToChar(char, targetScale, true)
         end
         
+        -- អនុវត្ត Invisible
         if Toggles.InvisibleMorph ~= morphState.invisible then
             morphState.invisible = Toggles.InvisibleMorph
-            pcall(applyInvisibleToChar, char, Toggles.InvisibleMorph, true)
+            applyInvisibleToChar(char, Toggles.InvisibleMorph, true)
         end
         
+        -- អនុវត្ត Muscle
         if Toggles.MuscleMorph ~= morphState.muscle then
             morphState.muscle = Toggles.MuscleMorph
-            pcall(applyMuscleToChar, char, Toggles.MuscleMorph, true)
+            applyMuscleToChar(char, Toggles.MuscleMorph, true)
         end
         
+        -- ប្រសិនបើ VisibleToOthers ត្រូវបានបិទ កំណត់ឡើងវិញ
         if not Toggles.VisibleToOthers and morphState.replicated then
-            pcall(applyAllMorphs)
+            applyAllMorphs()
             morphState.replicated = false
         end
     end)
     
-    if morphState.charConn then
-        pcall(function() morphState.charConn:Disconnect() end)
-        morphState.charConn = nil
-    end
-    
-    charConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
+    if morphState.charConn then morphState.charConn:Disconnect() end
+    morphState.charConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
         newChar:WaitForChild("Humanoid")
         task.wait(0.5)
-        pcall(applyAllMorphs)
+        applyAllMorphs()
     end)
-    morphState.charConn = charConn
     
     return function()
         if conn then
             pcall(function() conn:Disconnect() end)
-            conn = nil
         end
         if morphState.charConn then
             pcall(function() morphState.charConn:Disconnect() end)
@@ -940,10 +953,12 @@ local function runGodMode()
         onChar(LocalPlayer.Character)
     end
     return function()
-        charAdd:Disconnect()
+        if charAdd then
+            pcall(function() charAdd:Disconnect() end)
+        end
         for _, data in pairs(charData) do
-            pcall(function() data[1]:Destroy() end)
-            pcall(function() data[2]:Disconnect() end)
+            pcall(function() if data[1] then data[1]:Destroy() end end)
+            pcall(function() if data[2] then data[2]:Disconnect() end end)
         end
         charData = {}
     end
@@ -1068,4 +1083,239 @@ end
 
 local function runAutoReviveCarry()
     local conn = RunService.Heartbeat:Connect(function()
-        if not (Toggles.AutoFarmCash or Toggles.AutoInstantRev
+        if not (Toggles.AutoFarmCash or Toggles.AutoInstantRevive or Toggles.AutoCarry or Toggles.AutoRevive) then
+            conn:Disconnect(); return
+        end
+        pcall(function()
+            local pg = LocalPlayer:FindFirstChild("PlayerGui")
+            if pg then
+                for _, g in ipairs(pg:GetChildren()) do
+                    for _, b in ipairs(g:GetDescendants()) do
+                        if b:IsA("TextButton") then
+                            local text = b.Text:lower()
+                            if (Toggles.AutoFarmCash or Toggles.AutoInstantRevive or Toggles.AutoRevive) and (text:find("revive") or text:find("respawn")) then
+                                b:Fire()
+                            end
+                            if Toggles.AutoCarry and text:find("carry") then
+                                b:Fire()
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end)
+    return conn
+end
+
+local function runAutoRespawn()
+    local conn
+    local function onChar(char)
+        local hum = char:WaitForChild("Humanoid")
+        hum.Died:Connect(function()
+            if Toggles.AutoRespawn then
+                task.wait(0.5)
+                LocalPlayer:LoadCharacter()
+            end
+        end)
+    end
+    conn = LocalPlayer.CharacterAdded:Connect(onChar)
+    if LocalPlayer.Character then
+        task.spawn(onChar, LocalPlayer.Character)
+    end
+    return conn
+end
+
+local espLabels, espBoxes, espHighlights = {}, {}, {}
+local function runESP(gui)
+    local renderConn
+    renderConn = RunService.RenderStepped:Connect(function()
+        if not (Toggles.VIPESP or Toggles.ESPBoxes or Toggles.ESPTracers or Toggles.ESPRainbow or Toggles.PlayersHighlight) then
+            for _, lbl in pairs(espLabels) do pcall(function() lbl:Destroy() end) end; espLabels = {}
+            for _, box in pairs(espBoxes) do pcall(function() box:Destroy() end) end; espBoxes = {}
+            for _, hl in pairs(espHighlights) do pcall(function() hl:Destroy() end) end; espHighlights = {}
+            renderConn:Disconnect()
+            return
+        end
+        pcall(function()
+            local cam = Camera
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer then
+                    local char = plr.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        local root = char.HumanoidRootPart
+                        local pos, onScreen = cam:WorldToViewportPoint(root.Position)
+                        if onScreen then
+                            local col = (plr.TeamColor == LocalPlayer.TeamColor) and Color3.new(0,1,0) or Color3.new(1,0,0)
+                            if Toggles.PlayersHighlight or Toggles.ESPRainbow then
+                                if not espHighlights[plr] then
+                                    espHighlights[plr] = Instance.new("Highlight")
+                                    espHighlights[plr].Parent = char
+                                end
+                                espHighlights[plr].FillColor = Toggles.ESPRainbow and Color3.fromHSV(tick()%5/5,1,1) or col
+                            else
+                                if espHighlights[plr] then espHighlights[plr]:Destroy(); espHighlights[plr] = nil end
+                            end
+                            if Toggles.VIPESP then
+                                if not espLabels[plr] then
+                                    espLabels[plr] = Instance.new("TextLabel")
+                                    espLabels[plr].BackgroundTransparency = 0.2
+                                    espLabels[plr].BackgroundColor3 = Color3.fromRGB(30,20,25)
+                                    espLabels[plr].TextScaled = true
+                                    espLabels[plr].ZIndex = 10
+                                    espLabels[plr].Parent = gui
+                                    Instance.new("UICorner", espLabels[plr]).CornerRadius = UDim.new(0,6)
+                                    Instance.new("UIStroke", espLabels[plr]).Color = ACCENT; espLabels[plr].UIStroke.Thickness = 1.5
+                                end
+                                local lbl = espLabels[plr]
+                                local dist = math.floor((root.Position - cam.CFrame.Position).Magnitude)
+                                local hpText = Toggles.ESPHealth and (" | HP: "..math.floor(char.Humanoid.Health)) or ""
+                                lbl.Text = plr.Name .. " | " .. dist .. "m" .. hpText
+                                lbl.Size = UDim2.new(0, 160, 0, 24)
+                                lbl.Position = UDim2.new(0, pos.X-80, 0, pos.Y-70)
+                                lbl.TextColor3 = col
+                                lbl.Visible = true
+                            else
+                                if espLabels[plr] then espLabels[plr]:Destroy(); espLabels[plr] = nil end
+                            end
+                            if Toggles.ESPBoxes then
+                                if not espBoxes[plr] then
+                                    espBoxes[plr] = Instance.new("Frame")
+                                    espBoxes[plr].BackgroundTransparency = 1
+                                    espBoxes[plr].BorderSizePixel = 2
+                                    espBoxes[plr].BorderColor3 = col
+                                    espBoxes[plr].ZIndex = 9
+                                    espBoxes[plr].Parent = gui
+                                end
+                                local s = math.max(30, 300/dist)
+                                espBoxes[plr].Size = UDim2.new(0, s*1.5, 0, s*2)
+                                espBoxes[plr].Position = UDim2.new(0, pos.X - s*1.5/2, 0, pos.Y - s*2)
+                                espBoxes[plr].Visible = true
+                            else
+                                if espBoxes[plr] then espBoxes[plr]:Destroy(); espBoxes[plr] = nil end
+                            end
+                        else
+                            if espLabels[plr] then espLabels[plr].Visible = false end
+                            if espBoxes[plr] then espBoxes[plr].Visible = false end
+                        end
+                    end
+                end
+            end
+        end)
+    end)
+    return renderConn
+end
+
+local function runFullBright()
+    local oldAmbient = Lighting.Ambient
+    local oldBrightness = Lighting.Brightness
+    pcall(function()
+        Lighting.Ambient = Color3.new(1,1,1)
+        Lighting.Brightness = 2
+    end)
+    return function()
+        pcall(function()
+            Lighting.Ambient = oldAmbient
+            Lighting.Brightness = oldBrightness
+        end)
+    end
+end
+
+local function runAdjustFOV()
+    local oldFOV = Camera.FieldOfView
+    pcall(function() Camera.FieldOfView = 120 end)
+    return function() pcall(function() Camera.FieldOfView = oldFOV end) end
+end
+
+-- ==================== Controller ====================
+local cleaners = {}
+local function setToggle(flag, startFunc, ...)
+    if cleaners[flag] then
+        if typeof(cleaners[flag]) == "RBXScriptConnection" then
+            pcall(function() cleaners[flag]:Disconnect() end)
+        elseif typeof(cleaners[flag]) == "function" then
+            pcall(cleaners[flag])
+        end
+        cleaners[flag] = nil
+    end
+    if Toggles[flag] then
+        cleaners[flag] = startFunc(...)
+    end
+end
+
+local function monitorToggles(gui)
+    local checks = {
+        ["KillAll"] = runKillAll,
+        ["AutoFarmXP"] = runKillAll,
+        ["GodMode"] = runGodMode,
+        ["Speed"] = runSpeed,
+        ["Fly"] = runFly,
+        ["InfiniteJump"] = runInfJump,
+        ["AutoFarm"] = runAutoFarm,
+        ["AFKFarm"] = runAutoFarm,
+        ["AutoFarmCandy"] = runAutoFarm,
+        ["TeleportToDowned"] = runTeleportDowned,
+        ["AutoFarmCash"] = runAutoReviveCarry,
+        ["AutoInstantRevive"] = runAutoReviveCarry,
+        ["AutoCarry"] = runAutoReviveCarry,
+        ["AutoRevive"] = runAutoReviveCarry,
+        ["AutoRespawn"] = runAutoRespawn,
+        ["VIPESP"] = function() return runESP(gui) end,
+        ["ESPBoxes"] = function() return runESP(gui) end,
+        ["ESPTracers"] = function() return runESP(gui) end,
+        ["ESPHealth"] = function() return runESP(gui) end,
+        ["ESPRainbow"] = function() return runESP(gui) end,
+        ["PlayersHighlight"] = function() return runESP(gui) end,
+        ["FullBright"] = runFullBright,
+        ["AdjustFOV"] = runAdjustFOV,
+        ["GiantMorph"] = runMorphSystem,
+        ["TinyMorph"] = runMorphSystem,
+        ["InvisibleMorph"] = runMorphSystem,
+        ["MuscleMorph"] = runMorphSystem,
+        ["VisibleToOthers"] = runMorphSystem,
+    }
+
+    local states = {}
+    for flag, _ in pairs(checks) do
+        states[flag] = Toggles[flag]
+    end
+
+    local conn = RunService.Heartbeat:Connect(function()
+        for flag, startFunc in pairs(checks) do
+            if Toggles[flag] ~= states[flag] then
+                states[flag] = Toggles[flag]
+                setToggle(flag, startFunc)
+            end
+        end
+    end)
+    return conn
+end
+
+-- ==================== Start ====================
+task.spawn(function()
+    local asset = ""
+    pcall(function()
+        if request and writefile and getcustomasset then
+            local res = request({Url = IMAGE_URL, Method = "GET"})
+            if res and res.StatusCode == 200 then
+                writefile("vip_bg.jpg", res.Body)
+                asset = getcustomasset("vip_bg.jpg")
+            end
+        end
+    end)
+
+    local gui = buildUI(asset)
+    local monitorConn = monitorToggles(gui)
+
+    gui.AncestryChanged:Connect(function()
+        if not gui.Parent then
+            monitorConn:Disconnect()
+            for _, cleaner in pairs(cleaners) do
+                pcall(cleaner)
+            end
+            cleaners = {}
+        end
+    end)
+end)
+
+print("✅ VIP Evade Ultimate loaded with 60+ features, VIP Level System, Character Morph System & Multiplayer Replication.")
