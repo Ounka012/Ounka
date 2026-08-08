@@ -1,8 +1,18 @@
 -- ==================================================
--- MKRA HUB - UI ONLY
--- Modern UI + Tabs + Mobile + Notifications
--- Success / Warning / Error / Info
+-- MKRA HUB - MODERN UI
+-- UI ONLY + TABS + MOBILE + NOTIFICATIONS
 -- ==================================================
+
+-- ==================================================
+-- IMAGE SOURCE
+-- ==================================================
+
+local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
+
+-- បន្ទាប់ពី upload រូបទៅ Roblox:
+-- local IMAGE_ASSET = "rbxassetid://YOUR_IMAGE_ASSET_ID"
+
+local IMAGE_ASSET = ""
 
 -- ==================================================
 -- SERVICES
@@ -51,7 +61,11 @@ local Settings = {
 -- SAFE HELPERS
 -- ==================================================
 
-local safeNotify = function()
+local function playBeep()
+    -- UI-only sound hook
+end
+
+local safeNotify = function(...)
 end
 
 local function placeholder(name)
@@ -63,10 +77,6 @@ local function placeholder(name)
     )
 end
 
-local function playBeep()
-    -- Optional UI sound hook
-end
-
 local function startFly()
     placeholder("Fly")
 end
@@ -76,6 +86,23 @@ end
 
 local function toggleNoclip()
     placeholder("Noclip")
+end
+
+local function updateWalkSpeed()
+    local character = LocalPlayer.Character
+
+    if not character then
+        return
+    end
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+    if humanoid then
+        humanoid.WalkSpeed = math.max(
+            16,
+            16 * Settings.SpeedBoostMultiplier
+        )
+    end
 end
 
 local function updateESP()
@@ -102,26 +129,6 @@ local function toggleVIPFreezeKill()
     placeholder("VIP Freeze Kill")
 end
 
-local function updateWalkSpeed()
-
-    local character = LocalPlayer.Character
-
-    if not character then
-        return
-    end
-
-    local humanoid =
-        character:FindFirstChildOfClass("Humanoid")
-
-    if humanoid then
-        humanoid.WalkSpeed =
-            math.max(
-                16,
-                16 * Settings.SpeedBoostMultiplier
-            )
-    end
-end
-
 -- ==================================================
 -- CREATE UI
 -- ==================================================
@@ -130,12 +137,19 @@ local function createUI(imageAsset)
 
     imageAsset = imageAsset or ""
 
+    if imageAsset == "" then
+        imageAsset = IMAGE_ASSET
+    end
+
+    if imageAsset == "" then
+        imageAsset = DEFAULT_IMAGE
+    end
+
     if CoreGui:FindFirstChild("MKRA_Hub") then
         CoreGui.MKRA_Hub:Destroy()
     end
 
     local gui = Instance.new("ScreenGui")
-
     gui.Name = "MKRA_Hub"
     gui.ResetOnSpawn = false
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -147,54 +161,22 @@ local function createUI(imageAsset)
     -- ==================================================
 
     local Theme = {
+        Background = Color3.fromRGB(12, 12, 18),
+        Surface = Color3.fromRGB(20, 20, 29),
+        Surface2 = Color3.fromRGB(27, 27, 38),
+        Card = Color3.fromRGB(30, 30, 42),
 
-        Background = Color3.fromRGB(
-            12, 12, 18
-        ),
+        Text = Color3.fromRGB(245, 245, 250),
+        SubText = Color3.fromRGB(150, 150, 165),
 
-        Surface = Color3.fromRGB(
-            20, 20, 29
-        ),
+        Accent = Color3.fromRGB(220, 150, 200),
 
-        Surface2 = Color3.fromRGB(
-            27, 27, 38
-        ),
+        Success = Color3.fromRGB(75, 220, 145),
+        Warning = Color3.fromRGB(255, 190, 70),
+        Error = Color3.fromRGB(240, 80, 100),
+        Info = Color3.fromRGB(90, 170, 255),
 
-        Card = Color3.fromRGB(
-            30, 30, 42
-        ),
-
-        Text = Color3.fromRGB(
-            245, 245, 250
-        ),
-
-        SubText = Color3.fromRGB(
-            150, 150, 165
-        ),
-
-        Accent = Color3.fromRGB(
-            220, 150, 200
-        ),
-
-        Success = Color3.fromRGB(
-            75, 220, 145
-        ),
-
-        Warning = Color3.fromRGB(
-            255, 190, 70
-        ),
-
-        Error = Color3.fromRGB(
-            240, 80, 100
-        ),
-
-        Info = Color3.fromRGB(
-            90, 170, 255
-        ),
-
-        Stroke = Color3.fromRGB(
-            65, 65, 82
-        )
+        Stroke = Color3.fromRGB(65, 65, 82)
     }
 
     -- ==================================================
@@ -202,17 +184,9 @@ local function createUI(imageAsset)
     -- ==================================================
 
     local function corner(obj, radius)
-
         local c = Instance.new("UICorner")
-
-        c.CornerRadius =
-            UDim.new(
-                0,
-                radius or 8
-            )
-
+        c.CornerRadius = UDim.new(0, radius or 8)
         c.Parent = obj
-
         return c
     end
 
@@ -222,23 +196,12 @@ local function createUI(imageAsset)
         thickness,
         transparency
     )
-
         local s = Instance.new("UIStroke")
-
-        s.Color =
-            color or Theme.Stroke
-
-        s.Thickness =
-            thickness or 1
-
-        s.Transparency =
-            transparency or 0
-
-        s.ApplyStrokeMode =
-            Enum.ApplyStrokeMode.Border
-
+        s.Color = color or Theme.Stroke
+        s.Thickness = thickness or 1
+        s.Transparency = transparency or 0
+        s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
         s.Parent = obj
-
         return s
     end
 
@@ -266,47 +229,27 @@ local function createUI(imageAsset)
 
         if NotificationHolder
             and NotificationHolder.Parent then
-
             return NotificationHolder
         end
 
-        NotificationHolder =
-            Instance.new("Frame")
-
-        NotificationHolder.Name =
-            "NotificationHolder"
+        NotificationHolder = Instance.new("Frame")
+        NotificationHolder.Name = "NotificationHolder"
 
         NotificationHolder.AnchorPoint =
             Vector2.new(1, 0)
 
         NotificationHolder.Position =
-            UDim2.new(
-                1,
-                -16,
-                0,
-                16
-            )
+            UDim2.new(1, -16, 0, 16)
 
         NotificationHolder.Size =
-            UDim2.new(
-                0,
-                340,
-                1,
-                -32
-            )
+            UDim2.new(0, 340, 1, -32)
 
-        NotificationHolder.BackgroundTransparency =
-            1
-
+        NotificationHolder.BackgroundTransparency = 1
         NotificationHolder.ZIndex = 1000
         NotificationHolder.Parent = gui
 
-        local layout =
-            Instance.new("UIListLayout")
-
-        layout.Padding =
-            UDim.new(0, 8)
-
+        local layout = Instance.new("UIListLayout")
+        layout.Padding = UDim.new(0, 8)
         layout.HorizontalAlignment =
             Enum.HorizontalAlignment.Right
 
@@ -316,8 +259,7 @@ local function createUI(imageAsset)
         layout.SortOrder =
             Enum.SortOrder.LayoutOrder
 
-        layout.Parent =
-            NotificationHolder
+        layout.Parent = NotificationHolder
 
         return NotificationHolder
     end
@@ -335,22 +277,15 @@ local function createUI(imageAsset)
         duration =
             tonumber(duration) or 3
 
-        if not NotificationColors[
-            notificationType
-        ] then
-
+        if not NotificationColors[notificationType] then
             notificationType = "Info"
         end
 
         local color =
-            NotificationColors[
-                notificationType
-            ]
+            NotificationColors[notificationType]
 
         local iconText =
-            NotificationIcons[
-                notificationType
-            ]
+            NotificationIcons[notificationType]
 
         local holder =
             createNotificationHolder()
@@ -358,33 +293,20 @@ local function createUI(imageAsset)
         local card =
             Instance.new("CanvasGroup")
 
-        card.Name =
-            "Notification"
+        card.Name = "Notification"
 
         card.Size =
-            UDim2.new(
-                1,
-                0,
-                0,
-                78
-            )
+            UDim2.new(1, 0, 0, 78)
 
         card.BackgroundColor3 =
             Theme.Surface
 
-        card.BackgroundTransparency =
-            0.03
-
+        card.BackgroundTransparency = 0.03
         card.BorderSizePixel = 0
-
         card.GroupTransparency = 1
-
         card.ClipsDescendants = true
-
         card.LayoutOrder =
-            -math.floor(
-                os.clock() * 1000
-            )
+            -math.floor(os.clock() * 1000)
 
         card.ZIndex = 1001
         card.Parent = holder
@@ -398,54 +320,31 @@ local function createUI(imageAsset)
             0.35
         )
 
-        -- Accent bar
-
         local accent =
             Instance.new("Frame")
 
         accent.Size =
-            UDim2.new(
-                0,
-                4,
-                1,
-                0
-            )
+            UDim2.new(0, 4, 1, 0)
 
-        accent.BackgroundColor3 =
-            color
-
+        accent.BackgroundColor3 = color
         accent.BorderSizePixel = 0
-
         accent.ZIndex = 1002
         accent.Parent = card
 
         corner(accent, 8)
 
-        -- Icon
-
         local iconBox =
             Instance.new("Frame")
 
         iconBox.Size =
-            UDim2.fromOffset(
-                38,
-                38
-            )
+            UDim2.fromOffset(38, 38)
 
         iconBox.Position =
-            UDim2.fromOffset(
-                12,
-                13
-            )
+            UDim2.fromOffset(12, 13)
 
-        iconBox.BackgroundColor3 =
-            color
-
-        iconBox.BackgroundTransparency =
-            0.82
-
+        iconBox.BackgroundColor3 = color
+        iconBox.BackgroundTransparency = 0.82
         iconBox.BorderSizePixel = 0
-
         iconBox.ZIndex = 1003
         iconBox.Parent = card
 
@@ -462,99 +361,51 @@ local function createUI(imageAsset)
             Instance.new("TextLabel")
 
         icon.Size =
-            UDim2.fromScale(
-                1,
-                1
-            )
+            UDim2.fromScale(1, 1)
 
         icon.BackgroundTransparency = 1
-
-        icon.Text =
-            iconText
-
-        icon.TextColor3 =
-            color
-
-        icon.Font =
-            Enum.Font.GothamBold
-
+        icon.Text = iconText
+        icon.TextColor3 = color
+        icon.Font = Enum.Font.GothamBold
         icon.TextSize = 18
-
         icon.ZIndex = 1004
         icon.Parent = iconBox
-
-        -- Title
 
         local title =
             Instance.new("TextLabel")
 
         title.Size =
-            UDim2.new(
-                1,
-                -105,
-                0,
-                22
-            )
+            UDim2.new(1, -105, 0, 22)
 
         title.Position =
-            UDim2.fromOffset(
-                60,
-                9
-            )
+            UDim2.fromOffset(60, 9)
 
         title.BackgroundTransparency = 1
-
-        title.Text =
-            tostring(titleText)
-
-        title.TextColor3 =
-            Theme.Text
-
-        title.Font =
-            Enum.Font.GothamBold
-
+        title.Text = tostring(titleText)
+        title.TextColor3 = Theme.Text
+        title.Font = Enum.Font.GothamBold
         title.TextSize = 11
-
         title.TextXAlignment =
             Enum.TextXAlignment.Left
 
         title.ZIndex = 1004
         title.Parent = card
 
-        -- Message
-
         local message =
             Instance.new("TextLabel")
 
         message.Size =
-            UDim2.new(
-                1,
-                -105,
-                0,
-                28
-            )
+            UDim2.new(1, -105, 0, 28)
 
         message.Position =
-            UDim2.fromOffset(
-                60,
-                31
-            )
+            UDim2.fromOffset(60, 31)
 
         message.BackgroundTransparency = 1
-
-        message.Text =
-            tostring(messageText)
-
-        message.TextColor3 =
-            Theme.SubText
-
-        message.Font =
-            Enum.Font.GothamMedium
-
+        message.Text = tostring(messageText)
+        message.TextColor3 = Theme.SubText
+        message.Font = Enum.Font.GothamMedium
         message.TextSize = 9
-
         message.TextWrapped = true
-
         message.TextXAlignment =
             Enum.TextXAlignment.Left
 
@@ -564,84 +415,45 @@ local function createUI(imageAsset)
         message.ZIndex = 1004
         message.Parent = card
 
-        -- Close button
-
         local close =
             Instance.new("TextButton")
 
         close.Size =
-            UDim2.fromOffset(
-                25,
-                25
-            )
+            UDim2.fromOffset(25, 25)
 
         close.Position =
-            UDim2.new(
-                1,
-                -31,
-                0,
-                7
-            )
+            UDim2.new(1, -31, 0, 7)
 
         close.BackgroundTransparency = 1
-
         close.Text = "×"
-
-        close.TextColor3 =
-            Theme.SubText
-
-        close.Font =
-            Enum.Font.GothamBold
-
+        close.TextColor3 = Theme.SubText
+        close.Font = Enum.Font.GothamBold
         close.TextSize = 17
-
         close.AutoButtonColor = false
-
         close.ZIndex = 1005
         close.Parent = card
 
-        close.MouseEnter:Connect(
-            function()
+        close.MouseEnter:Connect(function()
+            close.TextColor3 = color
+        end)
 
-                close.TextColor3 =
-                    color
-            end
-        )
-
-        close.MouseLeave:Connect(
-            function()
-
-                close.TextColor3 =
-                    Theme.SubText
-            end
-        )
-
-        -- Progress background
+        close.MouseLeave:Connect(function()
+            close.TextColor3 = Theme.SubText
+        end)
 
         local progressBG =
             Instance.new("Frame")
 
         progressBG.Size =
-            UDim2.new(
-                1,
-                -20,
-                0,
-                3
-            )
+            UDim2.new(1, -20, 0, 3)
 
         progressBG.Position =
-            UDim2.new(
-                0,
-                10,
-                1,
-                -7
-            )
+            UDim2.new(0, 10, 1, -7)
 
         progressBG.BackgroundColor3 =
             Theme.Surface2
 
         progressBG.BorderSizePixel = 0
-
         progressBG.ZIndex = 1006
         progressBG.Parent = card
 
@@ -651,16 +463,10 @@ local function createUI(imageAsset)
             Instance.new("Frame")
 
         progress.Size =
-            UDim2.fromScale(
-                1,
-                1
-            )
+            UDim2.fromScale(1, 1)
 
-        progress.BackgroundColor3 =
-            color
-
+        progress.BackgroundColor3 = color
         progress.BorderSizePixel = 0
-
         progress.ZIndex = 1007
         progress.Parent = progressBG
 
@@ -691,21 +497,14 @@ local function createUI(imageAsset)
 
             tween:Play()
 
-            tween.Completed:Connect(
-                function()
-
-                    if card
-                        and card.Parent then
-
-                        card:Destroy()
-                    end
+            tween.Completed:Connect(function()
+                if card and card.Parent then
+                    card:Destroy()
                 end
-            )
+            end)
         end
 
-        close.MouseButton1Click:Connect(
-            remove
-        )
+        close.MouseButton1Click:Connect(remove)
 
         TweenService:Create(
             card,
@@ -726,27 +525,15 @@ local function createUI(imageAsset)
                 Enum.EasingStyle.Linear
             ),
             {
-                Size =
-                    UDim2.new(
-                        0,
-                        0,
-                        1,
-                        0
-                    )
+                Size = UDim2.new(0, 0, 1, 0)
             }
         ):Play()
 
-        task.delay(
-            duration,
-            function()
-
-                if card
-                    and card.Parent then
-
-                    remove()
-                end
+        task.delay(duration, function()
+            if card and card.Parent then
+                remove()
             end
-        )
+        end)
 
         return card
     end
@@ -760,31 +547,18 @@ local function createUI(imageAsset)
     local toggleBtn =
         Instance.new("ImageButton")
 
-    toggleBtn.Name =
-        "ToggleButton"
+    toggleBtn.Name = "ToggleButton"
 
     toggleBtn.Size =
-        UDim2.fromOffset(
-            52,
-            52
-        )
+        UDim2.fromOffset(52, 52)
 
     toggleBtn.Position =
-        UDim2.new(
-            0,
-            18,
-            0.5,
-            -26
-        )
+        UDim2.new(0, 18, 0.5, -26)
 
     toggleBtn.BackgroundColor3 =
         Theme.Surface
 
-    toggleBtn.Image =
-        imageAsset ~= ""
-        and imageAsset
-        or DEFAULT_IMAGE
-
+    toggleBtn.Image = imageAsset
     toggleBtn.ScaleType =
         Enum.ScaleType.Crop
 
@@ -810,34 +584,22 @@ local function createUI(imageAsset)
     main.Name = "Main"
 
     main.AnchorPoint =
-        Vector2.new(
-            0.5,
-            0.5
-        )
+        Vector2.new(0.5, 0.5)
 
     main.Size =
-        UDim2.fromOffset(
-            440,
-            520
-        )
+        UDim2.fromOffset(440, 520)
 
     main.Position =
-        UDim2.fromScale(
-            0.5,
-            0.5
-        )
+        UDim2.fromScale(0.5, 0.5)
 
     main.BackgroundColor3 =
         Theme.Background
 
     main.BorderSizePixel = 0
-
     main.GroupTransparency = 1
-
     main.Visible = false
     main.Active = true
     main.ClipsDescendants = true
-
     main.Parent = gui
 
     corner(main, 18)
@@ -858,10 +620,7 @@ local function createUI(imageAsset)
         Instance.new("Frame")
 
     bg.Size =
-        UDim2.fromScale(
-            1,
-            1
-        )
+        UDim2.fromScale(1, 1)
 
     bg.BackgroundColor3 =
         Theme.Background
@@ -879,32 +638,19 @@ local function createUI(imageAsset)
 
     bgGradient.Color =
         ColorSequence.new({
-
             ColorSequenceKeypoint.new(
                 0,
-                Color3.fromRGB(
-                    40,
-                    25,
-                    45
-                )
+                Color3.fromRGB(40, 25, 45)
             ),
 
             ColorSequenceKeypoint.new(
                 0.45,
-                Color3.fromRGB(
-                    12,
-                    12,
-                    18
-                )
+                Color3.fromRGB(12, 12, 18)
             ),
 
             ColorSequenceKeypoint.new(
                 1,
-                Color3.fromRGB(
-                    18,
-                    20,
-                    35
-                )
+                Color3.fromRGB(18, 20, 35)
             )
         })
 
@@ -918,18 +664,10 @@ local function createUI(imageAsset)
         Instance.new("Frame")
 
     header.Size =
-        UDim2.new(
-            1,
-            -24,
-            0,
-            62
-        )
+        UDim2.new(1, -24, 0, 62)
 
     header.Position =
-        UDim2.fromOffset(
-            12,
-            10
-        )
+        UDim2.fromOffset(12, 10)
 
     header.BackgroundColor3 =
         Theme.Surface
@@ -951,24 +689,15 @@ local function createUI(imageAsset)
         Instance.new("ImageLabel")
 
     headerIcon.Size =
-        UDim2.fromOffset(
-            42,
-            42
-        )
+        UDim2.fromOffset(42, 42)
 
     headerIcon.Position =
-        UDim2.fromOffset(
-            10,
-            10
-        )
+        UDim2.fromOffset(10, 10)
 
     headerIcon.BackgroundColor3 =
         Theme.Card
 
-    headerIcon.Image =
-        imageAsset ~= ""
-        and imageAsset
-        or DEFAULT_IMAGE
+    headerIcon.Image = imageAsset
 
     headerIcon.ScaleType =
         Enum.ScaleType.Crop
@@ -989,32 +718,16 @@ local function createUI(imageAsset)
         Instance.new("TextLabel")
 
     title.Size =
-        UDim2.new(
-            1,
-            -115,
-            0,
-            25
-        )
+        UDim2.new(1, -115, 0, 25)
 
     title.Position =
-        UDim2.fromOffset(
-            62,
-            7
-        )
+        UDim2.fromOffset(62, 7)
 
     title.BackgroundTransparency = 1
-
-    title.Text =
-        "MKRA HUB"
-
-    title.TextColor3 =
-        Theme.Text
-
-    title.Font =
-        Enum.Font.GothamBold
-
+    title.Text = "MKRA HUB"
+    title.TextColor3 = Theme.Text
+    title.Font = Enum.Font.GothamBold
     title.TextSize = 18
-
     title.TextXAlignment =
         Enum.TextXAlignment.Left
 
@@ -1025,32 +738,18 @@ local function createUI(imageAsset)
         Instance.new("TextLabel")
 
     subtitle.Size =
-        UDim2.new(
-            1,
-            -115,
-            0,
-            20
-        )
+        UDim2.new(1, -115, 0, 20)
 
     subtitle.Position =
-        UDim2.fromOffset(
-            63,
-            32
-        )
+        UDim2.fromOffset(63, 32)
 
     subtitle.BackgroundTransparency = 1
-
     subtitle.Text =
-        "UI ONLY  •  v4.2  •  MOBILE READY"
+        "VIP  •  v4.2  •  MOBILE READY"
 
-    subtitle.TextColor3 =
-        Theme.SubText
-
-    subtitle.Font =
-        Enum.Font.GothamMedium
-
+    subtitle.TextColor3 = Theme.SubText
+    subtitle.Font = Enum.Font.GothamMedium
     subtitle.TextSize = 9
-
     subtitle.TextXAlignment =
         Enum.TextXAlignment.Left
 
@@ -1061,34 +760,19 @@ local function createUI(imageAsset)
         Instance.new("TextButton")
 
     minimizeBtn.Size =
-        UDim2.fromOffset(
-            34,
-            34
-        )
+        UDim2.fromOffset(34, 34)
 
     minimizeBtn.Position =
-        UDim2.new(
-            1,
-            -44,
-            0,
-            14
-        )
+        UDim2.new(1, -44, 0, 14)
 
     minimizeBtn.BackgroundColor3 =
         Theme.Card
 
     minimizeBtn.Text = "—"
-
-    minimizeBtn.TextColor3 =
-        Theme.Text
-
-    minimizeBtn.Font =
-        Enum.Font.GothamBold
-
+    minimizeBtn.TextColor3 = Theme.Text
+    minimizeBtn.Font = Enum.Font.GothamBold
     minimizeBtn.TextSize = 16
-
     minimizeBtn.AutoButtonColor = false
-
     minimizeBtn.ZIndex = 12
     minimizeBtn.Parent = header
 
@@ -1108,18 +792,10 @@ local function createUI(imageAsset)
         Instance.new("Frame")
 
     status.Size =
-        UDim2.new(
-            1,
-            -24,
-            0,
-            28
-        )
+        UDim2.new(1, -24, 0, 28)
 
     status.Position =
-        UDim2.fromOffset(
-            12,
-            78
-        )
+        UDim2.fromOffset(12, 78)
 
     status.BackgroundColor3 =
         Theme.Surface
@@ -1134,16 +810,10 @@ local function createUI(imageAsset)
         Instance.new("Frame")
 
     statusDot.Size =
-        UDim2.fromOffset(
-            7,
-            7
-        )
+        UDim2.fromOffset(7, 7)
 
     statusDot.Position =
-        UDim2.fromOffset(
-            11,
-            10
-        )
+        UDim2.fromOffset(11, 10)
 
     statusDot.BackgroundColor3 =
         Theme.Success
@@ -1158,32 +828,16 @@ local function createUI(imageAsset)
         Instance.new("TextLabel")
 
     statusText.Size =
-        UDim2.new(
-            1,
-            -30,
-            1,
-            0
-        )
+        UDim2.new(1, -30, 1, 0)
 
     statusText.Position =
-        UDim2.fromOffset(
-            26,
-            0
-        )
+        UDim2.fromOffset(26, 0)
 
     statusText.BackgroundTransparency = 1
-
-    statusText.Text =
-        "SYSTEM READY  •  UI ONLY"
-
-    statusText.TextColor3 =
-        Theme.SubText
-
-    statusText.Font =
-        Enum.Font.GothamMedium
-
+    statusText.Text = "SYSTEM READY"
+    statusText.TextColor3 = Theme.SubText
+    statusText.Font = Enum.Font.GothamMedium
     statusText.TextSize = 9
-
     statusText.TextXAlignment =
         Enum.TextXAlignment.Left
 
@@ -1198,18 +852,10 @@ local function createUI(imageAsset)
         Instance.new("Frame")
 
     body.Size =
-        UDim2.new(
-            1,
-            -24,
-            1,
-            -120
-        )
+        UDim2.new(1, -24, 1, -120)
 
     body.Position =
-        UDim2.fromOffset(
-            12,
-            112
-        )
+        UDim2.fromOffset(12, 112)
 
     body.BackgroundTransparency = 1
     body.Parent = main
@@ -1222,10 +868,7 @@ local function createUI(imageAsset)
         Instance.new("Frame")
 
     sidebar.Size =
-        UDim2.fromOffset(
-            96,
-            1
-        )
+        UDim2.fromOffset(96, 1)
 
     sidebar.BackgroundColor3 =
         Theme.Surface
@@ -1247,10 +890,7 @@ local function createUI(imageAsset)
         Instance.new("UIListLayout")
 
     sideLayout.Padding =
-        UDim.new(
-            0,
-            5
-        )
+        UDim.new(0, 5)
 
     sideLayout.HorizontalAlignment =
         Enum.HorizontalAlignment.Center
@@ -1258,32 +898,21 @@ local function createUI(imageAsset)
     sideLayout.SortOrder =
         Enum.SortOrder.LayoutOrder
 
-    sideLayout.Parent =
-        sidebar
+    sideLayout.Parent = sidebar
 
     local sidePad =
         Instance.new("UIPadding")
 
     sidePad.PaddingTop =
-        UDim.new(
-            0,
-            8
-        )
+        UDim.new(0, 8)
 
     sidePad.PaddingLeft =
-        UDim.new(
-            0,
-            7
-        )
+        UDim.new(0, 7)
 
     sidePad.PaddingRight =
-        UDim.new(
-            0,
-            7
-        )
+        UDim.new(0, 7)
 
-    sidePad.Parent =
-        sidebar
+    sidePad.Parent = sidebar
 
     -- ==================================================
     -- CONTENT
@@ -1293,18 +922,10 @@ local function createUI(imageAsset)
         Instance.new("Frame")
 
     contentFrame.Size =
-        UDim2.new(
-            1,
-            -106,
-            1,
-            0
-        )
+        UDim2.new(1, -106, 1, 0)
 
     contentFrame.Position =
-        UDim2.fromOffset(
-            106,
-            0
-        )
+        UDim2.fromOffset(106, 0)
 
     contentFrame.BackgroundColor3 =
         Theme.Surface
@@ -1351,32 +972,17 @@ local function createUI(imageAsset)
             tabName .. "Tab"
 
         btn.Size =
-            UDim2.new(
-                1,
-                0,
-                0,
-                34
-            )
+            UDim2.new(1, 0, 0, 34)
 
         btn.BackgroundColor3 =
             Theme.Card
 
-        btn.BackgroundTransparency =
-            0.65
-
-        btn.Text =
-            tabText
-
-        btn.TextColor3 =
-            Theme.SubText
-
-        btn.Font =
-            Enum.Font.GothamBold
-
+        btn.BackgroundTransparency = 0.65
+        btn.Text = tabText
+        btn.TextColor3 = Theme.SubText
+        btn.Font = Enum.Font.GothamBold
         btn.TextSize = 9
-
         btn.AutoButtonColor = false
-
         btn.LayoutOrder = index
         btn.ZIndex = 11
         btn.Parent = sidebar
@@ -1387,26 +993,16 @@ local function createUI(imageAsset)
             Instance.new("Frame")
 
         indicator.Size =
-            UDim2.fromOffset(
-                3,
-                18
-            )
+            UDim2.fromOffset(3, 18)
 
         indicator.Position =
-            UDim2.new(
-                0,
-                0,
-                0.5,
-                -9
-            )
+            UDim2.new(0, 0, 0.5, -9)
 
         indicator.BackgroundColor3 =
             Theme.Accent
 
         indicator.BackgroundTransparency = 1
-
         indicator.BorderSizePixel = 0
-
         indicator.ZIndex = 12
         indicator.Parent = btn
 
@@ -1424,23 +1020,14 @@ local function createUI(imageAsset)
             tabName .. "Container"
 
         container.Size =
-            UDim2.new(
-                1,
-                -12,
-                1,
-                -12
-            )
+            UDim2.new(1, -12, 1, -12)
 
         container.Position =
-            UDim2.fromOffset(
-                6,
-                6
-            )
+            UDim2.fromOffset(6, 6)
 
         container.BackgroundTransparency = 1
         container.BorderSizePixel = 0
         container.ScrollBarThickness = 2
-
         container.ScrollBarImageColor3 =
             Theme.Accent
 
@@ -1454,10 +1041,7 @@ local function createUI(imageAsset)
             Instance.new("UIListLayout")
 
         list.Padding =
-            UDim.new(
-                0,
-                7
-            )
+            UDim.new(0, 7)
 
         list.SortOrder =
             Enum.SortOrder.LayoutOrder
@@ -1468,100 +1052,75 @@ local function createUI(imageAsset)
             Instance.new("UIPadding")
 
         p.PaddingLeft =
-            UDim.new(
-                0,
-                6
-            )
+            UDim.new(0, 6)
 
         p.PaddingRight =
-            UDim.new(
-                0,
-                6
-            )
+            UDim.new(0, 6)
 
         p.PaddingTop =
-            UDim.new(
-                0,
-                6
-            )
+            UDim.new(0, 6)
 
         p.PaddingBottom =
-            UDim.new(
-                0,
-                6
-            )
+            UDim.new(0, 6)
 
         p.Parent = container
 
         tabContainers[tabName] =
             container
 
-        btn.MouseButton1Click:Connect(
-            function()
+        btn.MouseButton1Click:Connect(function()
 
-                for name, c in pairs(
-                    tabContainers
-                ) do
+            for name, c in pairs(tabContainers) do
 
-                    c.Visible = false
+                c.Visible = false
 
-                    local b =
-                        tabButtons[name]
+                local b =
+                    tabButtons[name]
 
-                    b.Button.BackgroundTransparency =
-                        0.65
+                b.Button.BackgroundTransparency =
+                    0.65
 
-                    b.Button.TextColor3 =
-                        Theme.SubText
+                b.Button.TextColor3 =
+                    Theme.SubText
 
-                    b.Indicator.BackgroundTransparency =
-                        1
-                end
-
-                container.Visible = true
-
-                btn.BackgroundColor3 =
-                    Theme.Accent
-
-                btn.BackgroundTransparency =
-                    0.82
-
-                btn.TextColor3 =
-                    Theme.Text
-
-                indicator.BackgroundTransparency =
-                    0
-
-                playBeep()
+                b.Indicator.BackgroundTransparency =
+                    1
             end
-        )
+
+            container.Visible = true
+
+            btn.BackgroundColor3 =
+                Theme.Accent
+
+            btn.BackgroundTransparency =
+                0.82
+
+            btn.TextColor3 =
+                Theme.Text
+
+            indicator.BackgroundTransparency =
+                0
+
+            playBeep()
+        end)
     end
 
     -- ==================================================
     -- UI HELPERS
     -- ==================================================
 
-    local function addSection(
-        container,
-        text
-    )
+    local function addSection(container, text)
 
         local section =
             Instance.new("TextLabel")
 
         section.Size =
-            UDim2.new(
-                1,
-                0,
-                0,
-                24
-            )
+            UDim2.new(1, 0, 0, 24)
 
         section.BackgroundTransparency = 1
 
         section.Text =
-            "  " ..
-            string.upper(text)
+            "  " .. string.upper(text)
 
         section.TextColor3 =
             Theme.Accent
@@ -1590,20 +1149,13 @@ local function createUI(imageAsset)
             Instance.new("TextButton")
 
         card.Size =
-            UDim2.new(
-                1,
-                0,
-                0,
-                44
-            )
+            UDim2.new(1, 0, 0, 44)
 
         card.BackgroundColor3 =
             Theme.Card
 
         card.BorderSizePixel = 0
-
         card.Text = ""
-
         card.AutoButtonColor = false
         card.Parent = container
 
@@ -1620,32 +1172,16 @@ local function createUI(imageAsset)
             Instance.new("TextLabel")
 
         label.Size =
-            UDim2.new(
-                1,
-                -70,
-                1,
-                0
-            )
+            UDim2.new(1, -70, 1, 0)
 
         label.Position =
-            UDim2.fromOffset(
-                13,
-                0
-            )
+            UDim2.fromOffset(13, 0)
 
         label.BackgroundTransparency = 1
-
-        label.Text =
-            text
-
-        label.TextColor3 =
-            Theme.Text
-
-        label.Font =
-            Enum.Font.GothamMedium
-
+        label.Text = text
+        label.TextColor3 = Theme.Text
+        label.Font = Enum.Font.GothamMedium
         label.TextSize = 10
-
         label.TextXAlignment =
             Enum.TextXAlignment.Left
 
@@ -1655,18 +1191,10 @@ local function createUI(imageAsset)
             Instance.new("Frame")
 
         switch.Size =
-            UDim2.fromOffset(
-                38,
-                20
-            )
+            UDim2.fromOffset(38, 20)
 
         switch.Position =
-            UDim2.new(
-                1,
-                -51,
-                0.5,
-                -10
-            )
+            UDim2.new(1, -51, 0.5, -10)
 
         switch.BackgroundColor3 =
             default
@@ -1682,30 +1210,15 @@ local function createUI(imageAsset)
             Instance.new("Frame")
 
         knob.Size =
-            UDim2.fromOffset(
-                16,
-                16
-            )
+            UDim2.fromOffset(16, 16)
 
         knob.Position =
             default
-            and UDim2.new(
-                1,
-                -18,
-                0.5,
-                -8
-            )
-            or UDim2.fromOffset(
-                2,
-                2
-            )
+            and UDim2.new(1, -18, 0.5, -8)
+            or UDim2.fromOffset(2, 2)
 
         knob.BackgroundColor3 =
-            Color3.new(
-                1,
-                1,
-                1
-            )
+            Color3.new(1, 1, 1)
 
         knob.BorderSizePixel = 0
         knob.Parent = switch
@@ -1751,21 +1264,19 @@ local function createUI(imageAsset)
             ):Play()
         end
 
-        card.MouseButton1Click:Connect(
-            function()
+        card.MouseButton1Click:Connect(function()
 
-                state = not state
+            state = not state
 
-                refresh()
+            refresh()
 
-                playBeep()
+            playBeep()
 
-                pcall(
-                    callback,
-                    state
-                )
-            end
-        )
+            pcall(
+                callback,
+                state
+            )
+        end)
 
         return card
     end
@@ -1780,29 +1291,16 @@ local function createUI(imageAsset)
             Instance.new("TextButton")
 
         button.Size =
-            UDim2.new(
-                1,
-                0,
-                0,
-                42
-            )
+            UDim2.new(1, 0, 0, 42)
 
         button.BackgroundColor3 =
             Theme.Card
 
         button.BorderSizePixel = 0
-
-        button.Text =
-            text
-
-        button.TextColor3 =
-            Theme.Text
-
-        button.Font =
-            Enum.Font.GothamBold
-
+        button.Text = text
+        button.TextColor3 = Theme.Text
+        button.Font = Enum.Font.GothamBold
         button.TextSize = 10
-
         button.AutoButtonColor = false
         button.Parent = container
 
@@ -1815,42 +1313,36 @@ local function createUI(imageAsset)
             0.6
         )
 
-        button.MouseEnter:Connect(
-            function()
+        button.MouseEnter:Connect(function()
 
-                TweenService:Create(
-                    button,
-                    TweenInfo.new(0.15),
-                    {
-                        BackgroundColor3 =
-                            Theme.Surface2
-                    }
-                ):Play()
-            end
-        )
+            TweenService:Create(
+                button,
+                TweenInfo.new(0.15),
+                {
+                    BackgroundColor3 =
+                        Theme.Surface2
+                }
+            ):Play()
+        end)
 
-        button.MouseLeave:Connect(
-            function()
+        button.MouseLeave:Connect(function()
 
-                TweenService:Create(
-                    button,
-                    TweenInfo.new(0.15),
-                    {
-                        BackgroundColor3 =
-                            Theme.Card
-                    }
-                ):Play()
-            end
-        )
+            TweenService:Create(
+                button,
+                TweenInfo.new(0.15),
+                {
+                    BackgroundColor3 =
+                        Theme.Card
+                }
+            ):Play()
+        end)
 
-        button.MouseButton1Click:Connect(
-            function()
+        button.MouseButton1Click:Connect(function()
 
-                playBeep()
+            playBeep()
 
-                pcall(callback)
-            end
-        )
+            pcall(callback)
+        end)
 
         return button
     end
@@ -1866,12 +1358,7 @@ local function createUI(imageAsset)
             Instance.new("Frame")
 
         card.Size =
-            UDim2.new(
-                1,
-                0,
-                0,
-                48
-            )
+            UDim2.new(1, 0, 0, 48)
 
         card.BackgroundColor3 =
             Theme.Card
@@ -1892,32 +1379,16 @@ local function createUI(imageAsset)
             Instance.new("TextLabel")
 
         label.Size =
-            UDim2.new(
-                0.42,
-                0,
-                1,
-                0
-            )
+            UDim2.new(0.42, 0, 1, 0)
 
         label.Position =
-            UDim2.fromOffset(
-                13,
-                0
-            )
+            UDim2.fromOffset(13, 0)
 
         label.BackgroundTransparency = 1
-
-        label.Text =
-            labelText
-
-        label.TextColor3 =
-            Theme.Text
-
-        label.Font =
-            Enum.Font.GothamMedium
-
+        label.Text = labelText
+        label.TextColor3 = Theme.Text
+        label.Font = Enum.Font.GothamMedium
         label.TextSize = 10
-
         label.TextXAlignment =
             Enum.TextXAlignment.Left
 
@@ -1927,42 +1398,21 @@ local function createUI(imageAsset)
             Instance.new("TextBox")
 
         box.Size =
-            UDim2.new(
-                0.48,
-                0,
-                0,
-                30
-            )
+            UDim2.new(0.48, 0, 0, 30)
 
         box.Position =
-            UDim2.new(
-                0.48,
-                0,
-                0.5,
-                -15
-            )
+            UDim2.new(0.48, 0, 0.5, -15)
 
         box.BackgroundColor3 =
             Theme.Surface2
 
         box.BorderSizePixel = 0
-
-        box.Text =
-            tostring(default or "")
-
-        box.TextColor3 =
-            Theme.Text
-
-        box.PlaceholderColor3 =
-            Theme.SubText
-
-        box.Font =
-            Enum.Font.GothamMedium
-
+        box.Text = tostring(default or "")
+        box.TextColor3 = Theme.Text
+        box.PlaceholderColor3 = Theme.SubText
+        box.Font = Enum.Font.GothamMedium
         box.TextSize = 10
-
         box.ClearTextOnFocus = false
-
         box.TextXAlignment =
             Enum.TextXAlignment.Center
 
@@ -1977,15 +1427,13 @@ local function createUI(imageAsset)
             0.4
         )
 
-        box.FocusLost:Connect(
-            function()
+        box.FocusLost:Connect(function()
 
-                pcall(
-                    callback,
-                    box.Text
-                )
-            end
-        )
+            pcall(
+                callback,
+                box.Text
+            )
+        end)
 
         return box
     end
@@ -1996,7 +1444,7 @@ local function createUI(imageAsset)
 
     addSection(
         tabContainers.Move,
-        "Movement UI"
+        "Movement"
     )
 
     addToggle(
@@ -2033,13 +1481,6 @@ local function createUI(imageAsset)
         function(v)
 
             Settings.BoostMode = v
-
-            notify(
-                "Boost Mode",
-                v and "Enabled." or "Disabled.",
-                2,
-                v and "Success" or "Info"
-            )
         end
     )
 
@@ -2050,7 +1491,6 @@ local function createUI(imageAsset)
         function(v)
 
             Settings.Noclip = v
-
             toggleNoclip()
         end
     )
@@ -2091,7 +1531,7 @@ local function createUI(imageAsset)
 
     addSection(
         tabContainers.Combat,
-        "Combat UI"
+        "Combat"
     )
 
     addButton(
@@ -2101,7 +1541,7 @@ local function createUI(imageAsset)
 
             notify(
                 "Combat",
-                "Combat settings UI is ready.",
+                "Combat settings panel is ready.",
                 3,
                 "Info"
             )
@@ -2116,7 +1556,7 @@ local function createUI(imageAsset)
 
             notify(
                 "Combat Preview",
-                v and "Enabled." or "Disabled.",
+                v and "Enabled" or "Disabled",
                 2,
                 v and "Success" or "Info"
             )
@@ -2146,7 +1586,7 @@ local function createUI(imageAsset)
 
             notify(
                 "Range",
-                "UI value updated to " .. value,
+                "Value updated to " .. value,
                 2,
                 "Success"
             )
@@ -2159,7 +1599,7 @@ local function createUI(imageAsset)
 
     addSection(
         tabContainers.Farm,
-        "Farming UI"
+        "Farming"
     )
 
     addToggle(
@@ -2170,7 +1610,7 @@ local function createUI(imageAsset)
 
             notify(
                 "Auto Chop",
-                v and "Enabled." or "Disabled.",
+                v and "Enabled" or "Disabled",
                 2,
                 v and "Success" or "Info"
             )
@@ -2199,16 +1639,13 @@ local function createUI(imageAsset)
             end
 
             Settings.SpeedBoostMultiplier =
-                math.max(
-                    1,
-                    value / 16
-                )
+                math.max(1, value / 16)
 
             updateWalkSpeed()
 
             notify(
                 "Walk Speed",
-                "UI value updated.",
+                "Updated successfully.",
                 2,
                 "Success"
             )
@@ -2221,7 +1658,7 @@ local function createUI(imageAsset)
 
     addSection(
         tabContainers.VIP,
-        "VIP UI"
+        "VIP Tools"
     )
 
     addButton(
@@ -2240,28 +1677,57 @@ local function createUI(imageAsset)
 
     addButton(
         tabContainers.VIP,
-        "Heal Preview",
+        "Heal",
         function()
 
-            notify(
-                "Heal",
-                "Heal button pressed. Gameplay implementation is disabled in UI-only mode.",
-                3,
-                "Info"
-            )
+            local character =
+                LocalPlayer.Character
+
+            local humanoid =
+                character
+                and character:FindFirstChildOfClass(
+                    "Humanoid"
+                )
+
+            if humanoid then
+
+                humanoid.Health =
+                    humanoid.MaxHealth
+
+                notify(
+                    "Heal",
+                    "Health restored.",
+                    2,
+                    "Success"
+                )
+
+            else
+
+                notify(
+                    "Heal",
+                    "Character not ready.",
+                    3,
+                    "Warning"
+                )
+            end
         end
     )
 
     addButton(
         tabContainers.VIP,
-        "VIP Speed Preview",
+        "VIP Speed",
         function()
 
+            Settings.SpeedBoostMultiplier =
+                100 / 16
+
+            updateWalkSpeed()
+
             notify(
-                "VIP Speed",
-                "VIP speed UI action triggered.",
+                "Speed",
+                "VIP speed enabled.",
                 3,
-                "Info"
+                "Success"
             )
         end
     )
@@ -2291,7 +1757,6 @@ local function createUI(imageAsset)
         function(v)
 
             Settings.ESP = v
-
             updateESP()
         end
     )
@@ -2303,7 +1768,6 @@ local function createUI(imageAsset)
         function(v)
 
             Settings.GodMode = v
-
             toggleGodMode()
         end
     )
@@ -2315,7 +1779,6 @@ local function createUI(imageAsset)
         function(v)
 
             Settings.InstantRespawn = v
-
             toggleInstantRespawn()
         end
     )
@@ -2338,12 +1801,11 @@ local function createUI(imageAsset)
             local value =
                 math.clamp(
                     tonumber(v) or 70,
-                    40,
+                    70,
                     120
                 )
 
-            Settings.FOV =
-                value
+            Settings.FOV = value
 
             if Workspace.CurrentCamera then
 
@@ -2403,7 +1865,7 @@ local function createUI(imageAsset)
 
     addSection(
         tabContainers.ESP,
-        "NPC ESP UI"
+        "NPC ESP"
     )
 
     addToggle(
@@ -2480,7 +1942,7 @@ local function createUI(imageAsset)
 
     addSection(
         tabContainers.Ctrl,
-        "Control UI"
+        "VIP Control"
     )
 
     addToggle(
@@ -2490,7 +1952,6 @@ local function createUI(imageAsset)
         function(v)
 
             Settings.VIPFreezeHold = v
-
             toggleVIPFreezeHold()
         end
     )
@@ -2502,7 +1963,6 @@ local function createUI(imageAsset)
         function(v)
 
             Settings.VIPFreezeKill = v
-
             toggleVIPFreezeKill()
         end
     )
@@ -2586,47 +2046,6 @@ local function createUI(imageAsset)
         end
     )
 
-    addButton(
-        tabContainers.Util,
-        "Test All Notifications",
-        function()
-
-            notify(
-                "Success",
-                "Success notification.",
-                3,
-                "Success"
-            )
-
-            task.wait(0.15)
-
-            notify(
-                "Warning",
-                "Warning notification.",
-                3,
-                "Warning"
-            )
-
-            task.wait(0.15)
-
-            notify(
-                "Error",
-                "Error notification.",
-                3,
-                "Error"
-            )
-
-            task.wait(0.15)
-
-            notify(
-                "Information",
-                "Info notification.",
-                3,
-                "Info"
-            )
-        end
-    )
-
     -- ==================================================
     -- FOOTER
     -- ==================================================
@@ -2635,25 +2054,15 @@ local function createUI(imageAsset)
         Instance.new("TextLabel")
 
     footer.Size =
-        UDim2.new(
-            1,
-            -24,
-            0,
-            18
-        )
+        UDim2.new(1, -24, 0, 18)
 
     footer.Position =
-        UDim2.new(
-            0,
-            12,
-            1,
-            -22
-        )
+        UDim2.new(0, 12, 1, -22)
 
     footer.BackgroundTransparency = 1
 
     footer.Text =
-        "MKRA HUB  •  UI ONLY  •  MOBILE OPTIMIZED"
+        "MKRA HUB  •  VIP  •  Mobile Optimized"
 
     footer.TextColor3 =
         Theme.SubText
@@ -2694,7 +2103,6 @@ local function createUI(imageAsset)
     local function openUI()
 
         main.Visible = true
-
         main.GroupTransparency = 1
 
         TweenService:Create(
@@ -2769,29 +2177,18 @@ local function createUI(imageAsset)
             "RestoreButton"
 
         restoreButton.Size =
-            UDim2.fromOffset(
-                48,
-                48
-            )
+            UDim2.fromOffset(48, 48)
 
         restoreButton.Position =
-            UDim2.fromScale(
-                0.5,
-                0.5
-            )
+            UDim2.fromScale(0.5, 0.5)
 
         restoreButton.AnchorPoint =
-            Vector2.new(
-                0.5,
-                0.5
-            )
+            Vector2.new(0.5, 0.5)
 
         restoreButton.BackgroundColor3 =
             Theme.Surface
 
-        restoreButton.Text =
-            "MK"
-
+        restoreButton.Text = "MK"
         restoreButton.TextColor3 =
             Theme.Text
 
@@ -2799,9 +2196,7 @@ local function createUI(imageAsset)
             Enum.Font.GothamBold
 
         restoreButton.TextSize = 12
-
         restoreButton.AutoButtonColor = false
-
         restoreButton.ZIndex = 100
         restoreButton.Parent = gui
 
@@ -2821,7 +2216,6 @@ local function createUI(imageAsset)
             function()
 
                 restoreButton:Destroy()
-
                 restoreButton = nil
 
                 openUI()
@@ -2876,7 +2270,6 @@ local function createUI(imageAsset)
                     Enum.UserInputType.Touch then
 
                     dragging = true
-
                     dragStart =
                         input.Position
 
@@ -2905,12 +2298,10 @@ local function createUI(imageAsset)
                     frame.Position =
                         UDim2.new(
                             startPos.X.Scale,
-                            startPos.X.Offset
-                                + delta.X,
+                            startPos.X.Offset + delta.X,
 
                             startPos.Y.Scale,
-                            startPos.Y.Offset
-                                + delta.Y
+                            startPos.Y.Offset + delta.Y
                         )
                 end
             end
@@ -2954,7 +2345,6 @@ local function createUI(imageAsset)
 
                 toggleDragging = true
                 toggleMoved = false
-
                 toggleStart =
                     input.Position
 
@@ -2987,12 +2377,10 @@ local function createUI(imageAsset)
                 toggleBtn.Position =
                     UDim2.new(
                         toggleStartPosition.X.Scale,
-                        toggleStartPosition.X.Offset
-                            + delta.X,
+                        toggleStartPosition.X.Offset + delta.X,
 
                         toggleStartPosition.Y.Scale,
-                        toggleStartPosition.Y.Offset
-                            + delta.Y
+                        toggleStartPosition.Y.Offset + delta.Y
                     )
             end
         end
@@ -3079,7 +2467,6 @@ local function createUI(imageAsset)
                 )
 
             if NotificationHolder then
-
                 NotificationHolder.Size =
                     UDim2.new(
                         0,
@@ -3143,10 +2530,7 @@ local function createUI(imageAsset)
             while gui.Parent do
 
                 local hue =
-                    (
-                        os.clock()
-                        * 0.18
-                    ) % 1
+                    (os.clock() * 0.18) % 1
 
                 local rainbowColor =
                     Color3.fromHSV(
@@ -3177,7 +2561,6 @@ local function createUI(imageAsset)
     -- ==================================================
 
     main.Visible = false
-
     main.GroupTransparency = 1
 
     task.delay(
@@ -3198,4 +2581,4 @@ end
 -- START
 -- ==================================================
 
-createUI("")
+createUI(IMAGE_ASSET)
