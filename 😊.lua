@@ -1,6 +1,7 @@
 -- ==================================================
--- MKRA HUB - MODERN UI
--- UI + Tabs + Mobile + Notifications
+-- MKRA HUB - UI ONLY
+-- Modern UI + Tabs + Mobile + Notifications
+-- Success / Warning / Error / Info
 -- ==================================================
 
 -- ==================================================
@@ -50,21 +51,20 @@ local Settings = {
 -- SAFE HELPERS
 -- ==================================================
 
-local function playBeep()
-    -- Optional UI sound hook
-end
-
-local function safeNotify(...)
-    -- Assigned after createUI()
+local safeNotify = function()
 end
 
 local function placeholder(name)
     safeNotify(
         "Unavailable",
-        name .. " is not implemented in this UI build.",
+        name .. " is not implemented in this UI-only build.",
         3,
         "Warning"
     )
+end
+
+local function playBeep()
+    -- Optional UI sound hook
 end
 
 local function startFly()
@@ -76,25 +76,6 @@ end
 
 local function toggleNoclip()
     placeholder("Noclip")
-end
-
-local function updateWalkSpeed()
-    local character = LocalPlayer.Character
-
-    if not character then
-        return
-    end
-
-    local humanoid =
-        character:FindFirstChildOfClass("Humanoid")
-
-    if humanoid then
-        humanoid.WalkSpeed =
-            math.max(
-                16,
-                16 * Settings.SpeedBoostMultiplier
-            )
-    end
 end
 
 local function updateESP()
@@ -119,6 +100,26 @@ end
 
 local function toggleVIPFreezeKill()
     placeholder("VIP Freeze Kill")
+end
+
+local function updateWalkSpeed()
+
+    local character = LocalPlayer.Character
+
+    if not character then
+        return
+    end
+
+    local humanoid =
+        character:FindFirstChildOfClass("Humanoid")
+
+    if humanoid then
+        humanoid.WalkSpeed =
+            math.max(
+                16,
+                16 * Settings.SpeedBoostMultiplier
+            )
+    end
 end
 
 -- ==================================================
@@ -146,22 +147,54 @@ local function createUI(imageAsset)
     -- ==================================================
 
     local Theme = {
-        Background = Color3.fromRGB(12, 12, 18),
-        Surface = Color3.fromRGB(20, 20, 29),
-        Surface2 = Color3.fromRGB(27, 27, 38),
-        Card = Color3.fromRGB(30, 30, 42),
 
-        Text = Color3.fromRGB(245, 245, 250),
-        SubText = Color3.fromRGB(150, 150, 165),
+        Background = Color3.fromRGB(
+            12, 12, 18
+        ),
 
-        Accent = Color3.fromRGB(220, 150, 200),
+        Surface = Color3.fromRGB(
+            20, 20, 29
+        ),
 
-        Success = Color3.fromRGB(75, 220, 145),
-        Warning = Color3.fromRGB(255, 190, 70),
-        Error = Color3.fromRGB(240, 80, 100),
-        Info = Color3.fromRGB(90, 170, 255),
+        Surface2 = Color3.fromRGB(
+            27, 27, 38
+        ),
 
-        Stroke = Color3.fromRGB(65, 65, 82)
+        Card = Color3.fromRGB(
+            30, 30, 42
+        ),
+
+        Text = Color3.fromRGB(
+            245, 245, 250
+        ),
+
+        SubText = Color3.fromRGB(
+            150, 150, 165
+        ),
+
+        Accent = Color3.fromRGB(
+            220, 150, 200
+        ),
+
+        Success = Color3.fromRGB(
+            75, 220, 145
+        ),
+
+        Warning = Color3.fromRGB(
+            255, 190, 70
+        ),
+
+        Error = Color3.fromRGB(
+            240, 80, 100
+        ),
+
+        Info = Color3.fromRGB(
+            90, 170, 255
+        ),
+
+        Stroke = Color3.fromRGB(
+            65, 65, 82
+        )
     }
 
     -- ==================================================
@@ -173,7 +206,10 @@ local function createUI(imageAsset)
         local c = Instance.new("UICorner")
 
         c.CornerRadius =
-            UDim.new(0, radius or 8)
+            UDim.new(
+                0,
+                radius or 8
+            )
 
         c.Parent = obj
 
@@ -259,10 +295,10 @@ local function createUI(imageAsset)
                 -32
             )
 
-        NotificationHolder.BackgroundTransparency = 1
+        NotificationHolder.BackgroundTransparency =
+            1
 
         NotificationHolder.ZIndex = 1000
-
         NotificationHolder.Parent = gui
 
         local layout =
@@ -299,15 +335,22 @@ local function createUI(imageAsset)
         duration =
             tonumber(duration) or 3
 
-        if not NotificationColors[notificationType] then
+        if not NotificationColors[
+            notificationType
+        ] then
+
             notificationType = "Info"
         end
 
         local color =
-            NotificationColors[notificationType]
+            NotificationColors[
+                notificationType
+            ]
 
         local iconText =
-            NotificationIcons[notificationType]
+            NotificationIcons[
+                notificationType
+            ]
 
         local holder =
             createNotificationHolder()
@@ -315,7 +358,8 @@ local function createUI(imageAsset)
         local card =
             Instance.new("CanvasGroup")
 
-        card.Name = "Notification"
+        card.Name =
+            "Notification"
 
         card.Size =
             UDim2.new(
@@ -328,7 +372,8 @@ local function createUI(imageAsset)
         card.BackgroundColor3 =
             Theme.Surface
 
-        card.BackgroundTransparency = 0.03
+        card.BackgroundTransparency =
+            0.03
 
         card.BorderSizePixel = 0
 
@@ -337,10 +382,11 @@ local function createUI(imageAsset)
         card.ClipsDescendants = true
 
         card.LayoutOrder =
-            -math.floor(os.clock() * 1000)
+            -math.floor(
+                os.clock() * 1000
+            )
 
         card.ZIndex = 1001
-
         card.Parent = holder
 
         corner(card, 14)
@@ -352,7 +398,7 @@ local function createUI(imageAsset)
             0.35
         )
 
-        -- Accent
+        -- Accent bar
 
         local accent =
             Instance.new("Frame")
@@ -371,12 +417,11 @@ local function createUI(imageAsset)
         accent.BorderSizePixel = 0
 
         accent.ZIndex = 1002
-
         accent.Parent = card
 
         corner(accent, 8)
 
-        -- Icon box
+        -- Icon
 
         local iconBox =
             Instance.new("Frame")
@@ -402,7 +447,6 @@ local function createUI(imageAsset)
         iconBox.BorderSizePixel = 0
 
         iconBox.ZIndex = 1003
-
         iconBox.Parent = card
 
         corner(iconBox, 12)
@@ -418,7 +462,10 @@ local function createUI(imageAsset)
             Instance.new("TextLabel")
 
         icon.Size =
-            UDim2.fromScale(1, 1)
+            UDim2.fromScale(
+                1,
+                1
+            )
 
         icon.BackgroundTransparency = 1
 
@@ -434,7 +481,6 @@ local function createUI(imageAsset)
         icon.TextSize = 18
 
         icon.ZIndex = 1004
-
         icon.Parent = iconBox
 
         -- Title
@@ -473,7 +519,6 @@ local function createUI(imageAsset)
             Enum.TextXAlignment.Left
 
         title.ZIndex = 1004
-
         title.Parent = card
 
         -- Message
@@ -517,10 +562,9 @@ local function createUI(imageAsset)
             Enum.TextYAlignment.Top
 
         message.ZIndex = 1004
-
         message.Parent = card
 
-        -- Close
+        -- Close button
 
         local close =
             Instance.new("TextButton")
@@ -554,7 +598,6 @@ local function createUI(imageAsset)
         close.AutoButtonColor = false
 
         close.ZIndex = 1005
-
         close.Parent = card
 
         close.MouseEnter:Connect(
@@ -562,7 +605,6 @@ local function createUI(imageAsset)
 
                 close.TextColor3 =
                     color
-
             end
         )
 
@@ -571,11 +613,10 @@ local function createUI(imageAsset)
 
                 close.TextColor3 =
                     Theme.SubText
-
             end
         )
 
-        -- Progress
+        -- Progress background
 
         local progressBG =
             Instance.new("Frame")
@@ -602,7 +643,6 @@ local function createUI(imageAsset)
         progressBG.BorderSizePixel = 0
 
         progressBG.ZIndex = 1006
-
         progressBG.Parent = card
 
         corner(progressBG, 99)
@@ -611,7 +651,10 @@ local function createUI(imageAsset)
             Instance.new("Frame")
 
         progress.Size =
-            UDim2.fromScale(1, 1)
+            UDim2.fromScale(
+                1,
+                1
+            )
 
         progress.BackgroundColor3 =
             color
@@ -619,9 +662,7 @@ local function createUI(imageAsset)
         progress.BorderSizePixel = 0
 
         progress.ZIndex = 1007
-
-        progress.Parent =
-            progressBG
+        progress.Parent = progressBG
 
         corner(progress, 99)
 
@@ -662,7 +703,9 @@ local function createUI(imageAsset)
             )
         end
 
-        close.MouseButton1Click:Connect(remove)
+        close.MouseButton1Click:Connect(
+            remove
+        )
 
         TweenService:Create(
             card,
@@ -746,7 +789,6 @@ local function createUI(imageAsset)
         Enum.ScaleType.Crop
 
     toggleBtn.AutoButtonColor = false
-
     toggleBtn.Parent = gui
 
     corner(toggleBtn, 16)
@@ -793,9 +835,7 @@ local function createUI(imageAsset)
     main.GroupTransparency = 1
 
     main.Visible = false
-
     main.Active = true
-
     main.ClipsDescendants = true
 
     main.Parent = gui
@@ -827,9 +867,7 @@ local function createUI(imageAsset)
         Theme.Background
 
     bg.BorderSizePixel = 0
-
     bg.ZIndex = 0
-
     bg.Parent = main
 
     corner(bg, 18)
@@ -841,6 +879,7 @@ local function createUI(imageAsset)
 
     bgGradient.Color =
         ColorSequence.new({
+
             ColorSequenceKeypoint.new(
                 0,
                 Color3.fromRGB(
@@ -896,9 +935,7 @@ local function createUI(imageAsset)
         Theme.Surface
 
     header.BorderSizePixel = 0
-
     header.ZIndex = 10
-
     header.Parent = main
 
     corner(header, 14)
@@ -937,7 +974,6 @@ local function createUI(imageAsset)
         Enum.ScaleType.Crop
 
     headerIcon.ZIndex = 11
-
     headerIcon.Parent = header
 
     corner(headerIcon, 12)
@@ -968,7 +1004,8 @@ local function createUI(imageAsset)
 
     title.BackgroundTransparency = 1
 
-    title.Text = "MKRA HUB"
+    title.Text =
+        "MKRA HUB"
 
     title.TextColor3 =
         Theme.Text
@@ -982,7 +1019,6 @@ local function createUI(imageAsset)
         Enum.TextXAlignment.Left
 
     title.ZIndex = 11
-
     title.Parent = header
 
     local subtitle =
@@ -1005,7 +1041,7 @@ local function createUI(imageAsset)
     subtitle.BackgroundTransparency = 1
 
     subtitle.Text =
-        "VIP  •  v4.2  •  MOBILE READY"
+        "UI ONLY  •  v4.2  •  MOBILE READY"
 
     subtitle.TextColor3 =
         Theme.SubText
@@ -1019,7 +1055,6 @@ local function createUI(imageAsset)
         Enum.TextXAlignment.Left
 
     subtitle.ZIndex = 11
-
     subtitle.Parent = header
 
     local minimizeBtn =
@@ -1055,7 +1090,6 @@ local function createUI(imageAsset)
     minimizeBtn.AutoButtonColor = false
 
     minimizeBtn.ZIndex = 12
-
     minimizeBtn.Parent = header
 
     corner(minimizeBtn, 10)
@@ -1091,9 +1125,7 @@ local function createUI(imageAsset)
         Theme.Surface
 
     status.BorderSizePixel = 0
-
     status.ZIndex = 10
-
     status.Parent = main
 
     corner(status, 9)
@@ -1117,9 +1149,7 @@ local function createUI(imageAsset)
         Theme.Success
 
     statusDot.BorderSizePixel = 0
-
     statusDot.ZIndex = 11
-
     statusDot.Parent = status
 
     corner(statusDot, 99)
@@ -1144,7 +1174,7 @@ local function createUI(imageAsset)
     statusText.BackgroundTransparency = 1
 
     statusText.Text =
-        "SYSTEM READY"
+        "SYSTEM READY  •  UI ONLY"
 
     statusText.TextColor3 =
         Theme.SubText
@@ -1158,7 +1188,6 @@ local function createUI(imageAsset)
         Enum.TextXAlignment.Left
 
     statusText.ZIndex = 11
-
     statusText.Parent = status
 
     -- ==================================================
@@ -1183,7 +1212,6 @@ local function createUI(imageAsset)
         )
 
     body.BackgroundTransparency = 1
-
     body.Parent = main
 
     -- ==================================================
@@ -1203,9 +1231,7 @@ local function createUI(imageAsset)
         Theme.Surface
 
     sidebar.BorderSizePixel = 0
-
     sidebar.ZIndex = 10
-
     sidebar.Parent = body
 
     corner(sidebar, 14)
@@ -1221,7 +1247,10 @@ local function createUI(imageAsset)
         Instance.new("UIListLayout")
 
     sideLayout.Padding =
-        UDim.new(0, 5)
+        UDim.new(
+            0,
+            5
+        )
 
     sideLayout.HorizontalAlignment =
         Enum.HorizontalAlignment.Center
@@ -1229,21 +1258,32 @@ local function createUI(imageAsset)
     sideLayout.SortOrder =
         Enum.SortOrder.LayoutOrder
 
-    sideLayout.Parent = sidebar
+    sideLayout.Parent =
+        sidebar
 
     local sidePad =
         Instance.new("UIPadding")
 
     sidePad.PaddingTop =
-        UDim.new(0, 8)
+        UDim.new(
+            0,
+            8
+        )
 
     sidePad.PaddingLeft =
-        UDim.new(0, 7)
+        UDim.new(
+            0,
+            7
+        )
 
     sidePad.PaddingRight =
-        UDim.new(0, 7)
+        UDim.new(
+            0,
+            7
+        )
 
-    sidePad.Parent = sidebar
+    sidePad.Parent =
+        sidebar
 
     -- ==================================================
     -- CONTENT
@@ -1270,7 +1310,6 @@ local function createUI(imageAsset)
         Theme.Surface
 
     contentFrame.BorderSizePixel = 0
-
     contentFrame.Parent = body
 
     corner(contentFrame, 14)
@@ -1339,9 +1378,7 @@ local function createUI(imageAsset)
         btn.AutoButtonColor = false
 
         btn.LayoutOrder = index
-
         btn.ZIndex = 11
-
         btn.Parent = sidebar
 
         corner(btn, 9)
@@ -1371,7 +1408,6 @@ local function createUI(imageAsset)
         indicator.BorderSizePixel = 0
 
         indicator.ZIndex = 12
-
         indicator.Parent = btn
 
         corner(indicator, 5)
@@ -1402,9 +1438,7 @@ local function createUI(imageAsset)
             )
 
         container.BackgroundTransparency = 1
-
         container.BorderSizePixel = 0
-
         container.ScrollBarThickness = 2
 
         container.ScrollBarImageColor3 =
@@ -1414,36 +1448,48 @@ local function createUI(imageAsset)
             Enum.AutomaticSize.Y
 
         container.Visible = false
-
-        container.Parent =
-            contentFrame
+        container.Parent = contentFrame
 
         local list =
             Instance.new("UIListLayout")
 
         list.Padding =
-            UDim.new(0, 7)
+            UDim.new(
+                0,
+                7
+            )
 
         list.SortOrder =
             Enum.SortOrder.LayoutOrder
 
-        list.Parent =
-            container
+        list.Parent = container
 
         local p =
             Instance.new("UIPadding")
 
         p.PaddingLeft =
-            UDim.new(0, 6)
+            UDim.new(
+                0,
+                6
+            )
 
         p.PaddingRight =
-            UDim.new(0, 6)
+            UDim.new(
+                0,
+                6
+            )
 
         p.PaddingTop =
-            UDim.new(0, 6)
+            UDim.new(
+                0,
+                6
+            )
 
         p.PaddingBottom =
-            UDim.new(0, 6)
+            UDim.new(
+                0,
+                6
+            )
 
         p.Parent = container
 
@@ -1514,7 +1560,8 @@ local function createUI(imageAsset)
         section.BackgroundTransparency = 1
 
         section.Text =
-            "  " .. string.upper(text)
+            "  " ..
+            string.upper(text)
 
         section.TextColor3 =
             Theme.Accent
@@ -1558,7 +1605,6 @@ local function createUI(imageAsset)
         card.Text = ""
 
         card.AutoButtonColor = false
-
         card.Parent = container
 
         corner(card, 11)
@@ -1628,7 +1674,6 @@ local function createUI(imageAsset)
             or Theme.Surface2
 
         switch.BorderSizePixel = 0
-
         switch.Parent = card
 
         corner(switch, 99)
@@ -1663,7 +1708,6 @@ local function createUI(imageAsset)
             )
 
         knob.BorderSizePixel = 0
-
         knob.Parent = switch
 
         corner(knob, 99)
@@ -1760,7 +1804,6 @@ local function createUI(imageAsset)
         button.TextSize = 10
 
         button.AutoButtonColor = false
-
         button.Parent = container
 
         corner(button, 11)
@@ -1834,7 +1877,6 @@ local function createUI(imageAsset)
             Theme.Card
 
         card.BorderSizePixel = 0
-
         card.Parent = container
 
         corner(card, 11)
@@ -1954,7 +1996,7 @@ local function createUI(imageAsset)
 
     addSection(
         tabContainers.Move,
-        "Movement"
+        "Movement UI"
     )
 
     addToggle(
@@ -1991,6 +2033,13 @@ local function createUI(imageAsset)
         function(v)
 
             Settings.BoostMode = v
+
+            notify(
+                "Boost Mode",
+                v and "Enabled." or "Disabled.",
+                2,
+                v and "Success" or "Info"
+            )
         end
     )
 
@@ -2037,12 +2086,12 @@ local function createUI(imageAsset)
     )
 
     -- ==================================================
-    -- COMBAT UI
+    -- COMBAT
     -- ==================================================
 
     addSection(
         tabContainers.Combat,
-        "Combat"
+        "Combat UI"
     )
 
     addButton(
@@ -2052,7 +2101,7 @@ local function createUI(imageAsset)
 
             notify(
                 "Combat",
-                "Combat settings panel is ready.",
+                "Combat settings UI is ready.",
                 3,
                 "Info"
             )
@@ -2067,7 +2116,7 @@ local function createUI(imageAsset)
 
             notify(
                 "Combat Preview",
-                v and "Enabled" or "Disabled",
+                v and "Enabled." or "Disabled.",
                 2,
                 v and "Success" or "Info"
             )
@@ -2097,7 +2146,7 @@ local function createUI(imageAsset)
 
             notify(
                 "Range",
-                "Value updated to " .. value,
+                "UI value updated to " .. value,
                 2,
                 "Success"
             )
@@ -2110,7 +2159,7 @@ local function createUI(imageAsset)
 
     addSection(
         tabContainers.Farm,
-        "Farming"
+        "Farming UI"
     )
 
     addToggle(
@@ -2121,7 +2170,7 @@ local function createUI(imageAsset)
 
             notify(
                 "Auto Chop",
-                v and "Enabled" or "Disabled",
+                v and "Enabled." or "Disabled.",
                 2,
                 v and "Success" or "Info"
             )
@@ -2159,7 +2208,7 @@ local function createUI(imageAsset)
 
             notify(
                 "Walk Speed",
-                "Updated successfully.",
+                "UI value updated.",
                 2,
                 "Success"
             )
@@ -2172,7 +2221,7 @@ local function createUI(imageAsset)
 
     addSection(
         tabContainers.VIP,
-        "VIP Tools"
+        "VIP UI"
     )
 
     addButton(
@@ -2191,57 +2240,28 @@ local function createUI(imageAsset)
 
     addButton(
         tabContainers.VIP,
-        "Heal",
+        "Heal Preview",
         function()
 
-            local character =
-                LocalPlayer.Character
-
-            local humanoid =
-                character
-                and character:FindFirstChildOfClass(
-                    "Humanoid"
-                )
-
-            if humanoid then
-
-                humanoid.Health =
-                    humanoid.MaxHealth
-
-                notify(
-                    "Heal",
-                    "Health restored.",
-                    2,
-                    "Success"
-                )
-
-            else
-
-                notify(
-                    "Heal",
-                    "Character not ready.",
-                    3,
-                    "Warning"
-                )
-            end
+            notify(
+                "Heal",
+                "Heal button pressed. Gameplay implementation is disabled in UI-only mode.",
+                3,
+                "Info"
+            )
         end
     )
 
     addButton(
         tabContainers.VIP,
-        "VIP Speed",
+        "VIP Speed Preview",
         function()
 
-            Settings.SpeedBoostMultiplier =
-                100 / 16
-
-            updateWalkSpeed()
-
             notify(
-                "Speed",
-                "VIP speed enabled.",
+                "VIP Speed",
+                "VIP speed UI action triggered.",
                 3,
-                "Success"
+                "Info"
             )
         end
     )
@@ -2318,11 +2338,12 @@ local function createUI(imageAsset)
             local value =
                 math.clamp(
                     tonumber(v) or 70,
-                    70,
+                    40,
                     120
                 )
 
-            Settings.FOV = value
+            Settings.FOV =
+                value
 
             if Workspace.CurrentCamera then
 
@@ -2382,7 +2403,7 @@ local function createUI(imageAsset)
 
     addSection(
         tabContainers.ESP,
-        "NPC ESP"
+        "NPC ESP UI"
     )
 
     addToggle(
@@ -2459,7 +2480,7 @@ local function createUI(imageAsset)
 
     addSection(
         tabContainers.Ctrl,
-        "VIP Control"
+        "Control UI"
     )
 
     addToggle(
@@ -2565,6 +2586,47 @@ local function createUI(imageAsset)
         end
     )
 
+    addButton(
+        tabContainers.Util,
+        "Test All Notifications",
+        function()
+
+            notify(
+                "Success",
+                "Success notification.",
+                3,
+                "Success"
+            )
+
+            task.wait(0.15)
+
+            notify(
+                "Warning",
+                "Warning notification.",
+                3,
+                "Warning"
+            )
+
+            task.wait(0.15)
+
+            notify(
+                "Error",
+                "Error notification.",
+                3,
+                "Error"
+            )
+
+            task.wait(0.15)
+
+            notify(
+                "Information",
+                "Info notification.",
+                3,
+                "Info"
+            )
+        end
+    )
+
     -- ==================================================
     -- FOOTER
     -- ==================================================
@@ -2591,7 +2653,7 @@ local function createUI(imageAsset)
     footer.BackgroundTransparency = 1
 
     footer.Text =
-        "MKRA HUB  •  VIP  •  Mobile Optimized"
+        "MKRA HUB  •  UI ONLY  •  MOBILE OPTIMIZED"
 
     footer.TextColor3 =
         Theme.SubText
@@ -2605,7 +2667,6 @@ local function createUI(imageAsset)
         Enum.TextXAlignment.Center
 
     footer.ZIndex = 20
-
     footer.Parent = main
 
     -- ==================================================
@@ -2728,7 +2789,8 @@ local function createUI(imageAsset)
         restoreButton.BackgroundColor3 =
             Theme.Surface
 
-        restoreButton.Text = "MK"
+        restoreButton.Text =
+            "MK"
 
         restoreButton.TextColor3 =
             Theme.Text
@@ -2741,7 +2803,6 @@ local function createUI(imageAsset)
         restoreButton.AutoButtonColor = false
 
         restoreButton.ZIndex = 100
-
         restoreButton.Parent = gui
 
         corner(
@@ -2892,7 +2953,6 @@ local function createUI(imageAsset)
                 Enum.UserInputType.Touch then
 
                 toggleDragging = true
-
                 toggleMoved = false
 
                 toggleStart =
@@ -3018,16 +3078,19 @@ local function createUI(imageAsset)
                     0
                 )
 
-            NotificationHolder.Size =
-                UDim2.new(
-                    0,
-                    math.min(
-                        320,
-                        viewport.X - 25
-                    ),
-                    1,
-                    -32
-                )
+            if NotificationHolder then
+
+                NotificationHolder.Size =
+                    UDim2.new(
+                        0,
+                        math.min(
+                            320,
+                            viewport.X - 25
+                        ),
+                        1,
+                        -32
+                    )
+            end
 
         else
 
@@ -3080,7 +3143,10 @@ local function createUI(imageAsset)
             while gui.Parent do
 
                 local hue =
-                    (os.clock() * 0.18) % 1
+                    (
+                        os.clock()
+                        * 0.18
+                    ) % 1
 
                 local rainbowColor =
                     Color3.fromHSV(
