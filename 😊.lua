@@ -1,10 +1,6 @@
 -- ==================================================
--- MKRA HUB - MODERN UI (COMPLETE + NPC KILLER)
--- ALL ORIGINAL FEATURES + NPC KILLER SYSTEM
--- ==================================================
-
--- ==================================================
--- SERVICES
+-- MKRA HUB - COMPLETE FINAL VERSION
+-- ALL FEATURES + NPC KILLER + VIP FREEZE FIXED
 -- ==================================================
 
 local Players = game:GetService("Players")
@@ -16,49 +12,37 @@ local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
-
 local DEFAULT_IMAGE = "rbxassetid://0"
-
--- ==================================================
--- IMAGE URL
--- ==================================================
 local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 
 -- ==================================================
--- SETTINGS (ALL ORIGINAL + NPC KILLER)
+-- SETTINGS
 -- ==================================================
 
 local Settings = {
     Fly = false,
     FlySpeed = 120,
-
     BoostMode = false,
     Noclip = false,
-
     SpeedBoostMultiplier = 1,
     InfiniteJumpOrig = false,
-
     NPC_ESP = false,
     NPC_ESP_Name = true,
     NPC_ESP_Health = true,
     NPC_ESP_Distance = true,
     NPC_ESP_HideDead = true,
     NPC_ESP_Range = 200,
-
     VIPFreezeHold = false,
     VIPFreezeKill = false,
-
+    VIPFreeze_Range = 50,
     FullBright = false,
     FOV = 70,
-    
-    -- NPC KILLER
     NPC_Killer = false,
     NPC_Kill_Range = 50,
     NPC_Kill_Damage = 30,
     NPC_Kill_Mode = "ALL",
     NPC_Kill_UseRemotes = true,
     NPC_Kill_UseRaycast = true,
-    
     GodMode = false,
     InstantRespawn = false,
     PlayerESP = false,
@@ -89,11 +73,8 @@ local State = {
 -- HELPERS
 -- ==================================================
 
-local function playBeep()
-end
-
-local function safeNotify(...)
-end
+local function playBeep() end
+local function safeNotify(...) end
 
 local function getRootPart(model)
     if not model then return nil end
@@ -195,10 +176,6 @@ local function killMethod_Raycast(npc)
     return false
 end
 
-local function killMethod_Destroy(npc)
-    return pcall(function() npc:Destroy() end)
-end
-
 local function killNPC(npc, damage)
     if not npc or not npc.Parent then return false end
     local hum = npc:FindFirstChildOfClass("Humanoid")
@@ -216,7 +193,112 @@ local function killNPC(npc, damage)
 end
 
 -- ==================================================
--- FLY SYSTEM
+-- VIP FREEZE SYSTEMS (FIXED - STANDALONE)
+-- ==================================================
+
+local function getNPCsInRange(range)
+    local npcs = {}
+    local char = LocalPlayer.Character
+    if not char then return npcs end
+    local playerRoot = getRootPart(char)
+    if not playerRoot then return npcs end
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and isValidNPC(obj) then
+            local npcRoot = getRootPart(obj)
+            if npcRoot then
+                local dist = (playerRoot.Position - npcRoot.Position).Magnitude
+                if dist <= range then
+                    table.insert(npcs, {
+                        Model = obj,
+                        Root = npcRoot,
+                        Humanoid = obj:FindFirstChildOfClass("Humanoid"),
+                        Distance = dist
+                    })
+                end
+            end
+        end
+    end
+    return npcs
+end
+
+local function aggressiveFreeze(npcData)
+    if not npcData or not npcData.Model then return end
+    pcall(function()
+        for _, part in ipairs(npcData.Model:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Anchored = true
+                part.Velocity = Vector3.new(0, 0, 0)
+                part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                part.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            end
+        end
+    end)
+    pcall(function()
+        if npcData.Humanoid then
+            npcData.Humanoid.PlatformStand = true
+            npcData.Humanoid.WalkSpeed = 0
+            npcData.Humanoid.JumpPower = 0
+            npcData.Humanoid.AutoRotate = false
+        end
+    end)
+    pcall(function()
+        if npcData.Root then
+            local bodyVelocity = Instance.new("BodyVelocity")
+            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            bodyVelocity.Parent = npcData.Root
+            local bodyGyro = Instance.new("BodyGyro")
+            bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+            bodyGyro.CFrame = npcData.Root.CFrame
+            bodyGyro.Parent = npcData.Root
+        end
+    end)
+end
+
+local function killFrozenNPC(npcData)
+    if not npcData or not npcData.Humanoid then return false end
+    if npcData.Humanoid.Health <= 0 then return false end
+    local success1 = pcall(function() npcData.Humanoid:TakeDamage(999999) end)
+    if success1 and npcData.Humanoid.Health <= 0 then return true end
+    local success2 = pcall(function() npcData.Humanoid.Health = 0 end)
+    if success2 then return true end
+    local success3 = pcall(function() npcData.Model:Destroy() end)
+    return success3
+end
+
+local function toggleVIPFreezeHold()
+    if State.FreezeConnection then
+        State.FreezeConnection:Disconnect()
+        State.FreezeConnection = nil
+    end
+    if not Settings.VIPFreezeHold and not Settings.VIPFreezeKill then return end
+    State.FreezeConnection = RunService.RenderStepped:Connect(function()
+        if not Settings.VIPFreezeHold and not Settings.VIPFreezeKill then return end
+        local char = LocalPlayer.Character
+        if not char then return end
+        local playerRoot = getRootPart(char)
+        if not playerRoot then return end
+        local range = Settings.VIPFreeze_Range or 50
+        local npcsInRange = getNPCsInRange(range)
+        for _, npcData in ipairs(npcsInRange) do
+            if npcData.Model and npcData.Model.Parent then
+                if Settings.VIPFreezeHold then
+                    aggressiveFreeze(npcData)
+                end
+                if Settings.VIPFreezeKill then
+                    killFrozenNPC(npcData)
+                end
+            end
+        end
+    end)
+end
+
+local function toggleVIPFreezeKill()
+    toggleVIPFreezeHold()
+end
+
+-- ==================================================
+-- FLY
 -- ==================================================
 
 local function startFly()
@@ -304,7 +386,7 @@ local function updateWalkSpeed()
 end
 
 -- ==================================================
--- PLAYER ESP
+-- ESP SYSTEMS
 -- ==================================================
 
 local function createPlayerESP(player)
@@ -327,13 +409,6 @@ local function createPlayerESP(player)
     State.PlayerESPObjects[player] = { Highlight = highlight, Humanoid = hum, Root = root }
 end
 
-local function removePlayerESP(player)
-    local data = State.PlayerESPObjects[player]
-    if not data then return end
-    pcall(function() data.Highlight:Destroy() end)
-    State.PlayerESPObjects[player] = nil
-end
-
 local function updateESP()
     for player, data in pairs(State.PlayerESPObjects) do
         if data.Highlight then data.Highlight.Enabled = Settings.PlayerESP end
@@ -345,10 +420,6 @@ local function scanPlayers()
         if player ~= LocalPlayer and player.Character then createPlayerESP(player) end
     end
 end
-
--- ==================================================
--- NPC ESP
--- ==================================================
 
 local function createNPCESP(npc)
     if State.ESPObjects[npc] then return end
@@ -584,41 +655,6 @@ local function toggleAutoChop()
 end
 
 -- ==================================================
--- VIP FREEZE
--- ==================================================
-
-local function toggleVIPFreezeHold()
-    if State.FreezeConnection then State.FreezeConnection:Disconnect() State.FreezeConnection = nil end
-    if not Settings.VIPFreezeHold and not Settings.VIPFreezeKill then return end
-    State.FreezeConnection = RunService.RenderStepped:Connect(function()
-        if not Settings.VIPFreezeHold and not Settings.VIPFreezeKill then return end
-        local char = LocalPlayer.Character
-        local playerRoot = char and getRootPart(char)
-        if not playerRoot then return end
-        for npc, data in pairs(State.ESPObjects) do
-            if npc.Parent and data.Root and data.Humanoid then
-                local dist = (playerRoot.Position - data.Root.Position).Magnitude
-                if dist <= 50 then
-                    local root = data.Root
-                    if root:IsA("BasePart") then
-                        pcall(function()
-                            root.Velocity = Vector3.new(0, 0, 0)
-                            root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                            root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                        end)
-                    end
-                    if Settings.VIPFreezeKill and data.Humanoid.Health > 0 then
-                        pcall(function() data.Humanoid:TakeDamage(100) end)
-                    end
-                end
-            end
-        end
-    end)
-end
-
-local function toggleVIPFreezeKill() toggleVIPFreezeHold() end
-
--- ==================================================
 -- COMBAT PREVIEW
 -- ==================================================
 
@@ -674,7 +710,7 @@ local function loadImage()
 end
 
 -- ==================================================
--- CREATE UI (COMPLETE ORIGINAL)
+-- CREATE UI (COMPLETE)
 -- ==================================================
 
 local function createUI(imageAsset)
@@ -720,7 +756,6 @@ local function createUI(imageAsset)
         return s
     end
 
-    -- NOTIFICATION SYSTEM
     local NotificationHolder
     local NotificationColors = { Success = Theme.Success, Warning = Theme.Warning, Error = Theme.Error, Info = Theme.Info }
     local NotificationIcons = { Success = "✓", Warning = "!", Error = "×", Info = "i" }
@@ -859,7 +894,6 @@ local function createUI(imageAsset)
 
     safeNotify = notify
 
-    -- TOGGLE BUTTON
     local toggleBtn = Instance.new("ImageButton")
     toggleBtn.Name = "ToggleButton"
     toggleBtn.Size = UDim2.fromOffset(52, 52)
@@ -872,7 +906,6 @@ local function createUI(imageAsset)
     corner(toggleBtn, 16)
     local toggleStroke = stroke(toggleBtn, Theme.Accent, 2)
 
-    -- MAIN WINDOW
     local main = Instance.new("CanvasGroup")
     main.Name = "Main"
     main.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -888,7 +921,6 @@ local function createUI(imageAsset)
     corner(main, 18)
     local mainStroke = stroke(main, Theme.Stroke, 1, 0.15)
 
-    -- BACKGROUND
     local bg = Instance.new("Frame")
     bg.Size = UDim2.fromScale(1, 1)
     bg.BackgroundColor3 = Theme.Background
@@ -905,7 +937,6 @@ local function createUI(imageAsset)
     })
     bgGradient.Parent = bg
 
-    -- HEADER
     local header = Instance.new("Frame")
     header.Size = UDim2.new(1, -24, 0, 62)
     header.Position = UDim2.fromOffset(12, 10)
@@ -940,7 +971,7 @@ local function createUI(imageAsset)
     subtitle.Size = UDim2.new(1, -115, 0, 20)
     subtitle.Position = UDim2.fromOffset(63, 32)
     subtitle.BackgroundTransparency = 1
-    subtitle.Text = "VIP  •  v4.2  •  WITH NPC KILLER"
+    subtitle.Text = "VIP  •  v4.2  •  COMPLETE"
     subtitle.TextColor3 = Theme.SubText
     subtitle.Font = Enum.Font.GothamMedium
     subtitle.TextSize = 9
@@ -961,7 +992,6 @@ local function createUI(imageAsset)
     corner(minimizeBtn, 10)
     stroke(minimizeBtn, Theme.Stroke, 1)
 
-    -- STATUS
     local status = Instance.new("Frame")
     status.Size = UDim2.new(1, -24, 0, 28)
     status.Position = UDim2.fromOffset(12, 78)
@@ -990,14 +1020,12 @@ local function createUI(imageAsset)
     statusText.ZIndex = 11
     statusText.Parent = status
 
-    -- BODY
     local body = Instance.new("Frame")
     body.Size = UDim2.new(1, -24, 1, -120)
     body.Position = UDim2.fromOffset(12, 112)
     body.BackgroundTransparency = 1
     body.Parent = main
 
-    -- SIDEBAR
     local sidebar = Instance.new("Frame")
     sidebar.Size = UDim2.fromOffset(96, 1)
     sidebar.BackgroundColor3 = Theme.Surface
@@ -1017,7 +1045,6 @@ local function createUI(imageAsset)
     sidePad.PaddingRight = UDim.new(0, 7)
     sidePad.Parent = sidebar
 
-    -- CONTENT
     local contentFrame = Instance.new("Frame")
     contentFrame.Size = UDim2.new(1, -106, 1, 0)
     contentFrame.Position = UDim2.fromOffset(106, 0)
@@ -1027,7 +1054,6 @@ local function createUI(imageAsset)
     corner(contentFrame, 14)
     stroke(contentFrame, Theme.Stroke, 1, 0.5)
 
-    -- TABS (WITH NPC KILLER TAB)
     local tabs = {
         {"Move", "MOVE"}, {"Combat", "FIGHT"}, {"Farm", "FARM"}, {"VIP", "VIP"},
         {"Visual", "VIEW"}, {"Util", "UTIL"}, {"ESP", "ESP"}, {"NPC", "KILL"}, {"Ctrl", "CTRL"}
@@ -1102,7 +1128,6 @@ local function createUI(imageAsset)
         end)
     end
 
-    -- UI HELPERS
     local function addSection(container, text)
         local section = Instance.new("TextLabel")
         section.Size = UDim2.new(1, 0, 0, 24)
@@ -1263,7 +1288,7 @@ local function createUI(imageAsset)
     addToggle(tabContainers.ESP, "Hide Dead", true, function(v) Settings.NPC_ESP_HideDead = v end)
     addTextBox(tabContainers.ESP, "ESP Range", "200", function(v) Settings.NPC_ESP_Range = tonumber(v) or 200 end)
 
-    -- NPC KILLER TAB (NEW!)
+    -- NPC KILLER TAB
     addSection(tabContainers.NPC, "NPC Killer")
     addToggle(tabContainers.NPC, "🎯 NPC Killer", false, function(v) Settings.NPC_Killer = v notify("NPC Killer", v and "Enabled - Multi-Method" or "Disabled", 2, v and "Success" or "Info") end)
     addToggle(tabContainers.NPC, "📡 Use Remotes", true, function(v) Settings.NPC_Kill_UseRemotes = v end)
@@ -1281,17 +1306,29 @@ local function createUI(imageAsset)
     addButton(tabContainers.Util, "Test Error", function() notify("Error", "This is an error message.", 4, "Error") end)
     addButton(tabContainers.Util, "Test Info", function() notify("Information", "This is an information message.", 3, "Info") end)
 
-    -- CTRL TAB
+    -- CTRL TAB (VIP FREEZE - FIXED!)
     addSection(tabContainers.Ctrl, "VIP Control")
-    addToggle(tabContainers.Ctrl, "VIP Freeze Hold", false, function(v) Settings.VIPFreezeHold = v toggleVIPFreezeHold() end)
-    addToggle(tabContainers.Ctrl, "VIP Freeze Kill", false, function(v) Settings.VIPFreezeKill = v toggleVIPFreezeKill() end)
+    addToggle(tabContainers.Ctrl, "🧊 VIP Freeze Hold", false, function(v)
+        Settings.VIPFreezeHold = v
+        toggleVIPFreezeHold()
+        notify("VIP Freeze Hold", v and "Enabled - NPCs will be frozen" or "Disabled", 2, v and "Success" or "Info")
+    end)
+    addToggle(tabContainers.Ctrl, "💀 VIP Freeze Kill", false, function(v)
+        Settings.VIPFreezeKill = v
+        toggleVIPFreezeKill()
+        notify("VIP Freeze Kill", v and "Enabled - NPCs will be frozen and killed" or "Disabled", 2, v and "Success" or "Info")
+    end)
+    addTextBox(tabContainers.Ctrl, "Freeze Range", "50", function(v)
+        Settings.VIPFreeze_Range = tonumber(v) or 50
+        notify("Freeze Range", "Range set to " .. Settings.VIPFreeze_Range .. " studs", 2, "Success")
+    end)
 
     -- FOOTER
     local footer = Instance.new("TextLabel")
     footer.Size = UDim2.new(1, -24, 0, 18)
     footer.Position = UDim2.new(0, 12, 1, -22)
     footer.BackgroundTransparency = 1
-    footer.Text = "MKRA HUB  •  VIP  •  WITH NPC KILLER"
+    footer.Text = "MKRA HUB  •  VIP  •  COMPLETE"
     footer.TextColor3 = Theme.SubText
     footer.Font = Enum.Font.GothamMedium
     footer.TextSize = 8
@@ -1299,14 +1336,12 @@ local function createUI(imageAsset)
     footer.ZIndex = 20
     footer.Parent = main
 
-    -- DEFAULT TAB
     tabContainers.Move.Visible = true
     tabButtons.Move.Button.BackgroundColor3 = Theme.Accent
     tabButtons.Move.Button.BackgroundTransparency = 0.82
     tabButtons.Move.Button.TextColor3 = Theme.Text
     tabButtons.Move.Indicator.BackgroundTransparency = 0
 
-    -- OPEN/CLOSE
     local function openUI()
         main.Visible = true
         main.GroupTransparency = 1
@@ -1322,7 +1357,6 @@ local function createUI(imageAsset)
         main.Visible = false
     end
 
-    -- MINIMIZE
     local restoreButton
     local function minimizeUI()
         main.Visible = false
@@ -1352,7 +1386,6 @@ local function createUI(imageAsset)
     end
     minimizeBtn.MouseButton1Click:Connect(minimizeUI)
 
-    -- DRAG
     local function makeDraggable(handle, frame)
         local dragging = false
         local dragStart
@@ -1377,7 +1410,6 @@ local function createUI(imageAsset)
     end
     makeDraggable(header, main)
 
-    -- TOGGLE BUTTON DRAG
     local toggleDragging = false
     local toggleMoved = false
     local toggleStart
@@ -1407,7 +1439,6 @@ local function createUI(imageAsset)
         end
     end)
 
-    -- MOBILE RESPONSIVE
     local camera = Workspace.CurrentCamera
     local function updateScale()
         camera = Workspace.CurrentCamera
@@ -1430,7 +1461,6 @@ local function createUI(imageAsset)
     if camera then camera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale) end
     updateScale()
 
-    -- RAINBOW ANIMATION
     task.spawn(function()
         while gui.Parent do
             local hue = (os.clock() * 0.18) % 1
@@ -1443,7 +1473,6 @@ local function createUI(imageAsset)
         end
     end)
 
-    -- INITIALIZE
     main.Visible = false
     main.GroupTransparency = 1
     scanNPCs()
@@ -1460,17 +1489,15 @@ local function createUI(imageAsset)
             if Settings.PlayerESP then createPlayerESP(player) end
         end)
     end)
-    task.delay(0.5, function() notify("MKRA Hub", "Loaded with NPC Killer!", 3, "Success") end)
-    print("✅ MKRA HUB v4.2 - COMPLETE WITH NPC KILLER!")
+    task.delay(0.5, function() notify("MKRA Hub", "Complete version loaded!", 3, "Success") end)
+    print("✅ MKRA HUB v4.2 - COMPLETE WITH ALL FEATURES!")
 end
 
--- START
 task.spawn(function()
     local image = loadImage()
     createUI(image)
 end)
 
--- CLEANUP
 game:BindToClose(function()
     State.IsRunning = false
     if State.FlyConnection then State.FlyConnection:Disconnect() end
