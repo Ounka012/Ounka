@@ -1,6 +1,6 @@
 -- ==================================================
--- MKRA HUB - COMPLETE FINAL VERSION
--- ALL FEATURES + NPC KILLER + VIP FREEZE FIXED
+-- MKRA HUB - FINAL COMPLETE VERSION
+-- ALL FEATURES + NPC KILLER + VIP FREEZE V2.0
 -- ==================================================
 
 local Players = game:GetService("Players")
@@ -20,52 +20,22 @@ local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 -- ==================================================
 
 local Settings = {
-    Fly = false,
-    FlySpeed = 120,
-    BoostMode = false,
-    Noclip = false,
-    SpeedBoostMultiplier = 1,
-    InfiniteJumpOrig = false,
-    NPC_ESP = false,
-    NPC_ESP_Name = true,
-    NPC_ESP_Health = true,
-    NPC_ESP_Distance = true,
-    NPC_ESP_HideDead = true,
-    NPC_ESP_Range = 200,
-    VIPFreezeHold = false,
-    VIPFreezeKill = false,
-    VIPFreeze_Range = 50,
-    FullBright = false,
-    FOV = 70,
-    NPC_Killer = false,
-    NPC_Kill_Range = 50,
-    NPC_Kill_Damage = 30,
-    NPC_Kill_Mode = "ALL",
-    NPC_Kill_UseRemotes = true,
-    NPC_Kill_UseRaycast = true,
-    GodMode = false,
-    InstantRespawn = false,
-    PlayerESP = false,
-    AutoF = false,
-    AutoChop = false,
-    CombatRange = 30,
-    CombatPreview = false
+    Fly = false, FlySpeed = 120, BoostMode = false, Noclip = false,
+    SpeedBoostMultiplier = 1, InfiniteJumpOrig = false,
+    NPC_ESP = false, NPC_ESP_Name = true, NPC_ESP_Health = true,
+    NPC_ESP_Distance = true, NPC_ESP_HideDead = true, NPC_ESP_Range = 200,
+    VIPFreezeHold = false, VIPFreezeKill = false, VIPFreeze_Range = 50,
+    FullBright = false, FOV = 70,
+    NPC_Killer = false, NPC_Kill_Range = 50, NPC_Kill_Damage = 30,
+    NPC_Kill_Mode = "ALL", NPC_Kill_UseRemotes = true, NPC_Kill_UseRaycast = true,
+    GodMode = false, InstantRespawn = false, PlayerESP = false,
+    AutoF = false, AutoChop = false, CombatRange = 30, CombatPreview = false
 }
 
--- ==================================================
--- STATE
--- ==================================================
-
 local State = {
-    FlyConnection = nil,
-    NoclipConnection = nil,
-    ESPObjects = {},
-    PlayerESPObjects = {},
-    GodModeConnection = nil,
-    AutoFConnection = nil,
-    FreezeConnection = nil,
-    AutoChopConnection = nil,
-    CombatConnection = nil,
+    FlyConnection = nil, NoclipConnection = nil, ESPObjects = {},
+    PlayerESPObjects = {}, GodModeConnection = nil, AutoFConnection = nil,
+    FreezeConnection = nil, AutoChopConnection = nil, CombatConnection = nil,
     IsRunning = true
 }
 
@@ -113,36 +83,33 @@ end
 local function killMethod_Direct(npc, damage)
     local hum = npc:FindFirstChildOfClass("Humanoid")
     if not hum or hum.Health <= 0 then return false end
-    local success = pcall(function() hum:TakeDamage(damage) end)
-    return success and hum.Health <= 0
+    return pcall(function() hum:TakeDamage(damage) end) and hum.Health <= 0
 end
 
 local function killMethod_Health(npc, damage)
     local hum = npc:FindFirstChildOfClass("Humanoid")
     if not hum or hum.Health <= 0 then return false end
-    local success = pcall(function() hum.Health = math.max(0, hum.Health - damage) end)
-    return success and hum.Health <= 0
+    return pcall(function() hum.Health = math.max(0, hum.Health - damage) end) and hum.Health <= 0
 end
 
 local function killMethod_Remote(npc)
     local remotes = {}
-    local function scanForRemotes(obj)
+    local function scan(obj)
         if obj:IsA("RemoteEvent") then
-            local name = obj.Name:lower()
-            if name:find("attack") or name:find("hit") or name:find("damage") or name:find("kill") then
+            local n = obj.Name:lower()
+            if n:find("attack") or n:find("hit") or n:find("damage") or n:find("kill") then
                 table.insert(remotes, obj)
             end
         elseif obj:IsA("Folder") then
-            for _, child in ipairs(obj:GetChildren()) do scanForRemotes(child) end
+            for _, c in ipairs(obj:GetChildren()) do scan(c) end
         end
     end
     pcall(function()
-        if game:GetService("ReplicatedStorage") then scanForRemotes(game:GetService("ReplicatedStorage")) end
-        if Workspace then scanForRemotes(Workspace) end
+        if game:GetService("ReplicatedStorage") then scan(game:GetService("ReplicatedStorage")) end
+        if Workspace then scan(Workspace) end
     end)
-    for _, remote in ipairs(remotes) do
-        local success = pcall(function() remote:FireServer(npc) end)
-        if success then return true end
+    for _, r in ipairs(remotes) do
+        if pcall(function() r:FireServer(npc) end) then return true end
     end
     return false
 end
@@ -154,23 +121,16 @@ local function killMethod_Raycast(npc)
     if not tool then return false end
     local npcRoot = getRootPart(npc)
     if not npcRoot then return false end
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {char}
-    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    local origin = char:GetPivot().Position
-    local direction = (npcRoot.Position - origin).Unit * 50
-    local result = Workspace:Raycast(origin, direction, raycastParams)
+    local rp = RaycastParams.new()
+    rp.FilterDescendantsInstances = {char}
+    rp.FilterType = Enum.RaycastFilterType.Exclude
+    local result = Workspace:Raycast(char:GetPivot().Position, (npcRoot.Position - char:GetPivot().Position).Unit * 50, rp)
     if result and result.Instance and result.Instance:IsDescendantOf(npc) then
-        local hitRemote = nil
-        for _, child in ipairs(tool:GetDescendants()) do
-            if child:IsA("RemoteEvent") and child.Name:lower():find("hit") then
-                hitRemote = child
-                break
+        for _, c in ipairs(tool:GetDescendants()) do
+            if c:IsA("RemoteEvent") and c.Name:lower():find("hit") then
+                pcall(function() c:FireServer(result.Instance, result.Position) end)
+                return true
             end
-        end
-        if hitRemote then
-            pcall(function() hitRemote:FireServer(result.Instance, result.Position) end)
-            return true
         end
     end
     return false
@@ -180,90 +140,96 @@ local function killNPC(npc, damage)
     if not npc or not npc.Parent then return false end
     local hum = npc:FindFirstChildOfClass("Humanoid")
     if not hum or hum.Health <= 0 then return false end
-    local methods = {
-        function() return killMethod_Direct(npc, damage) end,
-        function() return killMethod_Health(npc, damage) end,
-    }
-    if Settings.NPC_Kill_UseRemotes then table.insert(methods, function() return killMethod_Remote(npc) end) end
-    if Settings.NPC_Kill_UseRaycast then table.insert(methods, function() return killMethod_Raycast(npc) end) end
-    for _, method in ipairs(methods) do
-        if method() then return true end
-    end
+    if killMethod_Direct(npc, damage) then return true end
+    if killMethod_Health(npc, damage) then return true end
+    if Settings.NPC_Kill_UseRemotes and killMethod_Remote(npc) then return true end
+    if Settings.NPC_Kill_UseRaycast and killMethod_Raycast(npc) then return true end
     return false
 end
 
 -- ==================================================
--- VIP FREEZE SYSTEMS (FIXED - STANDALONE)
+-- VIP FREEZE V2.0 (5 METHODS + NUCLEAR)
 -- ==================================================
 
-local function getNPCsInRange(range)
-    local npcs = {}
-    local char = LocalPlayer.Character
-    if not char then return npcs end
-    local playerRoot = getRootPart(char)
-    if not playerRoot then return npcs end
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and isValidNPC(obj) then
-            local npcRoot = getRootPart(obj)
-            if npcRoot then
-                local dist = (playerRoot.Position - npcRoot.Position).Magnitude
-                if dist <= range then
-                    table.insert(npcs, {
-                        Model = obj,
-                        Root = npcRoot,
-                        Humanoid = obj:FindFirstChildOfClass("Humanoid"),
-                        Distance = dist
-                    })
+local function freezeNPC_V2(npc)
+    if not npc or not npc.Parent then return end
+    local hum = npc:FindFirstChildOfClass("Humanoid")
+    -- METHOD 1: Anchor ALL parts
+    pcall(function()
+        for _, part in ipairs(npc:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Anchored = true
+                part.CanCollide = false
+                part.Velocity = Vector3.zero
+                part.AssemblyLinearVelocity = Vector3.zero
+                part.AssemblyAngularVelocity = Vector3.zero
+            end
+        end
+    end)
+    -- METHOD 2: Destroy joints
+    pcall(function()
+        for _, part in ipairs(npc:GetDescendants()) do
+            if part:IsA("BasePart") then
+                for _, joint in ipairs(part:GetJoints()) do
+                    if joint:IsA("Motor6D") or joint:IsA("Weld") or joint:IsA("Hinge") then
+                        joint:Destroy()
+                    end
                 end
             end
         end
-    end
-    return npcs
-end
-
-local function aggressiveFreeze(npcData)
-    if not npcData or not npcData.Model then return end
+    end)
+    -- METHOD 3: Humanoid manipulation
     pcall(function()
-        for _, part in ipairs(npcData.Model:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Anchored = true
-                part.Velocity = Vector3.new(0, 0, 0)
-                part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                part.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+        if hum then
+            hum.WalkSpeed = 0
+            hum.JumpPower = 0
+            hum.JumpHeight = 0
+            hum.AutoRotate = false
+            hum.PlatformStand = true
+            hum:ChangeState(Enum.HumanoidStateType.Physics)
+        end
+    end)
+    -- METHOD 4: Freeze HumanoidRootPart
+    pcall(function()
+        local hrp = npc:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.Anchored = true
+            hrp.CanCollide = false
+        end
+    end)
+    -- METHOD 5: BodyVelocity + BodyGyro
+    pcall(function()
+        local root = getRootPart(npc)
+        if root and root:IsA("BasePart") then
+            local bv = root:FindFirstChild("MKRA_Freeze")
+            if not bv then
+                bv = Instance.new("BodyVelocity")
+                bv.Name = "MKRA_Freeze"
+                bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bv.Parent = root
             end
-        end
-    end)
-    pcall(function()
-        if npcData.Humanoid then
-            npcData.Humanoid.PlatformStand = true
-            npcData.Humanoid.WalkSpeed = 0
-            npcData.Humanoid.JumpPower = 0
-            npcData.Humanoid.AutoRotate = false
-        end
-    end)
-    pcall(function()
-        if npcData.Root then
-            local bodyVelocity = Instance.new("BodyVelocity")
-            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            bodyVelocity.Parent = npcData.Root
-            local bodyGyro = Instance.new("BodyGyro")
-            bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-            bodyGyro.CFrame = npcData.Root.CFrame
-            bodyGyro.Parent = npcData.Root
+            bv.Velocity = Vector3.zero
+            local bg = root:FindFirstChild("MKRA_FreezeGyro")
+            if not bg then
+                bg = Instance.new("BodyGyro")
+                bg.Name = "MKRA_FreezeGyro"
+                bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                bg.Parent = root
+            end
+            bg.CFrame = root.CFrame
         end
     end)
 end
 
-local function killFrozenNPC(npcData)
-    if not npcData or not npcData.Humanoid then return false end
-    if npcData.Humanoid.Health <= 0 then return false end
-    local success1 = pcall(function() npcData.Humanoid:TakeDamage(999999) end)
-    if success1 and npcData.Humanoid.Health <= 0 then return true end
-    local success2 = pcall(function() npcData.Humanoid.Health = 0 end)
-    if success2 then return true end
-    local success3 = pcall(function() npcData.Model:Destroy() end)
-    return success3
+local function nuclearFreeze(npc)
+    pcall(function()
+        for _, part in ipairs(npc:GetDescendants()) do
+            if part:IsA("BasePart") then part:Destroy() end
+        end
+        local hum = npc:FindFirstChildOfClass("Humanoid")
+        if hum then hum:Destroy() end
+        npc:Destroy()
+    end)
 end
 
 local function toggleVIPFreezeHold()
@@ -272,21 +238,33 @@ local function toggleVIPFreezeHold()
         State.FreezeConnection = nil
     end
     if not Settings.VIPFreezeHold and not Settings.VIPFreezeKill then return end
-    State.FreezeConnection = RunService.RenderStepped:Connect(function()
+    State.FreezeConnection = RunService.Heartbeat:Connect(function()
         if not Settings.VIPFreezeHold and not Settings.VIPFreezeKill then return end
         local char = LocalPlayer.Character
         if not char then return end
         local playerRoot = getRootPart(char)
         if not playerRoot then return end
         local range = Settings.VIPFreeze_Range or 50
-        local npcsInRange = getNPCsInRange(range)
-        for _, npcData in ipairs(npcsInRange) do
-            if npcData.Model and npcData.Model.Parent then
-                if Settings.VIPFreezeHold then
-                    aggressiveFreeze(npcData)
-                end
-                if Settings.VIPFreezeKill then
-                    killFrozenNPC(npcData)
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("Model") and isValidNPC(obj) then
+                local npcRoot = getRootPart(obj)
+                if npcRoot then
+                    local dist = (playerRoot.Position - npcRoot.Position).Magnitude
+                    if dist <= range then
+                        if Settings.VIPFreezeHold then
+                            freezeNPC_V2(obj)
+                        end
+                        if Settings.VIPFreezeKill then
+                            freezeNPC_V2(obj)
+                            local hum = obj:FindFirstChildOfClass("Humanoid")
+                            if hum and hum.Health > 0 then
+                                pcall(function()
+                                    hum:TakeDamage(999999)
+                                    if hum.Health > 0 then hum.Health = 0 end
+                                end)
+                            end
+                        end
+                    end
                 end
             end
         end
@@ -311,36 +289,36 @@ local function startFly()
     for _, obj in ipairs(rootPart:GetChildren()) do
         if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") or obj:IsA("BodyForce") then obj:Destroy() end
     end
-    local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    bodyVelocity.Parent = rootPart
-    local bodyGyro = Instance.new("BodyGyro")
-    bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-    bodyGyro.P = 1e4
-    bodyGyro.Parent = rootPart
-    local bodyForce = Instance.new("BodyForce")
-    bodyForce.Force = Vector3.new(0, workspace.Gravity * rootPart.AssemblyMass, 0)
-    bodyForce.Parent = rootPart
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bv.Velocity = Vector3.zero
+    bv.Parent = rootPart
+    local bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bg.P = 1e4
+    bg.Parent = rootPart
+    local bf = Instance.new("BodyForce")
+    bf.Force = Vector3.new(0, workspace.Gravity * rootPart.AssemblyMass, 0)
+    bf.Parent = rootPart
     State.FlyConnection = RunService.RenderStepped:Connect(function()
         if not Settings.Fly or not character or not character.Parent then
-            pcall(function() bodyVelocity:Destroy() bodyGyro:Destroy() bodyForce:Destroy() end)
+            pcall(function() bv:Destroy() bg:Destroy() bf:Destroy() end)
             return
         end
         local camera = Workspace.CurrentCamera
         if not camera then return end
-        local moveDirection = Vector3.new(0, 0, 0)
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
-        if moveDirection.Magnitude > 0 then moveDirection = moveDirection.Unit end
+        local dir = Vector3.zero
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir = dir - Vector3.new(0, 1, 0) end
+        if dir.Magnitude > 0 then dir = dir.Unit end
         local speed = Settings.FlySpeed
         if Settings.BoostMode then speed = speed * 2 end
-        bodyVelocity.Velocity = moveDirection * speed
-        bodyGyro.CFrame = camera.CFrame
+        bv.Velocity = dir * speed
+        bg.CFrame = camera.CFrame
     end)
 end
 
@@ -374,10 +352,6 @@ local function toggleNoclip()
     end)
 end
 
--- ==================================================
--- WALK SPEED
--- ==================================================
-
 local function updateWalkSpeed()
     local character = LocalPlayer.Character
     if not character then return end
@@ -410,7 +384,7 @@ local function createPlayerESP(player)
 end
 
 local function updateESP()
-    for player, data in pairs(State.PlayerESPObjects) do
+    for _, data in pairs(State.PlayerESPObjects) do
         if data.Highlight then data.Highlight.Enabled = Settings.PlayerESP end
     end
 end
@@ -501,30 +475,22 @@ task.spawn(function()
         local char = LocalPlayer.Character
         local playerRoot = char and getRootPart(char)
         if not playerRoot then continue end
-        local nearestNPC = nil
-        local nearestDist = math.huge
-        local lowestHP_NPC = nil
-        local lowestHP = math.huge
+        local nearestNPC, nearestDist = nil, math.huge
+        local lowestNPC, lowestHP = nil, math.huge
         for npc, data in pairs(State.ESPObjects) do
             if npc.Parent and data.Root and data.Humanoid then
                 local dist = (playerRoot.Position - data.Root.Position).Magnitude
-                local hp = data.Humanoid.Health
                 if dist < nearestDist and dist <= Settings.NPC_Kill_Range then nearestDist = dist nearestNPC = npc end
-                if hp < lowestHP and dist <= Settings.NPC_Kill_Range then lowestHP = hp lowestHP_NPC = npc end
+                if data.Humanoid.Health < lowestHP and dist <= Settings.NPC_Kill_Range then lowestHP = data.Humanoid.Health lowestNPC = npc end
             end
         end
         for npc, data in pairs(State.ESPObjects) do
             if not npc.Parent or not data.Root or not data.Humanoid then continue end
-            local hum = data.Humanoid
-            local root = data.Root
-            local alive = hum.Health > 0
-            local dist = (playerRoot.Position - root.Position).Magnitude
-            if alive and dist <= Settings.NPC_Kill_Range then
+            if data.Humanoid.Health > 0 and (playerRoot.Position - data.Root.Position).Magnitude <= Settings.NPC_Kill_Range then
                 local shouldKill = false
                 if Settings.NPC_Kill_Mode == "ALL" then shouldKill = true
                 elseif Settings.NPC_Kill_Mode == "NEAREST" then shouldKill = (npc == nearestNPC)
-                elseif Settings.NPC_Kill_Mode == "LOWEST_HP" then shouldKill = (npc == lowestHP_NPC)
-                end
+                elseif Settings.NPC_Kill_Mode == "LOWEST_HP" then shouldKill = (npc == lowestNPC) end
                 if shouldKill then killNPC(npc, Settings.NPC_Kill_Damage) end
             end
         end
@@ -539,8 +505,7 @@ task.spawn(function()
         for npc, data in pairs(State.ESPObjects) do
             if not npc.Parent then removeNPCESP(npc)
             else
-                local hum = data.Humanoid
-                local root = data.Root
+                local hum, root = data.Humanoid, data.Root
                 if not hum or not root then removeNPCESP(npc)
                 else
                     local alive = hum.Health > 0
@@ -551,21 +516,16 @@ task.spawn(function()
                     data.Highlight.Enabled = visible
                     data.Billboard.Enabled = visible
                     if visible then
-                        if Settings.NPC_ESP_Name then data.NameLabel.Text = npc.Name data.NameLabel.Visible = true
-                        else data.NameLabel.Visible = false end
+                        data.NameLabel.Visible = Settings.NPC_ESP_Name
+                        if Settings.NPC_ESP_Name then data.NameLabel.Text = npc.Name end
+                        data.HealthBG.Visible = Settings.NPC_ESP_Health
                         if Settings.NPC_ESP_Health then
-                            local maxHP = math.max(hum.MaxHealth, 1)
-                            local percent = math.clamp(hum.Health / maxHP, 0, 1)
-                            data.HealthBG.Visible = true
-                            data.HealthFill.Size = UDim2.new(percent, 0, 1, 0)
-                            if percent > 0.6 then data.HealthFill.BackgroundColor3 = Color3.fromRGB(50, 255, 100)
-                            elseif percent > 0.3 then data.HealthFill.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
-                            else data.HealthFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50) end
-                        else data.HealthBG.Visible = false end
-                        if Settings.NPC_ESP_Distance and playerRoot then
-                            data.InfoLabel.Visible = true
-                            data.InfoLabel.Text = math.floor(dist) .. " studs"
-                        else data.InfoLabel.Visible = false end
+                            local pct = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
+                            data.HealthFill.Size = UDim2.new(pct, 0, 1, 0)
+                            data.HealthFill.BackgroundColor3 = pct > 0.6 and Color3.fromRGB(50,255,100) or pct > 0.3 and Color3.fromRGB(255,200,50) or Color3.fromRGB(255,50,50)
+                        end
+                        data.InfoLabel.Visible = Settings.NPC_ESP_Distance and playerRoot ~= nil
+                        if Settings.NPC_ESP_Distance and playerRoot then data.InfoLabel.Text = math.floor(dist) .. " studs" end
                     end
                 end
             end
@@ -574,7 +534,7 @@ task.spawn(function()
 end)
 
 -- ==================================================
--- GOD MODE
+-- GOD MODE / RESPAWN / AUTO F / AUTO CHOP
 -- ==================================================
 
 local function toggleGodMode()
@@ -589,25 +549,15 @@ local function toggleGodMode()
     end)
 end
 
--- ==================================================
--- INSTANT RESPAWN
--- ==================================================
-
 local function toggleInstantRespawn()
     if not Settings.InstantRespawn then return end
     LocalPlayer.CharacterAdded:Connect(function(character)
         if not Settings.InstantRespawn then return end
         character:WaitForChild("Humanoid")
         local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.Died:Connect(function() task.wait(0.1) LocalPlayer:LoadCharacter() end)
-        end
+        if humanoid then humanoid.Died:Connect(function() task.wait(0.1) LocalPlayer:LoadCharacter() end) end
     end)
 end
-
--- ==================================================
--- AUTO F
--- ==================================================
 
 local function toggleAutoF()
     if State.AutoFConnection then State.AutoFConnection:Disconnect() State.AutoFConnection = nil end
@@ -619,17 +569,12 @@ local function toggleAutoF()
         for _, obj in ipairs(Workspace:GetDescendants()) do
             if obj:IsA("ProximityPrompt") then
                 pcall(function()
-                    local dist = (obj.Parent.Position - char:GetPivot().Position).Magnitude
-                    if dist <= 10 then fireproximityprompt(obj) end
+                    if obj.Parent and (obj.Parent.Position - char:GetPivot().Position).Magnitude <= 10 then fireproximityprompt(obj) end
                 end)
             end
         end
     end)
 end
-
--- ==================================================
--- AUTO CHOP
--- ==================================================
 
 local function toggleAutoChop()
     if State.AutoChopConnection then State.AutoChopConnection:Disconnect() State.AutoChopConnection = nil end
@@ -642,21 +587,14 @@ local function toggleAutoChop()
         for _, obj in ipairs(Workspace:GetDescendants()) do
             if obj:IsA("Model") and (obj.Name:lower():find("tree") or obj.Name:lower():find("wood")) then
                 local root = getRootPart(obj) or obj:FindFirstChildWhichIsA("BasePart")
-                if root then
-                    local dist = (playerRoot.Position - root.Position).Magnitude
-                    if dist < 10 then
-                        local tool = char:FindFirstChildWhichIsA("Tool")
-                        if tool then pcall(function() tool:Activate() end) end
-                    end
+                if root and (playerRoot.Position - root.Position).Magnitude < 10 then
+                    local tool = char:FindFirstChildWhichIsA("Tool")
+                    if tool then pcall(function() tool:Activate() end) end
                 end
             end
         end
     end)
 end
-
--- ==================================================
--- COMBAT PREVIEW
--- ==================================================
 
 local function toggleCombatPreview()
     if State.CombatConnection then State.CombatConnection:Disconnect() State.CombatConnection = nil end
@@ -667,18 +605,13 @@ local function toggleCombatPreview()
         local playerRoot = char and getRootPart(char)
         if not playerRoot then return end
         for npc, data in pairs(State.ESPObjects) do
-            if npc.Parent and data.Root and data.Humanoid then
+            if npc.Parent and data.Root then
                 local dist = (playerRoot.Position - data.Root.Position).Magnitude
-                if dist <= Settings.CombatRange then data.Highlight.FillColor = Color3.fromRGB(255, 50, 50)
-                else data.Highlight.FillColor = Color3.fromRGB(220, 150, 200) end
+                data.Highlight.FillColor = dist <= Settings.CombatRange and Color3.fromRGB(255,50,50) or Color3.fromRGB(220,150,200)
             end
         end
     end)
 end
-
--- ==================================================
--- INFINITE JUMP
--- ==================================================
 
 UserInputService.JumpRequest:Connect(function()
     if not Settings.InfiniteJumpOrig then return end
@@ -690,10 +623,6 @@ UserInputService.JumpRequest:Connect(function()
         end
     end)
 end)
-
--- ==================================================
--- LOAD IMAGE
--- ==================================================
 
 local function loadImage()
     local asset = ""
@@ -710,13 +639,12 @@ local function loadImage()
 end
 
 -- ==================================================
--- CREATE UI (COMPLETE)
+-- CREATE UI
 -- ==================================================
 
 local function createUI(imageAsset)
     imageAsset = imageAsset or ""
     if CoreGui:FindFirstChild("MKRA_Hub") then CoreGui.MKRA_Hub:Destroy() end
-
     local gui = Instance.new("ScreenGui")
     gui.Name = "MKRA_Hub"
     gui.ResetOnSpawn = false
@@ -725,36 +653,16 @@ local function createUI(imageAsset)
     gui.Parent = CoreGui
 
     local Theme = {
-        Background = Color3.fromRGB(12, 12, 18),
-        Surface = Color3.fromRGB(20, 20, 29),
-        Surface2 = Color3.fromRGB(27, 27, 38),
-        Card = Color3.fromRGB(30, 30, 42),
-        Text = Color3.fromRGB(245, 245, 250),
-        SubText = Color3.fromRGB(150, 150, 165),
-        Accent = Color3.fromRGB(220, 150, 200),
-        Success = Color3.fromRGB(75, 220, 145),
-        Warning = Color3.fromRGB(255, 190, 70),
-        Error = Color3.fromRGB(240, 80, 100),
-        Info = Color3.fromRGB(90, 170, 255),
-        Stroke = Color3.fromRGB(65, 65, 82)
+        Background = Color3.fromRGB(12,12,18), Surface = Color3.fromRGB(20,20,29),
+        Surface2 = Color3.fromRGB(27,27,38), Card = Color3.fromRGB(30,30,42),
+        Text = Color3.fromRGB(245,245,250), SubText = Color3.fromRGB(150,150,165),
+        Accent = Color3.fromRGB(220,150,200), Success = Color3.fromRGB(75,220,145),
+        Warning = Color3.fromRGB(255,190,70), Error = Color3.fromRGB(240,80,100),
+        Info = Color3.fromRGB(90,170,255), Stroke = Color3.fromRGB(65,65,82)
     }
 
-    local function corner(obj, radius)
-        local c = Instance.new("UICorner")
-        c.CornerRadius = UDim.new(0, radius or 8)
-        c.Parent = obj
-        return c
-    end
-
-    local function stroke(obj, color, thickness, transparency)
-        local s = Instance.new("UIStroke")
-        s.Color = color or Theme.Stroke
-        s.Thickness = thickness or 1
-        s.Transparency = transparency or 0
-        s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        s.Parent = obj
-        return s
-    end
+    local function corner(obj, r) local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, r or 8) c.Parent = obj return c end
+    local function stroke(obj, color, t, tr) local s = Instance.new("UIStroke") s.Color = color or Theme.Stroke s.Thickness = t or 1 s.Transparency = tr or 0 s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border s.Parent = obj return s end
 
     local NotificationHolder
     local NotificationColors = { Success = Theme.Success, Warning = Theme.Warning, Error = Theme.Error, Info = Theme.Info }
@@ -787,7 +695,6 @@ local function createUI(imageAsset)
         local iconText = NotificationIcons[notificationType]
         local holder = createNotificationHolder()
         local card = Instance.new("CanvasGroup")
-        card.Name = "Notification"
         card.Size = UDim2.new(1, 0, 0, 78)
         card.BackgroundColor3 = Theme.Surface
         card.BackgroundTransparency = 0.03
@@ -860,8 +767,6 @@ local function createUI(imageAsset)
         close.AutoButtonColor = false
         close.ZIndex = 1005
         close.Parent = card
-        close.MouseEnter:Connect(function() close.TextColor3 = color end)
-        close.MouseLeave:Connect(function() close.TextColor3 = Theme.SubText end)
         local progressBG = Instance.new("Frame")
         progressBG.Size = UDim2.new(1, -20, 0, 3)
         progressBG.Position = UDim2.new(0, 10, 1, -7)
@@ -931,9 +836,9 @@ local function createUI(imageAsset)
     local bgGradient = Instance.new("UIGradient")
     bgGradient.Rotation = 135
     bgGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 25, 45)),
-        ColorSequenceKeypoint.new(0.45, Color3.fromRGB(12, 12, 18)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 20, 35))
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(40,25,45)),
+        ColorSequenceKeypoint.new(0.45, Color3.fromRGB(12,12,18)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(18,20,35))
     })
     bgGradient.Parent = bg
 
@@ -971,7 +876,7 @@ local function createUI(imageAsset)
     subtitle.Size = UDim2.new(1, -115, 0, 20)
     subtitle.Position = UDim2.fromOffset(63, 32)
     subtitle.BackgroundTransparency = 1
-    subtitle.Text = "VIP  •  v4.2  •  COMPLETE"
+    subtitle.Text = "VIP • v4.2 • FREEZE V2.0"
     subtitle.TextColor3 = Theme.SubText
     subtitle.Font = Enum.Font.GothamMedium
     subtitle.TextSize = 9
@@ -1055,16 +960,14 @@ local function createUI(imageAsset)
     stroke(contentFrame, Theme.Stroke, 1, 0.5)
 
     local tabs = {
-        {"Move", "MOVE"}, {"Combat", "FIGHT"}, {"Farm", "FARM"}, {"VIP", "VIP"},
-        {"Visual", "VIEW"}, {"Util", "UTIL"}, {"ESP", "ESP"}, {"NPC", "KILL"}, {"Ctrl", "CTRL"}
+        {"Move","MOVE"},{"Combat","FIGHT"},{"Farm","FARM"},{"VIP","VIP"},
+        {"Visual","VIEW"},{"Util","UTIL"},{"ESP","ESP"},{"NPC","KILL"},{"Ctrl","CTRL"}
     }
-
     local tabContainers = {}
     local tabButtons = {}
 
     for index, info in ipairs(tabs) do
-        local tabName = info[1]
-        local tabText = info[2]
+        local tabName, tabText = info[1], info[2]
         local btn = Instance.new("TextButton")
         btn.Name = tabName .. "Tab"
         btn.Size = UDim2.new(1, 0, 0, 34)
@@ -1245,7 +1148,7 @@ local function createUI(imageAsset)
         return box
     end
 
-    -- MOVE TAB
+    -- MOVE
     addSection(tabContainers.Move, "Movement")
     addToggle(tabContainers.Move, "Fly", false, function(v) Settings.Fly = v if v then startFly() else stopFly() end end)
     addTextBox(tabContainers.Move, "Fly Speed", "120", function(v) Settings.FlySpeed = tonumber(v) or 120 end)
@@ -1254,73 +1157,95 @@ local function createUI(imageAsset)
     addTextBox(tabContainers.Move, "Speed Mult", "1", function(v) Settings.SpeedBoostMultiplier = tonumber(v) or 1 updateWalkSpeed() end)
     addToggle(tabContainers.Move, "Infinite Jump", false, function(v) Settings.InfiniteJumpOrig = v notify("Infinite Jump", v and "Enabled" or "Disabled", 2, v and "Success" or "Info") end)
 
-    -- COMBAT TAB
+    -- COMBAT
     addSection(tabContainers.Combat, "Combat")
-    addToggle(tabContainers.Combat, "Combat Preview", false, function(v) Settings.CombatPreview = v toggleCombatPreview() notify("Combat Preview", v and "Enabled" or "Disabled", 2, v and "Success" or "Info") end)
-    addTextBox(tabContainers.Combat, "Range", "30", function(v) local value = tonumber(v) if not value then notify("Invalid Value", "Range must be a number.", 3, "Error") return end Settings.CombatRange = value notify("Range", "Value updated to " .. value, 2, "Success") end)
+    addToggle(tabContainers.Combat, "Combat Preview", false, function(v) Settings.CombatPreview = v toggleCombatPreview() end)
+    addTextBox(tabContainers.Combat, "Range", "30", function(v) Settings.CombatRange = tonumber(v) or 30 end)
 
-    -- FARM TAB
+    -- FARM
     addSection(tabContainers.Farm, "Farming")
-    addToggle(tabContainers.Farm, "Auto Chop", false, function(v) Settings.AutoChop = v toggleAutoChop() notify("Auto Chop", v and "Enabled" or "Disabled", 2, v and "Success" or "Info") end)
-    addTextBox(tabContainers.Farm, "Walk Speed", "16", function(v) local value = tonumber(v) if not value then notify("Invalid Speed", "Please enter a number.", 3, "Error") return end Settings.SpeedBoostMultiplier = math.max(1, value / 16) updateWalkSpeed() notify("Walk Speed", "Updated successfully.", 2, "Success") end)
+    addToggle(tabContainers.Farm, "Auto Chop", false, function(v) Settings.AutoChop = v toggleAutoChop() end)
+    addTextBox(tabContainers.Farm, "Walk Speed", "16", function(v) local val = tonumber(v) if val then Settings.SpeedBoostMultiplier = math.max(1, val / 16) updateWalkSpeed() end end)
 
-    -- VIP TAB
+    -- VIP
     addSection(tabContainers.VIP, "VIP Tools")
-    addButton(tabContainers.VIP, "VIP Status", function() notify("VIP", "VIP interface is active.", 3, "Success") end)
-    addButton(tabContainers.VIP, "Heal", function() local character = LocalPlayer.Character local humanoid = character and character:FindFirstChildOfClass("Humanoid") if humanoid then humanoid.Health = humanoid.MaxHealth notify("Heal", "Health restored.", 2, "Success") else notify("Heal", "Character not ready.", 3, "Warning") end end)
-    addButton(tabContainers.VIP, "VIP Speed", function() Settings.SpeedBoostMultiplier = 100 / 16 updateWalkSpeed() notify("Speed", "VIP speed enabled.", 3, "Success") end)
-    addButton(tabContainers.VIP, "Reset Speed", function() Settings.SpeedBoostMultiplier = 1 updateWalkSpeed() notify("Speed", "Speed reset.", 2, "Info") end)
+    addButton(tabContainers.VIP, "Heal", function()
+        local c = LocalPlayer.Character
+        local h = c and c:FindFirstChildOfClass("Humanoid")
+        if h then h.Health = h.MaxHealth notify("Heal", "Done", 2, "Success") else notify("Heal", "No character", 3, "Warning") end
+    end)
+    addButton(tabContainers.VIP, "VIP Speed", function() Settings.SpeedBoostMultiplier = 100/16 updateWalkSpeed() notify("Speed", "VIP Speed ON", 2, "Success") end)
+    addButton(tabContainers.VIP, "Reset Speed", function() Settings.SpeedBoostMultiplier = 1 updateWalkSpeed() notify("Speed", "Reset", 2, "Info") end)
     addToggle(tabContainers.VIP, "Player ESP", false, function(v) Settings.PlayerESP = v updateESP() end)
     addToggle(tabContainers.VIP, "God Mode", false, function(v) Settings.GodMode = v toggleGodMode() end)
     addToggle(tabContainers.VIP, "Instant Respawn", false, function(v) Settings.InstantRespawn = v toggleInstantRespawn() end)
 
-    -- VISUAL TAB
+    -- VISUAL
     addSection(tabContainers.Visual, "Visual")
-    addTextBox(tabContainers.Visual, "Field Of View", "70", function(v) local value = math.clamp(tonumber(v) or 70, 70, 120) Settings.FOV = value if Workspace.CurrentCamera then Workspace.CurrentCamera.FieldOfView = value end notify("FOV", "Field of view updated.", 2, "Success") end)
-    addToggle(tabContainers.Visual, "Full Bright", false, function(v) Settings.FullBright = v if v then Lighting.Brightness = 2 Lighting.ClockTime = 12 Lighting.FogEnd = 100000 notify("Full Bright", "Enabled.", 2, "Success") else Lighting.Brightness = 0.5 Lighting.ClockTime = 0 Lighting.FogEnd = 1000 notify("Full Bright", "Disabled.", 2, "Info") end end)
+    addTextBox(tabContainers.Visual, "FOV", "70", function(v) local val = math.clamp(tonumber(v) or 70, 70, 120) if Workspace.CurrentCamera then Workspace.CurrentCamera.FieldOfView = val end end)
+    addToggle(tabContainers.Visual, "Full Bright", false, function(v)
+        Settings.FullBright = v
+        if v then Lighting.Brightness = 2 Lighting.ClockTime = 12 Lighting.FogEnd = 100000
+        else Lighting.Brightness = 0.5 Lighting.ClockTime = 0 Lighting.FogEnd = 1000 end
+    end)
 
-    -- ESP TAB
+    -- ESP
     addSection(tabContainers.ESP, "NPC ESP")
-    addToggle(tabContainers.ESP, "NPC ESP", false, function(v) Settings.NPC_ESP = v notify("NPC ESP", v and "Enabled." or "Disabled.", 2, v and "Success" or "Info") end)
+    addToggle(tabContainers.ESP, "NPC ESP", false, function(v) Settings.NPC_ESP = v end)
     addToggle(tabContainers.ESP, "Show Name", true, function(v) Settings.NPC_ESP_Name = v end)
     addToggle(tabContainers.ESP, "Show Health", true, function(v) Settings.NPC_ESP_Health = v end)
     addToggle(tabContainers.ESP, "Show Distance", true, function(v) Settings.NPC_ESP_Distance = v end)
     addToggle(tabContainers.ESP, "Hide Dead", true, function(v) Settings.NPC_ESP_HideDead = v end)
     addTextBox(tabContainers.ESP, "ESP Range", "200", function(v) Settings.NPC_ESP_Range = tonumber(v) or 200 end)
 
-    -- NPC KILLER TAB
+    -- NPC KILLER
     addSection(tabContainers.NPC, "NPC Killer")
-    addToggle(tabContainers.NPC, "🎯 NPC Killer", false, function(v) Settings.NPC_Killer = v notify("NPC Killer", v and "Enabled - Multi-Method" or "Disabled", 2, v and "Success" or "Info") end)
+    addToggle(tabContainers.NPC, "🎯 NPC Killer", false, function(v) Settings.NPC_Killer = v notify("NPC Killer", v and "ON" or "OFF", 2, v and "Success" or "Info") end)
     addToggle(tabContainers.NPC, "📡 Use Remotes", true, function(v) Settings.NPC_Kill_UseRemotes = v end)
     addToggle(tabContainers.NPC, "🔫 Use Raycast", true, function(v) Settings.NPC_Kill_UseRaycast = v end)
     addTextBox(tabContainers.NPC, "Kill Range", "50", function(v) Settings.NPC_Kill_Range = tonumber(v) or 50 end)
     addTextBox(tabContainers.NPC, "Damage", "30", function(v) Settings.NPC_Kill_Damage = tonumber(v) or 30 end)
-    addButton(tabContainers.NPC, "Mode: " .. Settings.NPC_Kill_Mode, function() if Settings.NPC_Kill_Mode == "ALL" then Settings.NPC_Kill_Mode = "NEAREST" elseif Settings.NPC_Kill_Mode == "NEAREST" then Settings.NPC_Kill_Mode = "LOWEST_HP" else Settings.NPC_Kill_Mode = "ALL" end notify("NPC Mode", "Changed to: " .. Settings.NPC_Kill_Mode, 2, "Success") end)
+    addButton(tabContainers.NPC, "Mode: " .. Settings.NPC_Kill_Mode, function()
+        if Settings.NPC_Kill_Mode == "ALL" then Settings.NPC_Kill_Mode = "NEAREST"
+        elseif Settings.NPC_Kill_Mode == "NEAREST" then Settings.NPC_Kill_Mode = "LOWEST_HP"
+        else Settings.NPC_Kill_Mode = "ALL" end
+        notify("Mode", Settings.NPC_Kill_Mode, 2, "Success")
+    end)
 
-    -- UTIL TAB
+    -- UTIL
     addSection(tabContainers.Util, "Utilities")
-    addButton(tabContainers.Util, "System Information", function() notify("System", "MKRA Hub UI is running normally.", 3, "Info") end)
-    addToggle(tabContainers.Util, "Auto F (Interact)", false, function(v) Settings.AutoF = v toggleAutoF() notify("Auto F", v and "Enabled" or "Disabled", 2, v and "Success" or "Info") end)
-    addButton(tabContainers.Util, "Test Success", function() notify("Success", "Everything is working correctly.", 3, "Success") end)
-    addButton(tabContainers.Util, "Test Warning", function() notify("Warning", "This is a warning message.", 4, "Warning") end)
-    addButton(tabContainers.Util, "Test Error", function() notify("Error", "This is an error message.", 4, "Error") end)
-    addButton(tabContainers.Util, "Test Info", function() notify("Information", "This is an information message.", 3, "Info") end)
+    addToggle(tabContainers.Util, "Auto F", false, function(v) Settings.AutoF = v toggleAutoF() end)
+    addButton(tabContainers.Util, "Test Notify", function() notify("Test", "Working!", 3, "Success") end)
 
-    -- CTRL TAB (VIP FREEZE - FIXED!)
-    addSection(tabContainers.Ctrl, "VIP Control")
-    addToggle(tabContainers.Ctrl, "🧊 VIP Freeze Hold", false, function(v)
+    -- CTRL (VIP FREEZE V2.0 + NUCLEAR)
+    addSection(tabContainers.Ctrl, "VIP Freeze V2.0")
+    addToggle(tabContainers.Ctrl, "🧊 Freeze Hold", false, function(v)
         Settings.VIPFreezeHold = v
         toggleVIPFreezeHold()
-        notify("VIP Freeze Hold", v and "Enabled - NPCs will be frozen" or "Disabled", 2, v and "Success" or "Info")
+        notify("Freeze Hold", v and "ON - 5 Methods Active" or "OFF", 2, v and "Success" or "Info")
     end)
-    addToggle(tabContainers.Ctrl, "💀 VIP Freeze Kill", false, function(v)
+    addToggle(tabContainers.Ctrl, "💀 Freeze Kill", false, function(v)
         Settings.VIPFreezeKill = v
         toggleVIPFreezeKill()
-        notify("VIP Freeze Kill", v and "Enabled - NPCs will be frozen and killed" or "Disabled", 2, v and "Success" or "Info")
+        notify("Freeze Kill", v and "ON - Freeze + Kill" or "OFF", 2, v and "Success" or "Info")
     end)
-    addTextBox(tabContainers.Ctrl, "Freeze Range", "50", function(v)
-        Settings.VIPFreeze_Range = tonumber(v) or 50
-        notify("Freeze Range", "Range set to " .. Settings.VIPFreeze_Range .. " studs", 2, "Success")
+    addTextBox(tabContainers.Ctrl, "Freeze Range", "50", function(v) Settings.VIPFreeze_Range = tonumber(v) or 50 end)
+    addButton(tabContainers.Ctrl, "☢️ NUKE ALL NPCs", function()
+        local char = LocalPlayer.Character
+        local playerRoot = char and getRootPart(char)
+        if not playerRoot then notify("NUKE", "No character", 3, "Error") return end
+        local range = Settings.VIPFreeze_Range or 50
+        local count = 0
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("Model") and isValidNPC(obj) then
+                local npcRoot = getRootPart(obj)
+                if npcRoot and (playerRoot.Position - npcRoot.Position).Magnitude <= range then
+                    nuclearFreeze(obj)
+                    count = count + 1
+                end
+            end
+        end
+        notify("☢️ NUKE", "Destroyed " .. count .. " NPCs", 3, "Success")
     end)
 
     -- FOOTER
@@ -1328,7 +1253,7 @@ local function createUI(imageAsset)
     footer.Size = UDim2.new(1, -24, 0, 18)
     footer.Position = UDim2.new(0, 12, 1, -22)
     footer.BackgroundTransparency = 1
-    footer.Text = "MKRA HUB  •  VIP  •  COMPLETE"
+    footer.Text = "MKRA HUB • VIP • FREEZE V2.0"
     footer.TextColor3 = Theme.SubText
     footer.Font = Enum.Font.GothamMedium
     footer.TextSize = 8
@@ -1348,7 +1273,6 @@ local function createUI(imageAsset)
         TweenService:Create(main, TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { GroupTransparency = 0 }):Play()
         TweenService:Create(toggleBtn, TweenInfo.new(0.25), { Rotation = 180 }):Play()
     end
-
     local function closeUI()
         local tween = TweenService:Create(main, TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.In), { GroupTransparency = 1 })
         tween:Play()
@@ -1362,7 +1286,6 @@ local function createUI(imageAsset)
         main.Visible = false
         if restoreButton then return end
         restoreButton = Instance.new("TextButton")
-        restoreButton.Name = "RestoreButton"
         restoreButton.Size = UDim2.fromOffset(48, 48)
         restoreButton.Position = UDim2.fromScale(0.5, 0.5)
         restoreButton.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1375,26 +1298,16 @@ local function createUI(imageAsset)
         restoreButton.ZIndex = 100
         restoreButton.Parent = gui
         corner(restoreButton, 14)
-        local rs = stroke(restoreButton, Theme.Accent, 2)
+        stroke(restoreButton, Theme.Accent, 2)
         restoreButton.MouseButton1Click:Connect(function() restoreButton:Destroy() restoreButton = nil openUI() end)
-        task.spawn(function()
-            while restoreButton and restoreButton.Parent do
-                rs.Color = Color3.fromHSV((os.clock() * 0.35) % 1, 0.8, 1)
-                task.wait(0.04)
-            end
-        end)
     end
     minimizeBtn.MouseButton1Click:Connect(minimizeUI)
 
     local function makeDraggable(handle, frame)
-        local dragging = false
-        local dragStart
-        local startPos
+        local dragging, dragStart, startPos = false, nil, nil
         handle.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = true
-                dragStart = input.Position
-                startPos = frame.Position
+                dragging = true dragStart = input.Position startPos = frame.Position
             end
         end)
         UserInputService.InputChanged:Connect(function(input)
@@ -1410,16 +1323,10 @@ local function createUI(imageAsset)
     end
     makeDraggable(header, main)
 
-    local toggleDragging = false
-    local toggleMoved = false
-    local toggleStart
-    local toggleStartPosition
+    local toggleDragging, toggleMoved, toggleStart, toggleStartPosition = false, false, nil, nil
     toggleBtn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            toggleDragging = true
-            toggleMoved = false
-            toggleStart = input.Position
-            toggleStartPosition = toggleBtn.Position
+            toggleDragging = true toggleMoved = false toggleStart = input.Position toggleStartPosition = toggleBtn.Position
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
@@ -1432,43 +1339,19 @@ local function createUI(imageAsset)
     end)
     toggleBtn.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            if not toggleMoved then
-                if main.Visible then closeUI() else openUI() end
-            end
+            if not toggleMoved then if main.Visible then closeUI() else openUI() end end
             toggleDragging = false
         end
     end)
 
-    local camera = Workspace.CurrentCamera
-    local function updateScale()
-        camera = Workspace.CurrentCamera
-        if not camera then return end
-        local viewport = camera.ViewportSize
-        if viewport.X < 600 then
-            main.Size = UDim2.new(0.92, 0, 0, math.min(520, viewport.Y - 40))
-            main.Position = UDim2.fromScale(0.5, 0.5)
-            sidebar.Size = UDim2.fromOffset(82, 1)
-            contentFrame.Position = UDim2.fromOffset(92, 0)
-            contentFrame.Size = UDim2.new(1, -92, 1, 0)
-            NotificationHolder.Size = UDim2.new(0, math.min(320, viewport.X - 25), 1, -32)
-        else
-            main.Size = UDim2.fromOffset(440, 520)
-            sidebar.Size = UDim2.fromOffset(96, 1)
-            contentFrame.Position = UDim2.fromOffset(106, 0)
-            contentFrame.Size = UDim2.new(1, -106, 1, 0)
-        end
-    end
-    if camera then camera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale) end
-    updateScale()
-
     task.spawn(function()
         while gui.Parent do
             local hue = (os.clock() * 0.18) % 1
-            local rainbowColor = Color3.fromHSV(hue, 0.8, 1)
-            mainStroke.Color = rainbowColor
-            toggleStroke.Color = rainbowColor
-            iconStroke.Color = rainbowColor
-            title.TextColor3 = rainbowColor
+            local rainbow = Color3.fromHSV(hue, 0.8, 1)
+            mainStroke.Color = rainbow
+            toggleStroke.Color = rainbow
+            iconStroke.Color = rainbow
+            title.TextColor3 = rainbow
             task.wait(0.04)
         end
     end)
@@ -1478,19 +1361,13 @@ local function createUI(imageAsset)
     scanNPCs()
     scanPlayers()
     Workspace.DescendantAdded:Connect(function(obj)
-        if obj:IsA("Model") then
-            task.wait(0.1)
-            if isValidNPC(obj) then createNPCESP(obj) end
-        end
+        if obj:IsA("Model") then task.wait(0.1) if isValidNPC(obj) then createNPCESP(obj) end end
     end)
     Players.PlayerAdded:Connect(function(player)
-        player.CharacterAdded:Connect(function(character)
-            task.wait(0.5)
-            if Settings.PlayerESP then createPlayerESP(player) end
-        end)
+        player.CharacterAdded:Connect(function() task.wait(0.5) if Settings.PlayerESP then createPlayerESP(player) end end)
     end)
-    task.delay(0.5, function() notify("MKRA Hub", "Complete version loaded!", 3, "Success") end)
-    print("✅ MKRA HUB v4.2 - COMPLETE WITH ALL FEATURES!")
+    task.delay(0.5, function() notify("MKRA Hub", "Complete + Freeze V2.0!", 3, "Success") end)
+    print("✅ MKRA HUB - COMPLETE WITH FREEZE V2.0 + NUCLEAR!")
 end
 
 task.spawn(function()
