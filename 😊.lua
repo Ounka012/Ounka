@@ -28,17 +28,17 @@ local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 -- ==================================================
 
 local Settings = {
-    -- Movement
+    
     Fly = false, FlySpeed = 120, BoostMode = false, Noclip = false,
     SpeedBoostMultiplier = 1, WalkSpeedDirect = 16, InfiniteJumpOrig = false,
     
-    -- Combat
+
     KillAura = false, KillAuraRange = 30, KillAuraDamage = 30, KillAuraNPC = false,
     HitboxSize = 2, AutoClick = false, ForceField = false,
     AutoClickBall = false, BallDistance = 5,
     CombatRange = 30, CombatPreview = false,
     
-    -- NPC / Freeze
+
     NPC_ESP = false, NPC_ESP_Name = true, NPC_ESP_Health = true,
     NPC_ESP_Distance = true, NPC_ESP_HideDead = true, NPC_ESP_Range = 200,
     VIPFreezeHold = false, VIPFreezeKill = false, VIPFreeze_Range = 50,
@@ -46,7 +46,7 @@ local Settings = {
     NPC_Kill_Mode = "ALL", NPC_Kill_UseRemotes = true, NPC_Kill_UseRaycast = true,
     KillMobs = false, AutoChop = false,
     
-    -- VIP / Misc
+
     GodMode = false, InstantRespawn = false, PlayerESP = false,
     FlingAll = false, AutoF = false, AutoFPaused = false,
     FullBright = false, FOV = 70,
@@ -59,9 +59,6 @@ local State = {
     KillAuraConnection = nil, IsRunning = true
 }
 
--- ==================================================
--- HELPERS
--- ==================================================
 
 local function playBeep() end
 local function safeNotify(...) end
