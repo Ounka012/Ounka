@@ -1,6 +1,5 @@
 -- ================================================================
--- ✨ OUNCOPYBARA - EVADE (Mobile Compatible Edition)
--- Fixed for mobile executors
+-- ✨ OUNCOPYBARA - EVADE (Mobile Compatible Edition - FIXED) ✨
 -- ================================================================
 
 -- Polyfill for older executors
@@ -446,7 +445,7 @@ end
 -- ESP (lightweight)
 local function updateESP()
     for _, plr in pairs(Players:GetPlayers()) do
-        if plr \~= LocalPlayer and plr.Character then
+        if plr ~= LocalPlayer and plr.Character then  -- កែពី \~= ទៅ ~=
             local hl = plr.Character:FindFirstChild("OuncESP")
             if EVADE_CONFIG.ESP_PLAYERS then
                 if not hl then
@@ -551,4 +550,4 @@ task.spawn(function()
     end
 end)
 
-print("✨ ouncopybara Mobile Compatible loaded!")
+print("✨ ouncopybara Mobile Compatible fixed loaded!")
