@@ -334,7 +334,7 @@ sparkleLayer.Parent = mainFrame
 local moonSparkles = {}
 
 local function createMoonDecorations()
-    local symbols = {"🪐", "✦", "🪐", "✧", "★"}
+    local symbols = {"🪐", "🇰🇭", "🪐", "🇰🇭", "★"}
     for i = 1, 50 do
         local symbol = symbols[math.random(#symbols)]
         local size = math.random(10, 20)
