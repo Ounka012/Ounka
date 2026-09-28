@@ -1,553 +1,185 @@
--- ================================================================
--- ✨ OUNCOPYBARA - EVADE (Mobile Compatible Edition - FIXED) ✨
--- ================================================================
+-- =====================================================================
+-- [ ouncopybara UI - Obfuscated & Protected Script ]
+-- =====================================================================
 
--- Polyfill for older executors
-if not task then
-    task = {}
-    task.spawn = function(f) coroutine.wrap(f)() end
-    task.wait = wait
-    task.delay = function(t, f) coroutine.wrap(function() wait(t) f() end)() end
+local _0xO = loadstring or load
+local _0xC = string.char
+local _0xS = string.sub
+local _0xN = tonumber
+local _0xT = table.concat
+
+local function _0xDec(_0xD)
+    local _0xR = {}
+    local _0xP = 1
+    for i = 1, #_0xD, 2 do
+        _0xR[_0xP] = _0xC(_0xN(_0xS(_0xD, i, i + 1), 16))
+        _0xP = _0xP + 1
+    end
+    return _0xT(_0xR)
 end
 
-local EVADE_CONFIG = {
-    AUTO_DASH      = false,
-    DASH_SPEED     = 60,
-    DASH_COOLDOWN  = 0.12,
-    DASH_MODE      = "MoveDirection",
-    INSTANT_DASH   = false,
-    WALKSPEED      = 16,
-    SUPER_JUMP     = false,
-    INFINITE_JUMP  = false,
-    JUMP_POWER     = 50,
-    FULLBRIGHT     = false,
-    AUTO_REVIVE    = false,
-    AUTO_RESPAWN   = false,
-    NO_CLIP        = false,
-    FOV            = 70,
-    ESP_PLAYERS    = false,
-    ESP_BOTS       = false,
-}
-
-local Players          = game:GetService("Players")
-local RunService       = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local TweenService     = game:GetService("TweenService")
-local Lighting         = game:GetService("Lighting")
-local Workspace        = game:GetService("Workspace")
-local CoreGui          = game:GetService("CoreGui")
-
-local LocalPlayer = Players.LocalPlayer
-local Camera      = Workspace.CurrentCamera
-
-local TargetGui = CoreGui
-pcall(function()
-    if gethui then TargetGui = gethui() end
-end)
-if not TargetGui then
-    TargetGui = LocalPlayer:WaitForChild("PlayerGui")
-end
-
-if TargetGui:FindFirstChild("ouncopybara") then
-    TargetGui.ouncopybara:Destroy()
-end
-
-local Theme = {
-    Background  = Color3.fromRGB(20, 8, 16),
-    Sidebar     = Color3.fromRGB(28, 10, 22),
-    Border      = Color3.fromRGB(255, 105, 180),
-    Accent      = Color3.fromRGB(255, 20, 147),
-    AccentGlow  = Color3.fromRGB(255, 182, 193),
-    Text        = Color3.fromRGB(255, 255, 255),
-    Muted       = Color3.fromRGB(245, 190, 220),
-    Input       = Color3.fromRGB(35, 12, 28),
-}
-
-local isMobile = UserInputService.TouchEnabled
-local MAIN_SIZE = isMobile and UDim2.new(0, 400, 0, 340) or UDim2.new(0, 580, 0, 440)
-local SIDEBAR_WIDTH = isMobile and 95 or 140
-
-local function tween(obj, props, duration)
-    local info = TweenInfo.new(duration or 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local t = TweenService:Create(obj, info, props)
-    t:Play()
-    return t
-end
-
-local function enableDrag(frame, dragArea)
-    dragArea = dragArea or frame
-    local dragging, dragInput, dragStart, startPos
-
-    dragArea.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-
-    dragArea.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-end
-
--- GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ouncopybara"
-screenGui.IgnoreGuiInset = true
-screenGui.ResetOnSpawn = false
-screenGui.Parent = TargetGui
-
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 0, 0, 0)
-mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-mainFrame.BackgroundColor3 = Theme.Background
-mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = screenGui
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
-
-local mainStroke = Instance.new("UIStroke", mainFrame)
-mainStroke.Thickness = 2
-mainStroke.Color = Theme.Border
-
--- Toggle Button
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 50, 0, 50)
-toggleBtn.Position = UDim2.new(0.04, 0, 0.18, 0)
-toggleBtn.BackgroundColor3 = Theme.Sidebar
-toggleBtn.Text = "🌙"
-toggleBtn.TextSize = 22
-toggleBtn.TextColor3 = Theme.AccentGlow
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.Parent = screenGui
-Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1, 0)
-
-local toggleStroke = Instance.new("UIStroke", toggleBtn)
-toggleStroke.Thickness = 2.5
-toggleStroke.Color = Theme.Accent
-
-enableDrag(toggleBtn)
-toggleBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
-end)
-
--- Sidebar
-local sidebar = Instance.new("Frame")
-sidebar.Size = UDim2.new(0, SIDEBAR_WIDTH, 1, 0)
-sidebar.BackgroundColor3 = Theme.Sidebar
-sidebar.BorderSizePixel = 0
-sidebar.Parent = mainFrame
-Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 10)
-
-local sidebarTitle = Instance.new("TextLabel")
-sidebarTitle.Size = UDim2.new(1, -10, 0, 40)
-sidebarTitle.Position = UDim2.new(0, 5, 0, isMobile and 20 or 30)
-sidebarTitle.BackgroundTransparency = 1
-sidebarTitle.Text = "ouncopybara"
-sidebarTitle.Font = Enum.Font.GothamBlack
-sidebarTitle.TextSize = isMobile and 12 or 14
-sidebarTitle.TextColor3 = Theme.AccentGlow
-sidebarTitle.TextXAlignment = Enum.TextXAlignment.Center
-sidebarTitle.Parent = sidebar
-
--- Content
-local content = Instance.new("Frame")
-content.Position = UDim2.new(0, SIDEBAR_WIDTH, 0, 0)
-content.Size = UDim2.new(1, -SIDEBAR_WIDTH, 1, 0)
-content.BackgroundTransparency = 1
-content.Parent = mainFrame
-
-local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, 48)
-header.BackgroundTransparency = 1
-header.Parent = content
-enableDrag(mainFrame, header)
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -50, 0, 24)
-titleLabel.Position = UDim2.new(0, 14, 0, 6)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "ouncopybara"
-titleLabel.Font = Enum.Font.GothamBlack
-titleLabel.TextSize = isMobile and 14 or 17
-titleLabel.TextColor3 = Theme.Text
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = header
-
-local welcomeLabel = Instance.new("TextLabel")
-welcomeLabel.Size = UDim2.new(1, -50, 0, 16)
-welcomeLabel.Position = UDim2.new(0, 14, 0, 28)
-welcomeLabel.BackgroundTransparency = 1
-welcomeLabel.Text = "Welcome, " .. (LocalPlayer.DisplayName or "Player")
-welcomeLabel.Font = Enum.Font.Gotham
-welcomeLabel.TextSize = 11
-welcomeLabel.TextColor3 = Theme.Muted
-welcomeLabel.TextXAlignment = Enum.TextXAlignment.Left
-welcomeLabel.Parent = header
-
-local minimizeBtn = Instance.new("TextButton")
-minimizeBtn.Size = UDim2.new(0, 24, 0, 24)
-minimizeBtn.Position = UDim2.new(1, -32, 0, 12)
-minimizeBtn.BackgroundColor3 = Theme.Accent
-minimizeBtn.Text = "−"
-minimizeBtn.TextColor3 = Theme.Text
-minimizeBtn.Font = Enum.Font.GothamBold
-minimizeBtn.TextSize = 16
-minimizeBtn.Parent = header
-Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 6)
-minimizeBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = false
-end)
-
-local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, 0, 1, -74)
-scroll.Position = UDim2.new(0, 0, 0, 48)
-scroll.BackgroundTransparency = 1
-scroll.ScrollBarThickness = 3
-scroll.CanvasSize = UDim2.new(0, 0, 0, 880)
-scroll.Parent = content
-
--- UI Builders
-local function addToggle(y, text, default, callback)
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(1, -16, 0, 38)
-    container.Position = UDim2.new(0, 8, 0, y)
-    container.BackgroundColor3 = Theme.Input
-    container.BackgroundTransparency = 0.3
-    container.Parent = scroll
-    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 8)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 170, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = isMobile and 11 or 12
-    label.TextColor3 = Theme.Text
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = container
-
-    local toggleFrame = Instance.new("Frame")
-    toggleFrame.Size = UDim2.new(0, 44, 0, 22)
-    toggleFrame.Position = UDim2.new(1, -54, 0.5, -11)
-    toggleFrame.BackgroundColor3 = default and Theme.Accent or Color3.fromRGB(55, 35, 50)
-    toggleFrame.Parent = container
-    Instance.new("UICorner", toggleFrame).CornerRadius = UDim.new(1, 0)
-
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 18, 0, 18)
-    knob.Position = UDim2.new(0, default and 23 or 2, 0.5, -9)
-    knob.BackgroundColor3 = Color3.new(1, 1, 1)
-    knob.Parent = toggleFrame
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
-
-    local state = default
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 1, 0)
-    btn.BackgroundTransparency = 1
-    btn.Text = ""
-    btn.Parent = container
-
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        callback(state)
-        tween(toggleFrame, {BackgroundColor3 = state and Theme.Accent or Color3.fromRGB(55, 35, 50)}, 0.15)
-        tween(knob, {Position = UDim2.new(0, state and 23 or 2, 0.5, -9)}, 0.15)
-    end)
-end
-
-local function addTextBox(y, labelText, default, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -16, 0, 30)
-    frame.Position = UDim2.new(0, 8, 0, y)
-    frame.BackgroundTransparency = 1
-    frame.Parent = scroll
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 110, 1, 0)
-    label.Position = UDim2.new(0, 8, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = labelText
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 11
-    label.TextColor3 = Theme.Text
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-
-    local box = Instance.new("TextBox")
-    box.Size = UDim2.new(0, 65, 0, 24)
-    box.Position = UDim2.new(1, -115, 0, 3)
-    box.BackgroundColor3 = Theme.Input
-    box.TextColor3 = Theme.Text
-    box.Text = tostring(default)
-    box.Font = Enum.Font.Gotham
-    box.TextSize = 11
-    box.BorderSizePixel = 0
-    box.Parent = frame
-    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 5)
-
-    local setBtn = Instance.new("TextButton")
-    setBtn.Size = UDim2.new(0, 38, 0, 24)
-    setBtn.Position = UDim2.new(1, -42, 0, 3)
-    setBtn.BackgroundColor3 = Theme.Accent
-    setBtn.Text = "Set"
-    setBtn.TextColor3 = Theme.Text
-    setBtn.Font = Enum.Font.GothamBold
-    setBtn.TextSize = 10
-    setBtn.Parent = frame
-    Instance.new("UICorner", setBtn).CornerRadius = UDim.new(0, 5)
-
-    setBtn.MouseButton1Click:Connect(function()
-        callback(box.Text)
-    end)
-end
-
-local function addButton(y, text, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -16, 0, 32)
-    btn.Position = UDim2.new(0, 8, 0, y)
-    btn.BackgroundColor3 = Theme.Accent
-    btn.Text = text
-    btn.TextColor3 = Theme.Text
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 12
-    btn.Parent = scroll
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 7)
-    btn.MouseButton1Click:Connect(callback)
-end
-
--- Options
-addToggle(8,   "Auto Dash",       false, function(v) EVADE_CONFIG.AUTO_DASH = v end)
-addTextBox(50, "Dash Speed",      "60",  function(v) EVADE_CONFIG.DASH_SPEED = tonumber(v) or 60 end)
-addTextBox(88, "Cooldown",        "0.12",function(v) EVADE_CONFIG.DASH_COOLDOWN = tonumber(v) or 0.12 end)
-addToggle(126, "Instant Dash",    false, function(v) EVADE_CONFIG.INSTANT_DASH = v end)
-
-addTextBox(170, "Walk Speed",     "16",  function(v) EVADE_CONFIG.WALKSPEED = tonumber(v) or 16 end)
-addToggle(208, "Super Jump",      false, function(v) EVADE_CONFIG.SUPER_JUMP = v end)
-addTextBox(250, "Jump Power",     "50",  function(v) EVADE_CONFIG.JUMP_POWER = tonumber(v) or 50 end)
-addToggle(288, "Infinite Jump",   false, function(v) EVADE_CONFIG.INFINITE_JUMP = v end)
-
-addToggle(330, "Player ESP",      false, function(v) EVADE_CONFIG.ESP_PLAYERS = v end)
-addToggle(368, "Bot ESP",         false, function(v) EVADE_CONFIG.ESP_BOTS = v end)
-addToggle(406, "FullBright",      false, function(v) EVADE_CONFIG.FULLBRIGHT = v end)
-addToggle(444, "No Clip",         false, function(v) EVADE_CONFIG.NO_CLIP = v end)
-
-addTextBox(486, "FOV",            "70",  function(v)
-    EVADE_CONFIG.FOV = tonumber(v) or 70
-    if Camera then Camera.FieldOfView = EVADE_CONFIG.FOV end
-end)
-
-addToggle(528, "Auto Revive",     false, function(v) EVADE_CONFIG.AUTO_REVIVE = v end)
-addToggle(566, "Auto Respawn",    false, function(v) EVADE_CONFIG.AUTO_RESPAWN = v end)
-
-addButton(610, "Teleport Safe Zone", function()
-    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    local zone = Workspace:FindFirstChild("SafeZone") or Workspace:FindFirstChild("Spawns")
-    if root and zone then
-        root.CFrame = zone:IsA("Model") and zone:GetPivot() or zone.CFrame
-    end
-end)
-
-addButton(650, "Unload Script", function()
-    screenGui:Destroy()
-end)
-
--- Status
-local statusBar = Instance.new("Frame")
-statusBar.Size = UDim2.new(1, 0, 0, 24)
-statusBar.Position = UDim2.new(0, 0, 1, -24)
-statusBar.BackgroundColor3 = Theme.Sidebar
-statusBar.Parent = mainFrame
-
-local statusText = Instance.new("TextLabel")
-statusText.Size = UDim2.new(1, -12, 1, 0)
-statusText.Position = UDim2.new(0, 8, 0, 0)
-statusText.BackgroundTransparency = 1
-statusText.Text = "● Ready"
-statusText.Font = Enum.Font.Gotham
-statusText.TextSize = 10
-statusText.TextColor3 = Theme.Muted
-statusText.TextXAlignment = Enum.TextXAlignment.Left
-statusText.Parent = statusBar
-
--- Glow
-task.spawn(function()
-    while screenGui and screenGui.Parent do
-        tween(mainStroke, {Color = Color3.fromRGB(255, 182, 193)}, 1.2)
-        tween(toggleStroke, {Color = Color3.fromRGB(255, 105, 180)}, 1.2)
-        task.wait(1.2)
-        tween(mainStroke, {Color = Color3.fromRGB(255, 20, 147)}, 1.2)
-        tween(toggleStroke, {Color = Color3.fromRGB(255, 182, 193)}, 1.2)
-        task.wait(1.2)
-    end
-end)
-
-tween(mainFrame, {Size = MAIN_SIZE}, 0.35)
-
--- ====================== CORE ======================
-local lastDashTime = 0
-
-local function getHumanoid()
-    local char = LocalPlayer.Character
-    return char and char:FindFirstChildOfClass("Humanoid")
-end
-
-local function getRoot()
-    local char = LocalPlayer.Character
-    return char and char:FindFirstChild("HumanoidRootPart")
-end
-
-local function performDash()
-    local now = os.clock()
-    if now - lastDashTime < EVADE_CONFIG.DASH_COOLDOWN then return end
-
-    local root = getRoot()
-    local hum = getHumanoid()
-    if not root or not hum or hum.MoveDirection.Magnitude < 0.1 then return end
-
-    local dir
-    if EVADE_CONFIG.DASH_MODE == "CameraDirection" and Camera then
-        local look = Camera.CFrame.LookVector
-        dir = Vector3.new(look.X, 0, look.Z)
-    else
-        dir = hum.MoveDirection
-    end
-
-    if dir.Magnitude < 0.1 then return end
-    dir = dir.Unit
-    lastDashTime = now
-
-    if EVADE_CONFIG.INSTANT_DASH then
-        root.CFrame = root.CFrame + dir * (EVADE_CONFIG.DASH_SPEED * 0.16)
-    else
-        local vel = root.AssemblyLinearVelocity
-        root.AssemblyLinearVelocity = Vector3.new(dir.X * EVADE_CONFIG.DASH_SPEED, vel.Y, dir.Z * EVADE_CONFIG.DASH_SPEED)
-    end
-end
-
--- ESP (lightweight)
-local function updateESP()
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character then  -- កែពី \~= ទៅ ~=
-            local hl = plr.Character:FindFirstChild("OuncESP")
-            if EVADE_CONFIG.ESP_PLAYERS then
-                if not hl then
-                    hl = Instance.new("Highlight")
-                    hl.Name = "OuncESP"
-                    hl.FillColor = Color3.fromRGB(255, 182, 193)
-                    hl.OutlineColor = Color3.new(1, 1, 1)
-                    hl.FillTransparency = 0.45
-                    hl.Parent = plr.Character
-                end
-            elseif hl then
-                hl:Destroy()
-            end
-        end
-    end
-end
-
--- Loops
-RunService.Heartbeat:Connect(function()
-    if EVADE_CONFIG.AUTO_DASH then
-        performDash()
-    end
-end)
-
-RunService.Stepped:Connect(function()
-    if EVADE_CONFIG.NO_CLIP and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-    end
-end)
-
-RunService.RenderStepped:Connect(function()
-    local hum = getHumanoid()
-    if hum then
-        if not EVADE_CONFIG.AUTO_DASH then
-            hum.WalkSpeed = EVADE_CONFIG.WALKSPEED
-        end
-        if EVADE_CONFIG.SUPER_JUMP then
-            hum.JumpPower = EVADE_CONFIG.JUMP_POWER
-        end
-    end
-
-    if EVADE_CONFIG.FULLBRIGHT then
-        Lighting.Brightness = 2
-        Lighting.ClockTime = 14
-        Lighting.FogEnd = 100000
-        Lighting.GlobalShadows = false
-    end
-
-    updateESP()
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if EVADE_CONFIG.INFINITE_JUMP then
-        local root = getRoot()
-        if root then
-            local vel = root.AssemblyLinearVelocity
-            root.AssemblyLinearVelocity = Vector3.new(vel.X, EVADE_CONFIG.JUMP_POWER, vel.Z)
-        end
-    end
-end)
-
-LocalPlayer.CharacterAdded:Connect(function(char)
-    local hum = char:WaitForChild("Humanoid", 3)
-    if hum then
-        hum.Died:Connect(function()
-            if EVADE_CONFIG.AUTO_RESPAWN then
-                task.wait(0.5)
-                pcall(function() LocalPlayer:LoadCharacter() end)
-            end
-        end)
-    end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if not gpe and input.KeyCode == Enum.KeyCode.RightControl then
-        mainFrame.Visible = not mainFrame.Visible
-    end
-end)
-
--- Status updater
-task.spawn(function()
-    local frames = 0
-    local last = os.clock()
-    while screenGui and screenGui.Parent do
-        frames = frames + 1
-        local now = os.clock()
-        if now - last >= 1 then
-            local fps = math.floor(frames / (now - last))
-            frames = 0
-            last = now
-            local ping = 0
-            pcall(function()
-                ping = math.floor((LocalPlayer:GetNetworkPing() or 0) * 1000)
-            end)
-            statusText.Text = string.format("● FPS: %d | Ping: %dms | Dash: %s", fps, ping, EVADE_CONFIG.AUTO_DASH and "ON" or "OFF")
-        end
-        task.wait(0.2)
-    end
-end)
-
-print("✨ ouncopybara Mobile Compatible fixed loaded!")
+local _0xPayload = "6c6f63616c20676574656e76203d2067657467656e76206f722066756e637469" ..
+"6f6e28292072657475726e205f4720656e640a6c6f63616c20656e76203d2067" ..
+"6574656e7628290a6c6f63616c20506c6179657273203d2067616d653a476574" ..
+"536572766963652822506c617965727322290a6c6f63616c2052756e53657276" ..
+"696365203d2067616d653a47657453657276696365282252756e536572766963" ..
+"6522290a6c6f63616c20436f7265477569203d2067616d653a47657453657276" ..
+"6963652822436f726547756922290a6c6f63616c2055736572496e7075745365" ..
+"7276696365203d2067616d653a47657453657276696365282255736572496e70" ..
+"75745365727669636522290a6c6f63616c20576f726b7370616365203d206761" ..
+"6d653a476574536572766963652822576f726b737061636522290a6c6f63616c" ..
+"204c6f63616c506c61796572203d20506c61796572732e4c6f63616c506c6179" ..
+"65720a6c6f63616c2043616d657261203d20576f726b73706163652e43757272" ..
+"656e7443616d6572610a666f72205f2c2067756920696e20706169727328436f" ..
+"72654775693a4765744368696c6472656e28292920646f206966206775692e4e" ..
+"616d65223d3d22526f786e616d65466c79554922207468656e206775693a4465" ..
+"7374726f79282920656e6420656e640a6c6f63616c2053637265656e47756920" ..
+"3d20496e7374616e63652e6e6577282253637265656e47756922290a53637265" ..
+"656e4775692e4e616d65203d2022526f786e616d65466c795549220a53637265" ..
+"656e4775692e506172656e74203d20436f72654775690a53637265656e477569" ..
+"2e52657365744f6e537061776e203d2066616c73650a6c6f63616c20676c6f77" ..
+"696e675465787473203d207b7d0a6c6f63616c204f70656e4672616d65203d20" ..
+"496e7374616e63652e6e657728224672616d6522290a4f70656e4672616d652e" ..
+"53697a65203d205544696d322e6e657728302c2034352c20302c203435290a4f" ..
+"70656e4672616d652e506f736974696f6e203d205544696d322e6e657728302c" ..
+"2032302c20302e352c202d3230290a4f70656e4672616d652e4261636b67726f" ..
+"756e64436f6c6f7233203d20436f6c6f72332e66726f6d5247422834352c2032" ..
+"302c203335290a4f70656e4672616d652e56697369626c65203d2066616c7365" ..
+"0a4f70656e4672616d652e506172656e74203d2053637265656e4775690a496e" ..
+"7374616e63652e6e657728225549436f726e6572222c204f70656e4672616d65" ..
+"292e436f726e6572526164697573203d205544696d2e6e657728312c2030290a" ..
+"496e7374616e63652e6e6577282255495374726f6b65222c204f70656e467261" ..
+"6d65292e436f6c6f72203d20436f6c6f72332e66726f6d524742283235352c20" ..
+"3130352c20313830290a496e7374616e63652e6e6577282255495374726f6b65" ..
+"222c204f70656e4672616d65292e546869636b6e657373203d20320a6c6f6361" ..
+"6c204f70656e42746e203d20496e7374616e63652e6e65772822546578744275" ..
+"74746f6e222c204f70656e4672616d65290a4f70656e42746e2e53697a65203d" ..
+"205544696d322e6e657728312c20302c20312c2030290a4f70656e42746e2e42" ..
+"61636b67726f756e645472616e73706172656e6379203d20310a4f70656e4274" ..
+"6e2e54657874203d2022e29c88fe0f220a4f70656e42746e2e5465787453697a" ..
+"65203d2032300a6c6f63616c206472616767696e674f70656e2c206472616753" ..
+"746172744f70656e2c207374617274506f734f70656e0a4f70656e4672616d65" ..
+"2e496e707574426567616e3a436f6e6e6563742866756e6374696f6e28696e70" ..
+"75742920696620696e7075742e55736572496e70757454797065203d3d20456e" ..
+"756d2e55736572496e707574547970652e4d6f757365427574746f6e31206f72" ..
+"20696e7075742e55736572496e70757454797065203d3d20456e756d2e557365" ..
+"72496e707574547970652e546f756368207468656e206472616767696e674f70" ..
+"656e203d20747275653b206472616753746172744f70656e203d20696e707574" ..
+"2e506f736974696f6e3b207374617274506f734f70656e203d204f70656e4672" ..
+"616d652e506f736974696f6e20656e6420656e64290a55736572496e70757453" ..
+"6572766963652e496e7075744368616e6765643a436f6e6e6563742866756e63" ..
+"74696f6e28696e70757429206966206472616767696e674f70656e20616e6420" ..
+"28696e7075742e55736572496e70757454797065203d3d20456e756d2e557365" ..
+"72496e707574547970652e4d6f7573654d6f76656d656e74206f7220696e7075" ..
+"742e55736572496e70757454797065203d3d20456e756d2e55736572496e7075" ..
+"74547970652e546f75636829207468656e206c6f63616c2064656c7461203d20" ..
+"696e7075742e506f736974696f6e202d206472616753746172744f70656e3b20" ..
+"4f70656e4672616d652e506f736974696f6e203d205544696d322e6e65772873" ..
+"74617274506f734f70656e2e582e5363616c652c207374617274506f734f7065" ..
+"6e2e582e4f6666736574202b2064656c74612e582c207374617274506f734f70" ..
+"656e2e592e5363616c652c207374617274506f734f70656e2e592e4f66667365" ..
+"74202b2064656c74612e592920656e6420656e64290a4f70656e4672616d652e" ..
+"496e707574456e6465643a436f6e6e6563742866756e6374696f6e28696e7075" ..
+"742920696620696e7075742e55736572496e70757454797065203d3d20456e75" ..
+"6d2e55736572496e707574547970652e4d6f757365427574746f6e31206f7220" ..
+"696e7075742e55736572496e70757454797065203d3d20456e756d2e55736572" ..
+"496e707574547970652e546f756368207468656e206472616767696e674f7065" ..
+"6e203d2066616c736520656e6420656e64290a6c6f63616c204d61696e467261" ..
+"6d65203d20496e7374616e63652e6e657728224672616d6522290a4d61696e46" ..
+"72616d652e53697a65203d205544696d322e6e657728302c203238302c20302c" ..
+"20353330290a4d61696e4672616d652e506f736974696f6e203d205544696d32" ..
+"2e6e657728302e352c202d3134302c20302e352c202d323635290a4d61696e46" ..
+"72616d652e4261636b67726f756e64436f6c6f7233203d20436f6c6f72332e66" ..
+"726f6d5247422833352c2031352c203235290a4d61696e4672616d652e506172" ..
+"656e74203d2053637265656e4775690a496e7374616e63652e6e657728225549" ..
+"436f726e6572222c204d61696e4672616d65292e436f726e6572526164697573" ..
+"203d205544696d2e6e657728302c203130290a6c6f63616c206d61696e537472" ..
+"6f6b65203d20496e7374616e63652e6e6577282255495374726f6b65222c204d" ..
+"61696e4672616d65290a6d61696e5374726f6b652e436f6c6f72203d20436f6c" ..
+"6f72332e66726f6d524742283235352c203130352c20313830293b206d61696e" ..
+"5374726f6b652e546869636b6e657373203d20312e350a6c6f63616c20647261" ..
+"6767696e672c206472616753746172742c207374617274506f730a4d61696e46" ..
+"72616d652e496e707574426567616e3a436f6e6e6563742866756e6374696f6e" ..
+"28696e7075742920696620696e7075742e55736572496e70757454797065203d" ..
+"3d20456e756d2e55736572496e707574547970652e4d6f757365427574746f6e" ..
+"31206f7220696e7075742e55736572496e70757454797065203d3d20456e756d" ..
+"2e55736572496e707574547970652e546f756368207468656e20647261676769" ..
+"6e67203d20747275653b20647261675374617274203d20696e7075742e506f73" ..
+"6974696f6e3b207374617274506f73203d204d61696e4672616d652e506f7369" ..
+"74696f6e20656e6420656e64290a55736572496e707574536572766963652e49" ..
+"6e7075744368616e6765643a436f6e6e6563742866756e6374696f6e28696e70" ..
+"757429206966206472616767696e6720616e642028696e7075742e5573657249" ..
+"6e70757454797065203d3d20456e756d2e55736572496e707574547970652e4d" ..
+"6f7573654d6f76656d656e74206f7220696e7075742e55736572496e70757454" ..
+"797065203d3d20456e756d2e55736572496e707574547970652e546f75636829" ..
+"207468656e206c6f63616c2064656c7461203d20696e7075742e506f73697469" ..
+"6f6e202d206472616753746172743b204d61696e4672616d652e506f73697469" ..
+"6f6e203d205544696d322e6e6577287374617274506f732e582e5363616c652c" ..
+"207374617274506f732e582e4f6666736574202b2064656c74612e582c207374" ..
+"617274506f732e592e5363616c652c207374617274506f732e592e4f66667365" ..
+"74202b2064656c74612e592920656e6420656e64290a4d61696e4672616d652e" ..
+"496e707574456e6465643a436f6e6e6563742866756e6374696f6e28696e7075" ..
+"742920696620696e7075742e55736572496e70757454797065203d3d20456e75" ..
+"6d2e55736572496e707574547970652e4d6f757365427574746f6e31206f7220" ..
+"696e7075742e55736572496e70757454797065203d3d20456e756d2e55736572" ..
+"496e707574547970652e546f756368207468656e206472616767696e67203d20" ..
+"66616c736520656e6420656e64290a6c6f63616c205469746c65203d20496e73" ..
+"74616e63652e6e65772822546578744c6162656c222c204d61696e4672616d65" ..
+"290a5469746c652e53697a65203d205544696d322e6e657728312c202d37302c" ..
+"20302c203330293b205469746c652e506f736974696f6e203d205544696d322e" ..
+"6e657728302c2031352c20302c2035293b205469746c652e4261636b67726f75" ..
+"6e645472616e73706172656e6379203d20313b205469746c652e54657874203d" ..
+"20226f756e636f707962617261207c20437573746f6d20466c79205549223b20" ..
+"5469746c652e466f6e74203d20456e756d2e466f6e742e476f7468616d426f6c" ..
+"643b205469746c652e5465787453697a65203d2031323b205469746c652e5465" ..
+"787458416c69676e6d656e74203d20456e756d2e5465787458416c69676e6d65" ..
+"6e742e4c6566740a7461626c652e696e7365727428676c6f77696e6754657874" ..
+"732c205469746c65290a6c6f63616c204d696e42746e203d20496e7374616e63" ..
+"652e6e6577282254657874427574746f6e222c204d61696e4672616d65290a4d" ..
+"696e42746e2e53697a65203d205544696d322e6e657728302c2032342c20302c" ..
+"203234293b204d696e42746e2e506f736974696f6e203d205544696d322e6e65" ..
+"7728312c202d36322c20302c2038293b204d696e42746e2e4261636b67726f75" ..
+"6e64436f6c6f7233203d20436f6c6f72332e66726f6d524742283235352c2031" ..
+"30352c20313830293b204d696e42746e2e54657874203d20225f223b204d696e" ..
+"42746e2e54657874436f6c6f7233203d20436f6c6f72332e6e657728312c2031" ..
+"2c2031293b20496e7374616e63652e6e657728225549436f726e6572222c204d" ..
+"696e42746e292e436f726e6572526164697573203d205544696d2e6e65772830" ..
+"2c2036290a6c6f63616c20436c6f7365427574746f6e203d20496e7374616e63" ..
+"652e6e6577282254657874427574746f6e222c204d61696e4672616d65290a43" ..
+"6c6f7365427574746f6e2e53697a65203d205544696d322e6e657728302c2032" ..
+"342c20302c203234293b20436c6f7365427574746f6e2e506f736974696f6e20" ..
+"3d205544696d322e6e657728312c202d33322c20302c2038293b20436c6f7365" ..
+"427574746f6e2e4261636b67726f756e64436f6c6f7233203d20436f6c6f7233" ..
+"2e66726f6d524742283231392c203131322c20313437293b20436c6f73654275" ..
+"74746f6e2e54657874203d2022e29c95223b20436c6f7365427574746f6e2e54" ..
+"657874436f6c6f7233203d20436f6c6f72332e6e657728312c20312c2031293b" ..
+"20496e7374616e63652e6e657728225549436f726e6572222c20436c6f736542" ..
+"7574746f6e292e436f726e6572526164697573203d205544696d2e6e65772830" ..
+"2c2036290a6c6f63616c20496e666f54657874203d20496e7374616e63652e6e" ..
+"65772822546578744c6162656c222c204d61696e4672616d65290a496e666f54" ..
+"6578742e53697a65203d205544696d322e6e657728302c203234302c20302c20" ..
+"3135293b20496e666f546578742e506f736974696f6e203d205544696d322e6e" ..
+"657728302c2032302c20302c20333337293b20496e666f546578742e4261636b" ..
+"67726f756e645472616e73706172656e6379203d20313b20496e666f54657874" ..
+"2e54657874203d2022536372697074206279206f756e636f707962617261223b" ..
+"20496e666f546578742e466f6e74203d20456e756d2e466f6e742e476f746861" ..
+"6d3b20496e666f546578742e5465787453697a65203d20393b20496e666f5465" ..
+"78742e56697369626c65203d2066616c73650a7461626c652e696e7365727428" ..
+"676c6f77696e6754657874732c20496e666f54657874290a52756e5365727669" ..
+"63652e52656e646572537465707065643a436f6e6e6563742866756e6374696f" ..
+"6e2829206c6f63616c20687565203d20287469636b28292025203329202f2033" ..
+"206c6f63616c20636f6c6f72203d20436f6c6f72332e66726f6d485356286875" ..
+"652c20302e372c20312920666f72205f2c20746578744f626a20696e20706169" ..
+"727328676c6f77696e6754657874732920646f20696620746578744f626a2061" ..
+"6e6420746578744f626a2e506172656e74207468656e20746578744f626a2e54" ..
+"657874436f6c6f7233203d20636f6c6f7220656e6420656e6420656e64290a4d" ..
+"696e42746e2e4163746976617465643a436f6e6e6563742866756e6374696f6e" ..
+"2829204d61696e4672616d652e56697369626c65203d2066616c73653b204f70" ..
+"656e4672616d652e56697369626c65203d207472756520656e64290a4f70656e" ..
+"42746e2e4163746976617465643a436f6e6e6563742866756e6374696f6e2829" ..
+"204d61696e4672616d652e56697369626c65203d20747275653b204f70656e46" ..
+"72616d652e56697369626c65203d2066616c736520656e64290a436c6f736542" ..
+"7574746f6e2e4163746976617465643a436f6e6e6563742866756e6374696f6e" ..
+"28292053637265656e4775693a44657374726f79282920656e6429"
+
+_0xO(_0xDec(_0xPayload))()
