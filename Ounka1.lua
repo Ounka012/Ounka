@@ -1,81 +1,155 @@
---[[
-    ╔══════════════════════════════════════════╗
-    ║  STEAL v8 — 10 SLOTS + HIDE/SHOW         ║
-    ║  Click slot: Save if empty / Go if saved ║
-    ╚══════════════════════════════════════════╝
---]]
+-- =========================================================================
+-- [ 🌟 OUNCOPYBARA PINK NEON - FULL EDITION v10 🌟 ]
+-- [ Delta Compatible | Robust TP | Hide/Show | Auto Steal ]
+-- =========================================================================
 
-print("[v8] Loading...")
+local success, err = pcall(function()
 
-local Players = game:GetService("Players")
+-- ═══════════════════════════════════════════════════════════
+-- [ SERVICES ]
+-- ═══════════════════════════════════════════════════════════
+local Players          = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local LP = Players.LocalPlayer
+local RunService       = game:GetService("RunService")
+local LocalPlayer      = Players.LocalPlayer
 
--- ═══════════════════════════════════════
--- CONFIG
--- ═══════════════════════════════════════
+print("═══════════════════════════════════════")
+print("🌟 OUNCOPYBARA PINK NEON v10 LOADING...")
+print("═══════════════════════════════════════")
+
+-- ═══════════════════════════════════════════════════════════
+-- [ CONFIG ]
+-- ═══════════════════════════════════════════════════════════
 local Config = {
-    Slots = {},         -- 10 slots (nil = empty, CFrame = saved)
-    ActiveSlot = 1,     -- ដែល AUTO ប្រើ
-    Auto = false,
-    Delay = 0.15,
-    Busy = false,
+    BaseCFrame    = nil,
+    FastStealOn   = false,
+    isProcessing  = false,
+    TeleportDelay = 0.15,
+    ReturnWait    = 0.05,
 }
 
--- Init 10 empty slots
-for i = 1, 10 do
-    Config.Slots[i] = nil
-end
-
--- ═══════════════════════════════════════
--- HELPERS
--- ═══════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════
+-- [ HELPERS ]
+-- ═══════════════════════════════════════════════════════════
 local function getHRP()
-    local c = LP.Character
-    if not c then return nil end
-    return c:FindFirstChild("HumanoidRootPart")
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart")
 end
 
-local function teleport(cf)
+local function getHumanoid()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    return char:FindFirstChildOfClass("Humanoid")
+end
+
+-- ═══════════════════════════════════════════════════════════
+-- [ ROBUST TELEPORT — 5 Methods Fallback ]
+-- ═══════════════════════════════════════════════════════════
+local function instantTeleport(targetCFrame)
+    if not targetCFrame then return false end
+    
+    local char = LocalPlayer.Character
+    if not char then return false end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    
+    if not hrp then return false end
+    if hum and hum.Health <= 0 then return false end
+    
+    -- ── Method 1: CFrame + Zero Velocity (សំខាន់បំផុត)
+    local ok1 = pcall(function()
+        hrp.AssemblyLinearVelocity  = Vector3.new(0, 0, 0)
+        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+        hrp.CFrame = targetCFrame
+        hrp.AssemblyLinearVelocity  = Vector3.new(0, 0, 0)
+        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+    end)
+    
+    if ok1 and hrp.Parent then
+        return true
+    end
+    
+    -- ── Method 2: Position only
+    local ok2 = pcall(function()
+        hrp.Position = targetCFrame.Position
+    end)
+    
+    if ok2 and hrp.Parent then
+        return true
+    end
+    
+    -- ── Method 3: PivotTo
+    local ok3 = pcall(function()
+        char:PivotTo(targetCFrame)
+    end)
+    
+    if ok3 then
+        return true
+    end
+    
+    -- ── Method 4: SetPrimaryPartCFrame (legacy)
+    local ok4 = pcall(function()
+        char:SetPrimaryPartCFrame(targetCFrame)
+    end)
+    
+    if ok4 then
+        return true
+    end
+    
+    -- ── Method 5: MoveTo (slow but reliable)
+    pcall(function()
+        if hum then
+            hum:MoveTo(targetCFrame.Position)
+        end
+    end)
+    
+    return false
+end
+
+-- ═══════════════════════════════════════════════════════════
+-- [ STEAL LOGIC ]
+-- ═══════════════════════════════════════════════════════════
+local function handleSteal()
+    if not Config.FastStealOn or not Config.BaseCFrame or Config.isProcessing then 
+        return 
+    end
+    
     local hrp = getHRP()
     if not hrp then return end
-    pcall(function()
-        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-        hrp.CFrame = cf
-        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-    end)
-end
-
--- ═══════════════════════════════════════
--- STEAL LOGIC
--- ═══════════════════════════════════════
-local function steal()
-    if Config.Busy or not Config.Auto then return end
-    local targetCF = Config.Slots[Config.ActiveSlot]
-    if not targetCF then return end
-    Config.Busy = true
+    
+    Config.isProcessing = true
+    local OriginalCF = hrp.CFrame
     
     task.spawn(function()
-        local hrp = getHRP()
-        if not hrp then Config.Busy = false; return end
+        -- Try network ownership (best effort)
+        pcall(function()
+            hrp:SetNetworkOwner(LocalPlayer)
+        end)
         
-        local orig = hrp.CFrame
+        -- Go to base
+        instantTeleport(Config.BaseCFrame)
+        task.wait(Config.TeleportDelay)
         
-        pcall(function() hrp:SetNetworkOwner(LP) end)
-        teleport(targetCF)
-        task.wait(Config.Delay)
-        teleport(orig)
-        pcall(function() hrp:SetNetworkOwner(nil) end)
+        -- Return
+        instantTeleport(OriginalCF)
         
-        Config.Busy = false
+        -- Release ownership
+        pcall(function()
+            if hrp and hrp.Parent then
+                hrp:SetNetworkOwner(nil)
+            end
+        end)
+        
+        task.wait(Config.ReturnWait)
+        Config.isProcessing = false
     end)
 end
 
--- ═══════════════════════════════════════
--- HOOKS
--- ═══════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════
+-- [ HOOK PROMPTS ]
+-- ═══════════════════════════════════════════════════════════
 local hooked = {}
 
 local function hookPrompt(p)
@@ -83,9 +157,8 @@ local function hookPrompt(p)
     hooked[p] = true
     pcall(function()
         p.Triggered:Connect(function(plr)
-            if plr == LP and Config.Auto then
-                print("[v8] Prompt fired!")
-                steal()
+            if plr == LocalPlayer and Config.FastStealOn then
+                handleSteal()
             end
         end)
     end)
@@ -96,8 +169,8 @@ local function hookClick(c)
     hooked[c] = true
     pcall(function()
         c.MouseClick:Connect(function(plr)
-            if plr == LP and Config.Auto then
-                steal()
+            if plr == LocalPlayer and Config.FastStealOn then
+                handleSteal()
             end
         end)
     end)
@@ -114,7 +187,6 @@ local function scanWorld()
             n = n + 1
         end
     end
-    print("[v8] Scanned", n, "prompts")
     return n
 end
 
@@ -123,295 +195,142 @@ workspace.DescendantAdded:Connect(function(o)
     if o:IsA("ClickDetector") then hookClick(o) end
 end)
 
--- ═══════════════════════════════════════
--- GUI
--- ═══════════════════════════════════════
-print("[v8] Creating GUI...")
+-- ═══════════════════════════════════════════════════════════
+-- [ GUI PARENT ]
+-- ═══════════════════════════════════════════════════════════
+local function getGUIParent()
+    local ok, cg = pcall(function() return game:GetService("CoreGui") end)
+    if ok and cg then return cg end
+    return LocalPlayer:WaitForChild("PlayerGui")
+end
 
-local guiParent = game:GetService("CoreGui")
+local GUIParent = getGUIParent()
 
 pcall(function()
-    for _, g in pairs(guiParent:GetChildren()) do
-        if g.Name == "Steal_v8" then g:Destroy() end
+    for _, gui in pairs(GUIParent:GetChildren()) do
+        if gui.Name == "Ouncopybara_Pink_v10" then gui:Destroy() end
     end
 end)
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "Steal_v8"
-gui.Parent = guiParent
-gui.ResetOnSpawn = false
+-- ═══════════════════════════════════════════════════════════
+-- [ SCREEN GUI ]
+-- ═══════════════════════════════════════════════════════════
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "Ouncopybara_Pink_v10"
+ScreenGui.Parent = GUIParent
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- ════════ MAIN FRAME ════════
-local FRAME_W, FRAME_H = 360, 500
+-- ═══════════════════════════════════════════════════════════
+-- [ MAIN FRAME ]
+-- ═══════════════════════════════════════════════════════════
+local FRAME_W, FRAME_H = 300, 280
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, FRAME_W, 0, FRAME_H)
-frame.Position = UDim2.new(0.5, -FRAME_W/2, 0.5, -FRAME_H/2)
-frame.BackgroundColor3 = Color3.fromRGB(18, 12, 24)
-frame.BorderSizePixel = 0
-frame.Parent = gui
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, FRAME_W, 0, FRAME_H)
+MainFrame.Position = UDim2.new(0.5, -FRAME_W/2, 0.5, -FRAME_H/2)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 20, 25)
+MainFrame.BorderSizePixel = 0
 
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+local mainCorner = Instance.new("UICorner", MainFrame)
+mainCorner.CornerRadius = UDim.new(0, 10)
 
-local stroke = Instance.new("UIStroke", frame)
-stroke.Thickness = 2
-stroke.Color = Color3.fromRGB(180, 80, 255)
+local UIStroke = Instance.new("UIStroke", MainFrame)
+UIStroke.Thickness = 2.5
+UIStroke.Color = Color3.fromRGB(255, 105, 180)
 
--- ════════ TITLE BAR ════════
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 42)
-title.BackgroundColor3 = Color3.fromRGB(35, 20, 50)
-title.BorderSizePixel = 0
-title.Text = "  ⚡ STEAL v8 — 10 SLOTS"
-title.TextColor3 = Color3.fromRGB(200, 150, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 13
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = frame
-Instance.new("UICorner", title).CornerRadius = UDim.new(0, 12)
-
--- Minimize
-local btnMin = Instance.new("TextButton")
-btnMin.Size = UDim2.new(0, 30, 0, 30)
-btnMin.Position = UDim2.new(1, -74, 0, 6)
-btnMin.BackgroundColor3 = Color3.fromRGB(200, 150, 50)
-btnMin.Text = "–"
-btnMin.TextColor3 = Color3.new(1, 1, 1)
-btnMin.Font = Enum.Font.GothamBold
-btnMin.TextSize = 20
-btnMin.Parent = title
-Instance.new("UICorner", btnMin).CornerRadius = UDim.new(0, 6)
-
--- Close
-local btnClose = Instance.new("TextButton")
-btnClose.Size = UDim2.new(0, 30, 0, 30)
-btnClose.Position = UDim2.new(1, -38, 0, 6)
-btnClose.BackgroundColor3 = Color3.fromRGB(255, 60, 100)
-btnClose.Text = "X"
-btnClose.TextColor3 = Color3.new(1, 1, 1)
-btnClose.Font = Enum.Font.GothamBold
-btnClose.TextSize = 14
-btnClose.Parent = title
-Instance.new("UICorner", btnClose).CornerRadius = UDim.new(0, 6)
-
--- ════════ INFO LABEL ════════
-local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -30, 0, 25)
-infoLabel.Position = UDim2.new(0, 15, 0, 45)
-infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "👆 ចុច slot ទទេ = Save | slot មាន = Go"
-infoLabel.TextColor3 = Color3.fromRGB(150, 150, 180)
-infoLabel.Font = Enum.Font.Gotham
-infoLabel.TextSize = 10
-infoLabel.TextXAlignment = Enum.TextXAlignment.Left
-infoLabel.Parent = frame
-
--- ════════ SLOT AREA ════════
--- 2 columns × 5 rows
-local slotButtons = {}
-local slotLabels = {}
-local slotClearBtns = {}
-
-local function updateSlotUI(idx)
-    local btn = slotButtons[idx]
-    local lbl = slotLabels[idx]
-    if not btn or not lbl then return end
-    
-    local cf = Config.Slots[idx]
-    if cf then
-        lbl.Text = string.format("%d • %.0f, %.0f, %.0f", 
-            idx, cf.Position.X, cf.Position.Y, cf.Position.Z)
-        btn.BackgroundColor3 = Color3.fromRGB(60, 130, 80)
-    else
-        lbl.Text = idx .. " • EMPTY"
-        btn.BackgroundColor3 = Color3.fromRGB(40, 30, 55)
-    end
-    
-    -- Highlight active slot
-    if idx == Config.ActiveSlot then
-        btn.BackgroundColor3 = cf 
-            and Color3.fromRGB(100, 200, 130) 
-            or Color3.fromRGB(80, 50, 130)
-    end
-end
-
-local function createSlot(idx, x, y)
-    -- Main slot button
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 160, 0, 42)
-    btn.Position = UDim2.new(0, x, 0, y)
-    btn.BackgroundColor3 = Color3.fromRGB(40, 30, 55)
-    btn.BorderSizePixel = 0
-    btn.Text = ""
-    btn.Parent = frame
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-    
-    -- Label
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -30, 1, 0)
-    lbl.Position = UDim2.new(0, 8, 0, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = idx .. " • EMPTY"
-    lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
-    lbl.Font = Enum.Font.GothamBold
-    lbl.TextSize = 10
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = btn
-    
-    -- Clear button (small X)
-    local cls = Instance.new("TextButton")
-    cls.Size = UDim2.new(0, 22, 0, 22)
-    cls.Position = UDim2.new(1, -26, 0.5, -11)
-    cls.BackgroundColor3 = Color3.fromRGB(255, 80, 100)
-    cls.Text = "×"
-    cls.TextColor3 = Color3.new(1, 1, 1)
-    cls.Font = Enum.Font.GothamBold
-    cls.TextSize = 14
-    cls.Parent = btn
-    Instance.new("UICorner", cls).CornerRadius = UDim.new(0, 4)
-    
-    slotButtons[idx] = btn
-    slotLabels[idx] = lbl
-    slotClearBtns[idx] = cls
-    
-    -- ═══ CLICK SLOT ═══
-    btn.Activated:Connect(function()
-        local hrp = getHRP()
-        if not hrp then return end
-        
-        if Config.Slots[idx] then
-            -- Teleport to slot
-            teleport(Config.Slots[idx])
-            Config.ActiveSlot = idx
-            print("[v8] Teleport to slot", idx)
-        else
-            -- Save current position
-            Config.Slots[idx] = hrp.CFrame
-            Config.ActiveSlot = idx
-            print("[v8] Saved slot", idx)
+-- ── Neon Glow Animation
+task.spawn(function()
+    while MainFrame and MainFrame.Parent do
+        for i = 0, 1, 0.05 do
+            if not MainFrame or not MainFrame.Parent then return end
+            UIStroke.Color = Color3.fromRGB(255, 105, 180):Lerp(
+                Color3.fromRGB(255, 200, 220), math.sin(i * math.pi))
+            task.wait(0.03)
         end
-        
-        -- Update all slots (highlight active)
-        for i = 1, 10 do updateSlotUI(i) end
-    end)
-    
-    -- ═══ CLEAR SLOT ═══
-    cls.Activated:Connect(function()
-        Config.Slots[idx] = nil
-        print("[v8] Cleared slot", idx)
-        updateSlotUI(idx)
-    end)
-    
-    return btn
-end
+        for i = 0, 1, 0.05 do
+            if not MainFrame or not MainFrame.Parent then return end
+            UIStroke.Color = Color3.fromRGB(255, 200, 220):Lerp(
+                Color3.fromRGB(255, 105, 180), math.sin(i * math.pi))
+            task.wait(0.03)
+        end
+    end
+end)
 
--- Create 10 slots in grid
-local startY = 78
-local rowH = 46
-local col1X = 15
-local col2X = 185
+-- ═══════════════════════════════════════════════════════════
+-- [ TITLE BAR ]
+-- ═══════════════════════════════════════════════════════════
+local TitleBar = Instance.new("Frame", MainFrame)
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 42)
+TitleBar.BackgroundColor3 = Color3.fromRGB(45, 25, 35)
+TitleBar.BorderSizePixel = 0
 
-for i = 1, 5 do
-    createSlot(i, col1X, startY + (i - 1) * rowH)
-end
-for i = 6, 10 do
-    createSlot(i, col2X, startY + (i - 6) * rowH)
-end
+local titleCorner = Instance.new("UICorner", TitleBar)
+titleCorner.CornerRadius = UDim.new(0, 10)
 
--- ════════ BOTTOM CONTROLS ════════
-local controlsY = startY + 5 * rowH + 10
+local TitleText = Instance.new("TextLabel", TitleBar)
+TitleText.Size = UDim2.new(1, -110, 1, 0)
+TitleText.Position = UDim2.new(0, 15, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "🌟 OUNCOPYBARA PINK"
+TitleText.TextColor3 = Color3.fromRGB(255, 182, 193)
+TitleText.Font = Enum.Font.GothamBlack
+TitleText.TextSize = 12
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
 
--- Active slot display
-local activeLabel = Instance.new("TextLabel")
-activeLabel.Size = UDim2.new(1, -30, 0, 22)
-activeLabel.Position = UDim2.new(0, 15, 0, controlsY)
-activeLabel.BackgroundTransparency = 1
-activeLabel.Text = "🎯 AUTO target: Slot 1"
-activeLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
-activeLabel.Font = Enum.Font.GothamBold
-activeLabel.TextSize = 11
-activeLabel.TextXAlignment = Enum.TextXAlignment.Left
-activeLabel.Parent = frame
+-- ── Hide button (–)
+local HideBtn = Instance.new("TextButton", TitleBar)
+HideBtn.Name = "HideBtn"
+HideBtn.Size = UDim2.new(0, 30, 0, 30)
+HideBtn.Position = UDim2.new(1, -74, 0, 6)
+HideBtn.BackgroundColor3 = Color3.fromRGB(200, 80, 140)
+HideBtn.Text = "–"
+HideBtn.TextColor3 = Color3.new(1, 1, 1)
+HideBtn.Font = Enum.Font.GothamBold
+HideBtn.TextSize = 18
+HideBtn.AutoButtonColor = true
 
--- Auto button
-local btnAuto = Instance.new("TextButton")
-btnAuto.Size = UDim2.new(0, 165, 0, 42)
-btnAuto.Position = UDim2.new(0, 15, 0, controlsY + 28)
-btnAuto.BackgroundColor3 = Color3.fromRGB(200, 50, 130)
-btnAuto.BorderSizePixel = 0
-btnAuto.Text = "▶ AUTO: OFF"
-btnAuto.TextColor3 = Color3.new(1, 1, 1)
-btnAuto.Font = Enum.Font.GothamBold
-btnAuto.TextSize = 12
-btnAuto.Parent = frame
-Instance.new("UICorner", btnAuto).CornerRadius = UDim.new(0, 8)
+local hideCorner = Instance.new("UICorner", HideBtn)
+hideCorner.CornerRadius = UDim.new(0, 6)
 
--- Test button
-local btnTest = Instance.new("TextButton")
-btnTest.Size = UDim2.new(0, 165, 0, 42)
-btnTest.Position = UDim2.new(0, 185, 0, controlsY + 28)
-btnTest.BackgroundColor3 = Color3.fromRGB(50, 130, 200)
-btnTest.BorderSizePixel = 0
-btnTest.Text = "🧪 Test Active"
-btnTest.TextColor3 = Color3.new(1, 1, 1)
-btnTest.Font = Enum.Font.GothamBold
-btnTest.TextSize = 12
-btnTest.Parent = frame
-Instance.new("UICorner", btnTest).CornerRadius = UDim.new(0, 8)
+-- ── Close button (X)
+local CloseBtn = Instance.new("TextButton", TitleBar)
+CloseBtn.Name = "CloseBtn"
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -38, 0, 6)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.new(1, 1, 1)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 14
 
--- Status
-local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, -30, 0, 40)
-status.Position = UDim2.new(0, 15, 1, -45)
-status.BackgroundTransparency = 1
-status.Text = "ស្រាប់... ចុច slot ដើម្បី save"
-status.TextColor3 = Color3.fromRGB(180, 180, 200)
-status.Font = Enum.Font.Gotham
-status.TextSize = 10
-status.TextWrapped = true
-status.TextXAlignment = Enum.TextXAlignment.Left
-status.TextYAlignment = Enum.TextYAlignment.Top
-status.Parent = frame
+local closeCorner = Instance.new("UICorner", CloseBtn)
+closeCorner.CornerRadius = UDim.new(0, 6)
 
-local function setStatus(t, c)
-    status.Text = t
-    status.TextColor3 = c or Color3.fromRGB(180, 180, 200)
-    print("[v8]", t)
-end
-
--- ════════ FLOATING REOPEN BUTTON ════════
-local floatBtn = Instance.new("TextButton")
-floatBtn.Size = UDim2.new(0, 60, 0, 60)
-floatBtn.Position = UDim2.new(0, 20, 0.5, -30)
-floatBtn.BackgroundColor3 = Color3.fromRGB(180, 80, 255)
-floatBtn.Text = "⚡"
-floatBtn.TextColor3 = Color3.new(1, 1, 1)
-floatBtn.Font = Enum.Font.GothamBlack
-floatBtn.TextSize = 24
-floatBtn.Visible = false
-floatBtn.Parent = gui
-Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0)
-
-local floatStroke = Instance.new("UIStroke", floatBtn)
-floatStroke.Thickness = 3
-floatStroke.Color = Color3.fromRGB(255, 200, 255)
-
--- ════════ DRAG MAIN FRAME ════════
+-- ═══════════════════════════════════════════════════════════
+-- [ DRAG MAIN FRAME ]
+-- ═══════════════════════════════════════════════════════════
 local dragging, dragStart, startPos
-title.InputBegan:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseButton1 or 
-       inp.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = inp.Position
-        startPos = frame.Position
+
+TitleBar.InputBegan:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 
+    or inp.UserInputType == Enum.UserInputType.Touch then
+        dragging   = true
+        dragStart  = inp.Position
+        startPos   = MainFrame.Position
     end
 end)
 
 UserInputService.InputChanged:Connect(function(inp)
-    if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or 
-                     inp.UserInputType == Enum.UserInputType.Touch) then
+    if dragging and (
+        inp.UserInputType == Enum.UserInputType.MouseMovement 
+        or inp.UserInputType == Enum.UserInputType.Touch
+    ) then
         local d = inp.Position - dragStart
-        frame.Position = UDim2.new(
+        MainFrame.Position = UDim2.new(
             startPos.X.Scale, startPos.X.Offset + d.X,
             startPos.Y.Scale, startPos.Y.Offset + d.Y
         )
@@ -419,27 +338,125 @@ UserInputService.InputChanged:Connect(function(inp)
 end)
 
 UserInputService.InputEnded:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseButton1 or 
-       inp.UserInputType == Enum.UserInputType.Touch then
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 
+    or inp.UserInputType == Enum.UserInputType.Touch then
         dragging = false
     end
 end)
 
--- ════════ DRAG FLOAT BUTTON ════════
+-- ═══════════════════════════════════════════════════════════
+-- [ BUTTONS ]
+-- ═══════════════════════════════════════════════════════════
+local function createButton(yPos, text, bgColor)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(1, -30, 0, 45)
+    btn.Position = UDim2.new(0, 15, 0, yPos)
+    btn.BackgroundColor3 = bgColor
+    btn.BorderSizePixel = 0
+    btn.Text = text
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 12
+    
+    local c = Instance.new("UICorner", btn)
+    c.CornerRadius = UDim.new(0, 8)
+    
+    return btn
+end
+
+local btnSetBase   = createButton(55,  "📍 កំណត់ទីតាំង Base", Color3.fromRGB(255, 105, 180))
+local btnGoToBase  = createButton(108, "🚀 ហោះទៅ Base",       Color3.fromRGB(138, 43, 226))
+local btnFastSteal = createButton(161, "⚡ លួចពងលឿន VIP: OFF", Color3.fromRGB(60, 30, 45))
+local btnTest      = createButton(214, "🧪 សាកល្បង TP",        Color3.fromRGB(80, 80, 120))
+
+-- ═══════════════════════════════════════════════════════════
+-- [ STATUS LABEL ]
+-- ═══════════════════════════════════════════════════════════
+local StatusLabel = Instance.new("TextLabel", MainFrame)
+StatusLabel.Size = UDim2.new(1, -30, 0, 20)
+StatusLabel.Position = UDim2.new(0, 15, 1, -24)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "សូមកំណត់ទីតាំង Base ជាមុន"
+StatusLabel.TextColor3 = Color3.fromRGB(255, 220, 235)
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextSize = 10
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.TextWrapped = true
+
+local function setStatus(text, color)
+    StatusLabel.Text = text
+    StatusLabel.TextColor3 = color or Color3.fromRGB(255, 220, 235)
+    print("[STEAL]", text)
+end
+
+-- ═══════════════════════════════════════════════════════════
+-- [ FLOATING REOPEN BUTTON ]
+-- ═══════════════════════════════════════════════════════════
+local floatBtn = Instance.new("TextButton", ScreenGui)
+floatBtn.Name = "FloatBtn"
+floatBtn.Size = UDim2.new(0, 55, 0, 55)
+floatBtn.Position = UDim2.new(0, 20, 0.5, -27)
+floatBtn.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+floatBtn.Text = "🌟"
+floatBtn.TextColor3 = Color3.new(1, 1, 1)
+floatBtn.Font = Enum.Font.GothamBlack
+floatBtn.TextSize = 22
+floatBtn.Visible = false
+floatBtn.AutoButtonColor = false
+
+local floatCorner = Instance.new("UICorner", floatBtn)
+floatCorner.CornerRadius = UDim.new(1, 0)
+
+local floatStroke = Instance.new("UIStroke", floatBtn)
+floatStroke.Thickness = 2.5
+floatStroke.Color = Color3.fromRGB(255, 200, 220)
+
+-- ── Neon Glow on Float Button
+task.spawn(function()
+    while floatBtn and floatBtn.Parent do
+        if floatBtn.Visible then
+            for i = 0, 1, 0.1 do
+                if not floatBtn or not floatBtn.Parent or not floatBtn.Visible then 
+                    break 
+                end
+                floatStroke.Color = Color3.fromRGB(255, 105, 180):Lerp(
+                    Color3.fromRGB(255, 200, 220), math.sin(i * math.pi))
+                task.wait(0.03)
+            end
+            for i = 0, 1, 0.1 do
+                if not floatBtn or not floatBtn.Parent or not floatBtn.Visible then 
+                    break 
+                end
+                floatStroke.Color = Color3.fromRGB(255, 200, 220):Lerp(
+                    Color3.fromRGB(255, 105, 180), math.sin(i * math.pi))
+                task.wait(0.03)
+            end
+        else
+            task.wait(0.1)
+        end
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════
+-- [ DRAG FLOAT BUTTON ]
+-- ═══════════════════════════════════════════════════════════
 local fdrag, fdragStart, fstartPos, fmoved
+
 floatBtn.InputBegan:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseButton1 or 
-       inp.UserInputType == Enum.UserInputType.Touch then
-        fdrag = true
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 
+    or inp.UserInputType == Enum.UserInputType.Touch then
+        fdrag      = true
         fdragStart = inp.Position
-        fstartPos = floatBtn.Position
-        fmoved = false
+        fstartPos  = floatBtn.Position
+        fmoved     = false
     end
 end)
 
 UserInputService.InputChanged:Connect(function(inp)
-    if fdrag and (inp.UserInputType == Enum.UserInputType.MouseMovement or 
-                  inp.UserInputType == Enum.UserInputType.Touch) then
+    if fdrag and (
+        inp.UserInputType == Enum.UserInputType.MouseMovement 
+        or inp.UserInputType == Enum.UserInputType.Touch
+    ) then
         local d = inp.Position - fdragStart
         if math.abs(d.X) > 3 or math.abs(d.Y) > 3 then
             fmoved = true
@@ -452,134 +469,167 @@ UserInputService.InputChanged:Connect(function(inp)
 end)
 
 UserInputService.InputEnded:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseButton1 or 
-       inp.UserInputType == Enum.UserInputType.Touch then
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 
+    or inp.UserInputType == Enum.UserInputType.Touch then
         fdrag = false
     end
 end)
 
--- ════════ HIDE / SHOW ════════
+-- ═══════════════════════════════════════════════════════════
+-- [ HIDE / SHOW LOGIC ]
+-- ═══════════════════════════════════════════════════════════
 local function hideUI()
-    frame.Visible = false
+    MainFrame.Visible = false
     floatBtn.Visible = true
     task.spawn(function()
         floatBtn.Size = UDim2.new(0, 0, 0, 0)
         for i = 0, 1, 0.1 do
-            floatBtn.Size = UDim2.new(0, 60 * i, 0, 60 * i)
+            if not floatBtn or not floatBtn.Parent then return end
+            floatBtn.Size = UDim2.new(0, 55*i, 0, 55*i)
             task.wait(0.02)
         end
-        floatBtn.Size = UDim2.new(0, 60, 0, 60)
+        if floatBtn then
+            floatBtn.Size = UDim2.new(0, 55, 0, 55)
+        end
     end)
 end
 
 local function showUI()
     floatBtn.Visible = false
-    frame.Visible = true
+    MainFrame.Visible = true
     task.spawn(function()
-        frame.Size = UDim2.new(0, 0, 0, 0)
+        MainFrame.Size = UDim2.new(0, 0, 0, 0)
         for i = 0, 1, 0.1 do
-            frame.Size = UDim2.new(0, FRAME_W * i, 0, FRAME_H * i)
+            if not MainFrame or not MainFrame.Parent then return end
+            MainFrame.Size = UDim2.new(0, FRAME_W*i, 0, FRAME_H*i)
             task.wait(0.02)
         end
-        frame.Size = UDim2.new(0, FRAME_W, 0, FRAME_H)
+        if MainFrame then
+            MainFrame.Size = UDim2.new(0, FRAME_W, 0, FRAME_H)
+        end
     end)
 end
 
-btnMin.Activated:Connect(hideUI)
+HideBtn.Activated:Connect(hideUI)
 
 floatBtn.Activated:Connect(function()
-    if not fmoved then showUI() end
-end)
-
-btnClose.Activated:Connect(function()
-    Config.Auto = false
-    gui:Destroy()
-    print("[v8] GUI closed")
-end)
-
--- ════════ BUTTON EVENTS ════════
-btnAuto.Activated:Connect(function()
-    local hasSlot = false
-    for i = 1, 10 do
-        if Config.Slots[i] then hasSlot = true; break end
+    if not fmoved then
+        showUI()
     end
-    
-    if not hasSlot then
-        setStatus("❌ Save slot មុន", Color3.fromRGB(255, 100, 100))
+end)
+
+CloseBtn.Activated:Connect(function()
+    Config.FastStealOn = false
+    ScreenGui:Destroy()
+    print("[STEAL] GUI closed")
+end)
+
+-- ═══════════════════════════════════════════════════════════
+-- [ BUTTON EVENTS ]
+-- ═══════════════════════════════════════════════════════════
+btnSetBase.Activated:Connect(function()
+    local hrp = getHRP()
+    if hrp then
+        Config.BaseCFrame = hrp.CFrame
+        setStatus(string.format("✅ Base: %.0f, %.0f, %.0f",
+            hrp.Position.X, hrp.Position.Y, hrp.Position.Z),
+            Color3.fromRGB(100, 255, 150))
+    else
+        setStatus("❌ Character មិនទាន់ load", Color3.fromRGB(255, 100, 100))
+    end
+end)
+
+btnGoToBase.Activated:Connect(function()
+    if not Config.BaseCFrame then
+        setStatus("❌ សូមកំណត់ទីតាំងសិន!", Color3.fromRGB(255, 50, 100))
+        return
+    end
+    local ok = instantTeleport(Config.BaseCFrame)
+    if ok then
+        setStatus("🚀 បានហោះមកដល់!", Color3.fromRGB(200, 150, 255))
+    else
+        setStatus("❌ TP បរាជ័យ — សាកម្ដងទៀត", Color3.fromRGB(255, 100, 100))
+    end
+end)
+
+btnTest.Activated:Connect(function()
+    if not Config.BaseCFrame then
+        setStatus("❌ កំណត់ Base មុន", Color3.fromRGB(255, 100, 100))
         return
     end
     
-    Config.Auto = not Config.Auto
+    local hrp = getHRP()
+    if not hrp then 
+        setStatus("❌ រកមិនឃើញ HRP", Color3.fromRGB(255, 100, 100))
+        return 
+    end
     
-    if Config.Auto then
-        if not Config.Slots[Config.ActiveSlot] then
-            -- Find first filled slot
-            for i = 1, 10 do
-                if Config.Slots[i] then
-                    Config.ActiveSlot = i
-                    break
-                end
-            end
-        end
-        btnAuto.Text = "⏸ AUTO: ON"
-        btnAuto.BackgroundColor3 = Color3.fromRGB(255, 180, 50)
-        activeLabel.Text = "🎯 AUTO target: Slot " .. Config.ActiveSlot
-        setStatus("✅ AUTO ដំណើរការ (Slot " .. Config.ActiveSlot .. ")", 
-            Color3.fromRGB(100, 255, 150))
-        
+    setStatus("🧪 កំពុងសាក...", Color3.fromRGB(200, 200, 100))
+    local orig = hrp.CFrame
+    
+    task.spawn(function()
+        instantTeleport(Config.BaseCFrame)
+        task.wait(0.5)
+        instantTeleport(orig)
+        setStatus("✅ Test ជោគជ័យ!", Color3.fromRGB(100, 255, 150))
+    end)
+end)
+
+btnFastSteal.Activated:Connect(function()
+    if not Config.BaseCFrame then
+        setStatus("❌ សូមកំណត់ទីតាំងសិន!", Color3.fromRGB(255, 50, 100))
+        return
+    end
+
+    Config.FastStealOn = not Config.FastStealOn
+    
+    if Config.FastStealOn then
+        btnFastSteal.Text = "⚡ លួចពងលឿន VIP: ON"
+        btnFastSteal.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
+        setStatus("✅ បើកមុខងារយកពងលឿន VIP!", Color3.fromRGB(100, 255, 150))
+
+        -- Auto-scan loop
         task.spawn(function()
-            while Config.Auto and gui.Parent do
+            while Config.FastStealOn and ScreenGui.Parent do
                 pcall(scanWorld)
                 task.wait(2)
             end
         end)
     else
-        btnAuto.Text = "▶ AUTO: OFF"
-        btnAuto.BackgroundColor3 = Color3.fromRGB(200, 50, 130)
-        setStatus("⏸ បានបញ្ឈប់", Color3.fromRGB(255, 150, 150))
+        btnFastSteal.Text = "⚡ លួចពងលឿន VIP: OFF"
+        btnFastSteal.BackgroundColor3 = Color3.fromRGB(60, 30, 45)
+        setStatus("🛑 បានបិទមុខងារយកពងលឿន", Color3.fromRGB(255, 182, 193))
     end
 end)
 
-btnTest.Activated:Connect(function()
-    local cf = Config.Slots[Config.ActiveSlot]
-    if not cf then
-        setStatus("❌ Slot " .. Config.ActiveSlot .. " ទទេ", 
-            Color3.fromRGB(255, 100, 100))
-        return
-    end
-    local hrp = getHRP()
-    if hrp then
-        local orig = hrp.CFrame
-        teleport(cf)
-        task.wait(0.5)
-        teleport(orig)
-        setStatus("✅ Test Slot " .. Config.ActiveSlot, 
-            Color3.fromRGB(100, 255, 150))
-    end
-end)
-
--- ════════ KEYBOARD ════════
+-- ═══════════════════════════════════════════════════════════
+-- [ KEYBOARD TOGGLE ]
+-- ═══════════════════════════════════════════════════════════
 UserInputService.InputBegan:Connect(function(inp, gp)
     if not gp and inp.KeyCode == Enum.KeyCode.RightShift then
-        if frame.Visible then hideUI() else showUI() end
+        if MainFrame.Visible then
+            hideUI()
+        else
+            showUI()
+        end
     end
 end)
 
--- ════════ INIT ════════
-for i = 1, 10 do updateSlotUI(i) end
-
-task.spawn(function()
-    task.wait(0.5)
+-- ═══════════════════════════════════════════════════════════
+-- [ CHARACTER RESPAWN HANDLER ]
+-- ═══════════════════════════════════════════════════════════
+LocalPlayer.CharacterAdded:Connect(function(char)
+    print("[STEAL] Character respawned")
+    task.wait(1)
+    -- បន្ថែម hooks សម្រាប់ character ថ្មី
     pcall(scanWorld)
 end)
 
-print("═══════════════════════════════════════")
-print("[v8] ✅ LOADED — 10 SLOTS")
-print("[v8] ចុច slot ទទេ = Save")
-print("[v8] ចុច slot មាន = Teleport")
-print("[v8] ចុច [×] = Clear slot")
-print("[v8] ចុច [–] = លាក់ UI")
-print("[v8] ចុច [⚡] = បើកវិញ")
-print("═══════════════════════════════════════")
-
-setStatus("✅ Loaded! ចុច slot ដើម្បី save", Color3.fromRGB(100, 255, 150))
+-- ═══════════════════════════════════════════════════════════
+-- [ INITIAL SCAN ]
+-- ═══════════════════════════════════════════════════════════
+task.spawn(function()
+    task.wait(0.5)
+    local n = pcall(scanWorld)
+    print("[STEAL] Initial scan done")
+e
