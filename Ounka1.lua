@@ -1,6 +1,7 @@
 --[[
     ═══════════════════════════════════════════════════════════
-      🌲 AUTO TP TRUNK — ON / OFF (គ្មាន GUI)
+      🌲⚡ AUTO TP — ច្រើន Target
+      ពេលជិត Target ណាមួយ → ហោះទៅ → ត្រឡប់មក Home វិញ
     ═══════════════════════════════════════════════════════════
 ]]
 
@@ -10,10 +11,12 @@ local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
 -- ═══ ការកំណត់ ═══
-local TargetName   = "Trunk"
-local MaxDistance  = 29
+local Targets = {
+    {Name = "Trunk",  Distance = 29},
+    {Name = "Tree",   Distance = 29},   -- ⭐ Target ទី 2 (បន្ថែម)
+}
 local Delay        = 0.1
-local AutoEnabled  = false       -- ⚡ ចាប់ផ្ដើម OFF
+local AutoEnabled  = false
 local HomePosition = nil
 
 -- ═══ Helpers ═══
@@ -22,21 +25,28 @@ local function getHRP()
     return c and c:FindFirstChild("HumanoidRootPart")
 end
 
--- ═══ 🔍 រក Trunk ក្នុងចម្ងាយ ═══
-local function findTrunk()
+-- ═══ 🔍 រក Target ក្នុងចម្ងាយ ═══
+local function findTarget()
     local hrp = getHRP()
     if not hrp then return nil end
-    local closest, closestDist = nil, MaxDistance
+
+    local best, bestDist = nil, math.huge
+
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name == TargetName then
-            local dist = (obj.Position - hrp.Position).Magnitude
-            if dist <= MaxDistance and dist < closestDist then
-                closest = obj
-                closestDist = dist
+        if obj:IsA("BasePart") then
+            for _, t in ipairs(Targets) do
+                if obj.Name == t.Name then
+                    local dist = (obj.Position - hrp.Position).Magnitude
+                    if dist <= t.Distance and dist < bestDist then
+                        best = obj
+                        bestDist = dist
+                    end
+                end
             end
         end
     end
-    return closest
+
+    return best
 end
 
 -- ═══ 📍 Set Home ═══
@@ -44,34 +54,38 @@ local function SetHome()
     local hrp = getHRP()
     if hrp then
         HomePosition = hrp.CFrame
-        print("[TP] ✅ Home saved")
+        print("[TP] ✅ Home saved:", math.floor(hrp.Position.X), math.floor(hrp.Position.Y), math.floor(hrp.Position.Z))
     end
 end
 
--- ═══ ⚡ TP ទៅ Trunk ═══
-local function tpToTrunk(trunk)
+-- ═══ ⚡ TP ទៅ Target → ត្រឡប់មក Home ═══
+local function tpAndReturn(target)
     local hrp = getHRP()
-    if not hrp or not trunk or not trunk.Parent then return end
+    if not hrp or not target or not target.Parent then return end
 
     local backCF = HomePosition or hrp.CFrame
 
-    hrp.CFrame = CFrame.new(trunk.Position + Vector3.new(0, 3, 0))
+    -- 1. ហោះទៅ Target
+    hrp.CFrame = CFrame.new(target.Position + Vector3.new(0, 3, 0))
     task.wait(Delay)
 
+    -- 2. ចុចយក
     pcall(function()
-        for _, prompt in ipairs(trunk:GetDescendants()) do
+        for _, prompt in ipairs(target:GetDescendants()) do
             if prompt:IsA("ProximityPrompt") and fireproximityprompt then
                 fireproximityprompt(prompt)
             end
         end
         if firetouchinterest then
-            firetouchinterest(hrp, trunk, 0)
+            firetouchinterest(hrp, target, 0)
             task.wait(0.03)
-            firetouchinterest(hrp, trunk, 1)
+            firetouchinterest(hrp, target, 1)
         end
     end)
 
     task.wait(Delay)
+
+    -- 3. ហោះត្រឡប់មក Home វិញ
     hrp.CFrame = backCF
 end
 
@@ -79,9 +93,9 @@ end
 task.spawn(function()
     while task.wait(0.2) do
         if AutoEnabled then
-            local trunk = findTrunk()
-            if trunk then
-                pcall(tpToTrunk, trunk)
+            local target = findTarget()
+            if target then
+                pcall(tpAndReturn, target)
                 task.wait(0.3)
             end
         end
@@ -89,8 +103,9 @@ task.spawn(function()
 end)
 
 -- ═══════════════════════════════════════════════════════════
---  🎛️ ON / OFF
+--  🎛️ COMMANDS
 -- ═══════════════════════════════════════════════════════════
+
 _G.ON = function()
     AutoEnabled = true
     print("[TP] ⚡ ON")
@@ -102,13 +117,51 @@ _G.OFF = function()
 end
 
 _G.TP = {
+    -- 📍 កំណត់ទីតាំង Home
     SetHome = SetHome,
-    Distance = function(d) MaxDistance = tonumber(d) or 29 end,
-    Delay = function(d) Delay = tonumber(d) or 0.1 end,
+
+    -- ➕ បន្ថែម Target ថ្មី
+    Add = function(name, distance)
+        table.insert(Targets, {
+            Name = name,
+            Distance = tonumber(distance) or 29,
+        })
+        print("[TP] ➕ បន្ថែម Target:", name, "| ចម្ងាយ:", distance or 29)
+    end,
+
+    -- ➖ លុប Target
+    Remove = function(name)
+        for i, t in ipairs(Targets) do
+            if t.Name == name then
+                table.remove(Targets, i)
+                print("[TP] ➖ លុប Target:", name)
+                return
+            end
+        end
+    end,
+
+    -- 📋 បង្ហាញ Target ទាំងអស់
+    List = function()
+        print("[TP] 📋 Targets:")
+        for i, t in ipairs(Targets) do
+            print("   "..i..". "..t.Name.." ("..t.Distance.."m)")
+        end
+    end,
+
+    -- ⚙️ កំណត់
+    Delay    = function(d) Delay = tonumber(d) or 0.1 end,
+    GoHome   = function()
+        local hrp = getHRP()
+        if hrp and HomePosition then hrp.CFrame = HomePosition end
+    end,
 }
 
 -- ═══ ចាប់ផ្ដើម ═══
-SetHome()  -- កំណត់ទីតាំងកំណត់ភ្លាម
-print("[TP] 🌲 Ready")
-print("  _G.ON()      — បើក")
-print("  _G.OFF()     — បិទ")
+SetHome()
+print("[TP] 🌲⚡ Ready")
+print("  _G.ON()                       — បើក")
+print("  _G.OFF()                      — បិទ")
+print("  _G.TP.Add('ឈ្មោះ', 29)         — បន្ថែម Target")
+print("  _G.TP.Remove('ឈ្មោះ')          — លុប Target")
+print("  _G.TP.List()                  — បង្ហាញ Target")
+print("  _G.TP.SetHome()               — កំណត់ Home")
