@@ -1,23 +1,35 @@
 --[[
     ╔══════════════════════════════════════════╗
-    ║  STEAL GUI v7 — មានប៊ូតុងលាក់/បើក      ║
+    ║  STEAL v8 — 10 SLOTS + HIDE/SHOW         ║
+    ║  Click slot: Save if empty / Go if saved ║
     ╚══════════════════════════════════════════╝
 --]]
 
-print("[v7] Loading...")
+print("[v8] Loading...")
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local LP = Players.LocalPlayer
 
+-- ═══════════════════════════════════════
+-- CONFIG
+-- ═══════════════════════════════════════
 local Config = {
-    Base = nil,
+    Slots = {},         -- 10 slots (nil = empty, CFrame = saved)
+    ActiveSlot = 1,     -- ដែល AUTO ប្រើ
     Auto = false,
     Delay = 0.15,
     Busy = false,
 }
 
--- ═══ HELPERS ═══
+-- Init 10 empty slots
+for i = 1, 10 do
+    Config.Slots[i] = nil
+end
+
+-- ═══════════════════════════════════════
+-- HELPERS
+-- ═══════════════════════════════════════
 local function getHRP()
     local c = LP.Character
     if not c then return nil end
@@ -36,9 +48,13 @@ local function teleport(cf)
     end)
 end
 
--- ═══ STEAL LOGIC ═══
+-- ═══════════════════════════════════════
+-- STEAL LOGIC
+-- ═══════════════════════════════════════
 local function steal()
-    if Config.Busy or not Config.Base or not Config.Auto then return end
+    if Config.Busy or not Config.Auto then return end
+    local targetCF = Config.Slots[Config.ActiveSlot]
+    if not targetCF then return end
     Config.Busy = true
     
     task.spawn(function()
@@ -48,7 +64,7 @@ local function steal()
         local orig = hrp.CFrame
         
         pcall(function() hrp:SetNetworkOwner(LP) end)
-        teleport(Config.Base)
+        teleport(targetCF)
         task.wait(Config.Delay)
         teleport(orig)
         pcall(function() hrp:SetNetworkOwner(nil) end)
@@ -57,7 +73,9 @@ local function steal()
     end)
 end
 
--- ═══ HOOKS ═══
+-- ═══════════════════════════════════════
+-- HOOKS
+-- ═══════════════════════════════════════
 local hooked = {}
 
 local function hookPrompt(p)
@@ -66,7 +84,7 @@ local function hookPrompt(p)
     pcall(function()
         p.Triggered:Connect(function(plr)
             if plr == LP and Config.Auto then
-                print("[v7] Prompt fired!")
+                print("[v8] Prompt fired!")
                 steal()
             end
         end)
@@ -96,7 +114,7 @@ local function scanWorld()
             n = n + 1
         end
     end
-    print("[v7] Scanned", n, "prompts")
+    print("[v8] Scanned", n, "prompts")
     return n
 end
 
@@ -105,26 +123,30 @@ workspace.DescendantAdded:Connect(function(o)
     if o:IsA("ClickDetector") then hookClick(o) end
 end)
 
--- ═══ GUI ═══
-print("[v7] Creating GUI...")
+-- ═══════════════════════════════════════
+-- GUI
+-- ═══════════════════════════════════════
+print("[v8] Creating GUI...")
 
 local guiParent = game:GetService("CoreGui")
 
 pcall(function()
     for _, g in pairs(guiParent:GetChildren()) do
-        if g.Name == "Steal_v7" then g:Destroy() end
+        if g.Name == "Steal_v8" then g:Destroy() end
     end
 end)
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "Steal_v7"
+gui.Name = "Steal_v8"
 gui.Parent = guiParent
 gui.ResetOnSpawn = false
 
 -- ════════ MAIN FRAME ════════
+local FRAME_W, FRAME_H = 360, 500
+
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 340)
-frame.Position = UDim2.new(0.5, -160, 0.5, -170)
+frame.Size = UDim2.new(0, FRAME_W, 0, FRAME_H)
+frame.Position = UDim2.new(0.5, -FRAME_W/2, 0.5, -FRAME_H/2)
 frame.BackgroundColor3 = Color3.fromRGB(18, 12, 24)
 frame.BorderSizePixel = 0
 frame.Parent = gui
@@ -135,32 +157,32 @@ local stroke = Instance.new("UIStroke", frame)
 stroke.Thickness = 2
 stroke.Color = Color3.fromRGB(180, 80, 255)
 
--- Title bar
+-- ════════ TITLE BAR ════════
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 42)
 title.BackgroundColor3 = Color3.fromRGB(35, 20, 50)
 title.BorderSizePixel = 0
-title.Text = "  ⚡ STEAL v7"
+title.Text = "  ⚡ STEAL v8 — 10 SLOTS"
 title.TextColor3 = Color3.fromRGB(200, 150, 255)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 14
+title.TextSize = 13
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = frame
 Instance.new("UICorner", title).CornerRadius = UDim.new(0, 12)
 
--- ════════ BUTTON លាក់ (–) ════════
-local btnMinimize = Instance.new("TextButton")
-btnMinimize.Size = UDim2.new(0, 30, 0, 30)
-btnMinimize.Position = UDim2.new(1, -74, 0, 6)
-btnMinimize.BackgroundColor3 = Color3.fromRGB(200, 150, 50)
-btnMinimize.Text = "–"
-btnMinimize.TextColor3 = Color3.new(1, 1, 1)
-btnMinimize.Font = Enum.Font.GothamBold
-btnMinimize.TextSize = 20
-btnMinimize.Parent = title
-Instance.new("UICorner", btnMinimize).CornerRadius = UDim.new(0, 6)
+-- Minimize
+local btnMin = Instance.new("TextButton")
+btnMin.Size = UDim2.new(0, 30, 0, 30)
+btnMin.Position = UDim2.new(1, -74, 0, 6)
+btnMin.BackgroundColor3 = Color3.fromRGB(200, 150, 50)
+btnMin.Text = "–"
+btnMin.TextColor3 = Color3.new(1, 1, 1)
+btnMin.Font = Enum.Font.GothamBold
+btnMin.TextSize = 20
+btnMin.Parent = title
+Instance.new("UICorner", btnMin).CornerRadius = UDim.new(0, 6)
 
--- ════════ BUTTON បិទ (X) ════════
+-- Close
 local btnClose = Instance.new("TextButton")
 btnClose.Size = UDim2.new(0, 30, 0, 30)
 btnClose.Position = UDim2.new(1, -38, 0, 6)
@@ -172,9 +194,193 @@ btnClose.TextSize = 14
 btnClose.Parent = title
 Instance.new("UICorner", btnClose).CornerRadius = UDim.new(0, 6)
 
--- ════════ FLOATING REOPEN BUTTON (ពេលលាក់) ════════
+-- ════════ INFO LABEL ════════
+local infoLabel = Instance.new("TextLabel")
+infoLabel.Size = UDim2.new(1, -30, 0, 25)
+infoLabel.Position = UDim2.new(0, 15, 0, 45)
+infoLabel.BackgroundTransparency = 1
+infoLabel.Text = "👆 ចុច slot ទទេ = Save | slot មាន = Go"
+infoLabel.TextColor3 = Color3.fromRGB(150, 150, 180)
+infoLabel.Font = Enum.Font.Gotham
+infoLabel.TextSize = 10
+infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+infoLabel.Parent = frame
+
+-- ════════ SLOT AREA ════════
+-- 2 columns × 5 rows
+local slotButtons = {}
+local slotLabels = {}
+local slotClearBtns = {}
+
+local function updateSlotUI(idx)
+    local btn = slotButtons[idx]
+    local lbl = slotLabels[idx]
+    if not btn or not lbl then return end
+    
+    local cf = Config.Slots[idx]
+    if cf then
+        lbl.Text = string.format("%d • %.0f, %.0f, %.0f", 
+            idx, cf.Position.X, cf.Position.Y, cf.Position.Z)
+        btn.BackgroundColor3 = Color3.fromRGB(60, 130, 80)
+    else
+        lbl.Text = idx .. " • EMPTY"
+        btn.BackgroundColor3 = Color3.fromRGB(40, 30, 55)
+    end
+    
+    -- Highlight active slot
+    if idx == Config.ActiveSlot then
+        btn.BackgroundColor3 = cf 
+            and Color3.fromRGB(100, 200, 130) 
+            or Color3.fromRGB(80, 50, 130)
+    end
+end
+
+local function createSlot(idx, x, y)
+    -- Main slot button
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 160, 0, 42)
+    btn.Position = UDim2.new(0, x, 0, y)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 30, 55)
+    btn.BorderSizePixel = 0
+    btn.Text = ""
+    btn.Parent = frame
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    
+    -- Label
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -30, 1, 0)
+    lbl.Position = UDim2.new(0, 8, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = idx .. " • EMPTY"
+    lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 10
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = btn
+    
+    -- Clear button (small X)
+    local cls = Instance.new("TextButton")
+    cls.Size = UDim2.new(0, 22, 0, 22)
+    cls.Position = UDim2.new(1, -26, 0.5, -11)
+    cls.BackgroundColor3 = Color3.fromRGB(255, 80, 100)
+    cls.Text = "×"
+    cls.TextColor3 = Color3.new(1, 1, 1)
+    cls.Font = Enum.Font.GothamBold
+    cls.TextSize = 14
+    cls.Parent = btn
+    Instance.new("UICorner", cls).CornerRadius = UDim.new(0, 4)
+    
+    slotButtons[idx] = btn
+    slotLabels[idx] = lbl
+    slotClearBtns[idx] = cls
+    
+    -- ═══ CLICK SLOT ═══
+    btn.Activated:Connect(function()
+        local hrp = getHRP()
+        if not hrp then return end
+        
+        if Config.Slots[idx] then
+            -- Teleport to slot
+            teleport(Config.Slots[idx])
+            Config.ActiveSlot = idx
+            print("[v8] Teleport to slot", idx)
+        else
+            -- Save current position
+            Config.Slots[idx] = hrp.CFrame
+            Config.ActiveSlot = idx
+            print("[v8] Saved slot", idx)
+        end
+        
+        -- Update all slots (highlight active)
+        for i = 1, 10 do updateSlotUI(i) end
+    end)
+    
+    -- ═══ CLEAR SLOT ═══
+    cls.Activated:Connect(function()
+        Config.Slots[idx] = nil
+        print("[v8] Cleared slot", idx)
+        updateSlotUI(idx)
+    end)
+    
+    return btn
+end
+
+-- Create 10 slots in grid
+local startY = 78
+local rowH = 46
+local col1X = 15
+local col2X = 185
+
+for i = 1, 5 do
+    createSlot(i, col1X, startY + (i - 1) * rowH)
+end
+for i = 6, 10 do
+    createSlot(i, col2X, startY + (i - 6) * rowH)
+end
+
+-- ════════ BOTTOM CONTROLS ════════
+local controlsY = startY + 5 * rowH + 10
+
+-- Active slot display
+local activeLabel = Instance.new("TextLabel")
+activeLabel.Size = UDim2.new(1, -30, 0, 22)
+activeLabel.Position = UDim2.new(0, 15, 0, controlsY)
+activeLabel.BackgroundTransparency = 1
+activeLabel.Text = "🎯 AUTO target: Slot 1"
+activeLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+activeLabel.Font = Enum.Font.GothamBold
+activeLabel.TextSize = 11
+activeLabel.TextXAlignment = Enum.TextXAlignment.Left
+activeLabel.Parent = frame
+
+-- Auto button
+local btnAuto = Instance.new("TextButton")
+btnAuto.Size = UDim2.new(0, 165, 0, 42)
+btnAuto.Position = UDim2.new(0, 15, 0, controlsY + 28)
+btnAuto.BackgroundColor3 = Color3.fromRGB(200, 50, 130)
+btnAuto.BorderSizePixel = 0
+btnAuto.Text = "▶ AUTO: OFF"
+btnAuto.TextColor3 = Color3.new(1, 1, 1)
+btnAuto.Font = Enum.Font.GothamBold
+btnAuto.TextSize = 12
+btnAuto.Parent = frame
+Instance.new("UICorner", btnAuto).CornerRadius = UDim.new(0, 8)
+
+-- Test button
+local btnTest = Instance.new("TextButton")
+btnTest.Size = UDim2.new(0, 165, 0, 42)
+btnTest.Position = UDim2.new(0, 185, 0, controlsY + 28)
+btnTest.BackgroundColor3 = Color3.fromRGB(50, 130, 200)
+btnTest.BorderSizePixel = 0
+btnTest.Text = "🧪 Test Active"
+btnTest.TextColor3 = Color3.new(1, 1, 1)
+btnTest.Font = Enum.Font.GothamBold
+btnTest.TextSize = 12
+btnTest.Parent = frame
+Instance.new("UICorner", btnTest).CornerRadius = UDim.new(0, 8)
+
+-- Status
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, -30, 0, 40)
+status.Position = UDim2.new(0, 15, 1, -45)
+status.BackgroundTransparency = 1
+status.Text = "ស្រាប់... ចុច slot ដើម្បី save"
+status.TextColor3 = Color3.fromRGB(180, 180, 200)
+status.Font = Enum.Font.Gotham
+status.TextSize = 10
+status.TextWrapped = true
+status.TextXAlignment = Enum.TextXAlignment.Left
+status.TextYAlignment = Enum.TextYAlignment.Top
+status.Parent = frame
+
+local function setStatus(t, c)
+    status.Text = t
+    status.TextColor3 = c or Color3.fromRGB(180, 180, 200)
+    print("[v8]", t)
+end
+
+-- ════════ FLOATING REOPEN BUTTON ════════
 local floatBtn = Instance.new("TextButton")
-floatBtn.Name = "FloatBtn"
 floatBtn.Size = UDim2.new(0, 60, 0, 60)
 floatBtn.Position = UDim2.new(0, 20, 0.5, -30)
 floatBtn.BackgroundColor3 = Color3.fromRGB(180, 80, 255)
@@ -252,139 +458,74 @@ UserInputService.InputEnded:Connect(function(inp)
     end
 end)
 
--- ════════ HIDE / SHOW LOGIC ════════
+-- ════════ HIDE / SHOW ════════
 local function hideUI()
     frame.Visible = false
     floatBtn.Visible = true
-    -- Animation
-    floatBtn.Size = UDim2.new(0, 0, 0, 0)
     task.spawn(function()
+        floatBtn.Size = UDim2.new(0, 0, 0, 0)
         for i = 0, 1, 0.1 do
             floatBtn.Size = UDim2.new(0, 60 * i, 0, 60 * i)
             task.wait(0.02)
         end
         floatBtn.Size = UDim2.new(0, 60, 0, 60)
     end)
-    print("[v7] UI hidden")
 end
 
 local function showUI()
     floatBtn.Visible = false
     frame.Visible = true
-    frame.Size = UDim2.new(0, 0, 0, 0)
     task.spawn(function()
+        frame.Size = UDim2.new(0, 0, 0, 0)
         for i = 0, 1, 0.1 do
-            frame.Size = UDim2.new(0, 320 * i, 0, 340 * i)
+            frame.Size = UDim2.new(0, FRAME_W * i, 0, FRAME_H * i)
             task.wait(0.02)
         end
-        frame.Size = UDim2.new(0, 320, 0, 340)
+        frame.Size = UDim2.new(0, FRAME_W, 0, FRAME_H)
     end)
-    print("[v7] UI shown")
 end
 
-btnMinimize.Activated:Connect(hideUI)
+btnMin.Activated:Connect(hideUI)
 
 floatBtn.Activated:Connect(function()
-    if not fmoved then
-        showUI()
-    end
+    if not fmoved then showUI() end
 end)
 
 btnClose.Activated:Connect(function()
     Config.Auto = false
     gui:Destroy()
-    print("[v7] GUI closed")
+    print("[v8] GUI closed")
 end)
-
--- ════════ BUTTONS ════════
-local function mkBtn(y, text, color)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -30, 0, 45)
-    b.Position = UDim2.new(0, 15, 0, y)
-    b.BackgroundColor3 = color
-    b.BorderSizePixel = 0
-    b.Text = text
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 13
-    b.Parent = frame
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
-    return b
-end
-
-local btnBase = mkBtn(55, "📍 កំណត់ Base", Color3.fromRGB(120, 60, 200))
-local btnTest = mkBtn(110, "🧪 សាកល្បង", Color3.fromRGB(50, 130, 200))
-local btnAuto = mkBtn(165, "▶ ចាប់ផ្ដើម AUTO", Color3.fromRGB(200, 50, 130))
-local btnScan = mkBtn(220, "🔍 Scan", Color3.fromRGB(80, 80, 100))
-
-local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, -30, 0, 50)
-status.Position = UDim2.new(0, 15, 1, -60)
-status.BackgroundTransparency = 1
-status.Text = "សូមកំណត់ Base មុន"
-status.TextColor3 = Color3.fromRGB(180, 180, 200)
-status.Font = Enum.Font.Gotham
-status.TextSize = 11
-status.TextWrapped = true
-status.TextXAlignment = Enum.TextXAlignment.Left
-status.TextYAlignment = Enum.TextYAlignment.Top
-status.Parent = frame
-
-local function setStatus(t, c)
-    status.Text = t
-    status.TextColor3 = c or Color3.fromRGB(180, 180, 200)
-    print("[v7]", t)
-end
 
 -- ════════ BUTTON EVENTS ════════
-btnBase.Activated:Connect(function()
-    print("[v7] Set Base clicked")
-    local hrp = getHRP()
-    if hrp then
-        Config.Base = hrp.CFrame
-        setStatus(string.format("✅ Base: %.0f, %.0f, %.0f",
-            hrp.Position.X, hrp.Position.Y, hrp.Position.Z),
-            Color3.fromRGB(100, 255, 150))
-    else
-        setStatus("❌ Character មិនទាន់ load", Color3.fromRGB(255, 100, 100))
-    end
-end)
-
-btnTest.Activated:Connect(function()
-    print("[v7] Test clicked")
-    if not Config.Base then
-        setStatus("❌ កំណត់ Base មុន", Color3.fromRGB(255, 100, 100))
-        return
-    end
-    local hrp = getHRP()
-    if hrp then
-        local orig = hrp.CFrame
-        teleport(Config.Base)
-        task.wait(0.5)
-        teleport(orig)
-        setStatus("✅ Test ជោគជ័យ", Color3.fromRGB(100, 255, 150))
-    end
-end)
-
-btnScan.Activated:Connect(function()
-    print("[v7] Scan clicked")
-    local n = scanWorld()
-    setStatus("✅ ឃើញ " .. n .. " prompts", Color3.fromRGB(150, 200, 255))
-end)
-
 btnAuto.Activated:Connect(function()
-    print("[v7] Auto clicked")
-    if not Config.Base then
-        setStatus("❌ កំណត់ Base មុន", Color3.fromRGB(255, 100, 100))
+    local hasSlot = false
+    for i = 1, 10 do
+        if Config.Slots[i] then hasSlot = true; break end
+    end
+    
+    if not hasSlot then
+        setStatus("❌ Save slot មុន", Color3.fromRGB(255, 100, 100))
         return
     end
     
     Config.Auto = not Config.Auto
     
     if Config.Auto then
-        btnAuto.Text = "⏸ បញ្ឈប់ AUTO"
+        if not Config.Slots[Config.ActiveSlot] then
+            -- Find first filled slot
+            for i = 1, 10 do
+                if Config.Slots[i] then
+                    Config.ActiveSlot = i
+                    break
+                end
+            end
+        end
+        btnAuto.Text = "⏸ AUTO: ON"
         btnAuto.BackgroundColor3 = Color3.fromRGB(255, 180, 50)
-        setStatus("✅ AUTO ដំណើរការ", Color3.fromRGB(100, 255, 150))
+        activeLabel.Text = "🎯 AUTO target: Slot " .. Config.ActiveSlot
+        setStatus("✅ AUTO ដំណើរការ (Slot " .. Config.ActiveSlot .. ")", 
+            Color3.fromRGB(100, 255, 150))
         
         task.spawn(function()
             while Config.Auto and gui.Parent do
@@ -393,35 +534,52 @@ btnAuto.Activated:Connect(function()
             end
         end)
     else
-        btnAuto.Text = "▶ ចាប់ផ្ដើម AUTO"
+        btnAuto.Text = "▶ AUTO: OFF"
         btnAuto.BackgroundColor3 = Color3.fromRGB(200, 50, 130)
         setStatus("⏸ បានបញ្ឈប់", Color3.fromRGB(255, 150, 150))
     end
 end)
 
--- ════════ KEYBOARD TOGGLE ════════
--- RightShift = លាក់/បើក UI
+btnTest.Activated:Connect(function()
+    local cf = Config.Slots[Config.ActiveSlot]
+    if not cf then
+        setStatus("❌ Slot " .. Config.ActiveSlot .. " ទទេ", 
+            Color3.fromRGB(255, 100, 100))
+        return
+    end
+    local hrp = getHRP()
+    if hrp then
+        local orig = hrp.CFrame
+        teleport(cf)
+        task.wait(0.5)
+        teleport(orig)
+        setStatus("✅ Test Slot " .. Config.ActiveSlot, 
+            Color3.fromRGB(100, 255, 150))
+    end
+end)
+
+-- ════════ KEYBOARD ════════
 UserInputService.InputBegan:Connect(function(inp, gp)
     if not gp and inp.KeyCode == Enum.KeyCode.RightShift then
-        if frame.Visible then
-            hideUI()
-        else
-            showUI()
-        end
+        if frame.Visible then hideUI() else showUI() end
     end
 end)
 
 -- ════════ INIT ════════
+for i = 1, 10 do updateSlotUI(i) end
+
 task.spawn(function()
     task.wait(0.5)
     pcall(scanWorld)
 end)
 
-print("═══════════════════════════════")
-print("[v7] ✅ LOADED")
-print("[v7] ចុច [–] ដើម្បីលាក់")
-print("[v7] ចុច [⚡] ដើម្បីបើកវិញ")
-print("[v7] ចុច [RightShift] toggle")
-print("═══════════════════════════════")
+print("═══════════════════════════════════════")
+print("[v8] ✅ LOADED — 10 SLOTS")
+print("[v8] ចុច slot ទទេ = Save")
+print("[v8] ចុច slot មាន = Teleport")
+print("[v8] ចុច [×] = Clear slot")
+print("[v8] ចុច [–] = លាក់ UI")
+print("[v8] ចុច [⚡] = បើកវិញ")
+print("═══════════════════════════════════════")
 
-setStatus("✅ Loaded! ចុច [–] ដើម្បីលាក់", Color3.fromRGB(100, 255, 150))
+setStatus("✅ Loaded! ចុច slot ដើម្បី save", Color3.fromRGB(100, 255, 150))
