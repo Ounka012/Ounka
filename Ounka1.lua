@@ -1,11 +1,12 @@
 -- =========================================================================
--- [ 🌟 SIMPLE TELEPORT + FAST STEAL - BY OUNCOPYBARA 🌟 ]
+-- [ 🌟 VIP FAST STEAL (AGGRESSIVE MODE) - BY OUNCOPYBARA 🌟 ]
 -- =========================================================================
 
 local success, err = pcall(function()
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 -- [ រកកន្លែងដាក់ GUI សុវត្ថិភាព ]
@@ -50,17 +51,16 @@ ScreenGui.Name = "SimpleTeleportGUI"
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ResetOnSpawn = false
 
--- បន្ថែមកម្ពស់ GUI ដើម្បីដាក់ប៊ូតុងទី ៣
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 300, 0, 240) 
 MainFrame.Position = UDim2.new(0.5, -150, 0.5, -120)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 20, 25)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 15, 18) -- ពណ៌ខ្មៅរាងក្រម៉ៅជាងមុន
 MainFrame.BorderSizePixel = 0
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
 local UIStroke = Instance.new("UIStroke", MainFrame)
-UIStroke.Thickness = 2
-UIStroke.Color = Color3.fromRGB(255, 105, 180)
+UIStroke.Thickness = 2.5
+UIStroke.Color = Color3.fromRGB(255, 50, 100) -- ពណ៌ក្រហមឆ្អៅ VIP
 
 -- Dragging Logic
 local dragging, dragStart, startPos
@@ -81,19 +81,19 @@ end)
 
 local TitleBar = Instance.new("Frame", MainFrame)
 TitleBar.Size = UDim2.new(1, 0, 0, 40)
-TitleBar.BackgroundColor3 = Color3.fromRGB(45, 25, 35)
-Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 12)
+TitleBar.BackgroundColor3 = Color3.fromRGB(40, 20, 30)
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 8)
 
 local TitleText = Instance.new("TextLabel", TitleBar)
 TitleText.Size = UDim2.new(1, -50, 1, 0); TitleText.Position = UDim2.new(0, 15, 0, 0)
-TitleText.BackgroundTransparency = 1; TitleText.Text = "TELEPORT & FAST STEAL"
-TitleText.TextColor3 = Color3.fromRGB(255, 182, 193)
-TitleText.Font = Enum.Font.GothamBlack; TitleText.TextSize = 12
+TitleText.BackgroundTransparency = 1; TitleText.Text = "⚡ VIP FAST STEAL"
+TitleText.TextColor3 = Color3.fromRGB(255, 150, 180)
+TitleText.Font = Enum.Font.GothamBlack; TitleText.TextSize = 13
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 
 local CloseBtn = Instance.new("TextButton", TitleBar)
 CloseBtn.Size = UDim2.new(0, 30, 0, 30); CloseBtn.Position = UDim2.new(1, -38, 0, 5)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 100)
 CloseBtn.Text = "X"; CloseBtn.TextColor3 = Color3.new(1,1,1)
 CloseBtn.Font = Enum.Font.GothamBold; Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
@@ -111,22 +111,75 @@ local function createButton(yPos, text, bgColor)
     btn.Size = UDim2.new(1, -30, 0, 40); btn.Position = UDim2.new(0, 15, 0, yPos)
     btn.BackgroundColor3 = bgColor; btn.Text = text
     btn.TextColor3 = Color3.new(1,1,1); btn.Font = Enum.Font.GothamBold; btn.TextSize = 13
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     return btn
 end
 
-local btnSetBase = createButton(55, "📍 កំណត់ទីតាំង (Set Base)", Color3.fromRGB(255, 105, 180))
-local btnGoToBase = createButton(105, "🚀 ហោះទៅទីតាំងវិញ", Color3.fromRGB(138, 43, 226))
-local btnFastSteal = createButton(155, "⚡ ចុចយកពងលឿន: OFF", Color3.fromRGB(60, 30, 45))
+local btnSetBase = createButton(55, "📍 កំណត់ទីតាំង Base", Color3.fromRGB(255, 105, 180))
+local btnGoToBase = createButton(105, "🚀 ហោះទៅ Base", Color3.fromRGB(138, 43, 226))
+local btnFastSteal = createButton(155, "⚡ លួចពងលឿន VIP: OFF", Color3.fromRGB(60, 30, 45))
 
 local StatusLabel = Instance.new("TextLabel", MainFrame)
 StatusLabel.Size = UDim2.new(1, -30, 0, 30); StatusLabel.Position = UDim2.new(0, 15, 1, -35)
-StatusLabel.BackgroundTransparency = 1; StatusLabel.Text = "សូមកំណត់ទីតាំងជាមុនសិន"
+StatusLabel.BackgroundTransparency = 1; StatusLabel.Text = "សូមកំណត់ទីតាំង Base ជាមុន"
 StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255); StatusLabel.Font = Enum.Font.GothamBold; StatusLabel.TextSize = 12
 
 local function updateStatus(text, color)
     StatusLabel.Text = text; StatusLabel.TextColor3 = color or Color3.fromRGB(255, 182, 193)
 end
+
+-- [ ប្រព័ន្ធទម្លាក់ពងចូល Base ]
+local function handleSteal()
+    if not FastStealOn or not BaseCFrame or isProcessing then return end
+    local hrp = getCharacter()
+    if not hrp then return end
+    
+    isProcessing = true
+    local OriginalPos = hrp.CFrame
+    
+    task.spawn(function()
+        instantTeleport(BaseCFrame) -- ហោះទៅ Base ភ្លាមៗ
+        task.wait(0.05) -- ចាំឲ្យពងធ្លាក់បន្តិច (អាចកែទៅ 0.1 បើនៅតែអត់ទម្លាក់)
+        instantTeleport(OriginalPos) -- ត្រឡប់មកវិញភ្លាមៗ
+        task.wait(0.1) -- សម្រាកកុំឲ្យគាំង
+        isProcessing = false
+    end)
+end
+
+-- [ ប្រព័ន្ធស្កេន និងបង្ខំអោយពងទាំងអស់ចុចបានលឿន (AGGRESSIVE LOOP) ]
+task.spawn(function()
+    while task.wait(0.5) do -- រាល់កន្លះវិនាទី វាស្កេនរកពងថ្មីៗរហូត
+        if FastStealOn then
+            pcall(function()
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("ProximityPrompt") then
+                        -- បង្ខំឲ្យលឿន ទម្លុះជញ្ជាំង និងងាយចុច
+                        v.HoldDuration = 0
+                        v.RequiresLineOfSight = false
+                        if v.MaxActivationDistance < 15 then
+                            v.MaxActivationDistance = 15 -- បង្កើនប្រវែងដៃអោយចុចដល់
+                        end
+                        
+                        -- ការពារកុំឲ្យចងភ្ជាប់រហូតពេក នាំឲ្យគាំង
+                        if not v:GetAttribute("VIPStealHooked") then
+                            v:SetAttribute("VIPStealHooked", true)
+                            v.Triggered:Connect(function(plr) 
+                                if plr == LocalPlayer then handleSteal() end 
+                            end)
+                        end
+                    elseif v:IsA("ClickDetector") then
+                        if not v:GetAttribute("VIPStealHooked") then
+                            v:SetAttribute("VIPStealHooked", true)
+                            v.MouseClick:Connect(function(plr) 
+                                if plr == LocalPlayer then handleSteal() end 
+                            end)
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
 
 -- [ សកម្មភាពប៊ូតុង ]
 btnSetBase.Activated:Connect(function()
@@ -154,54 +207,17 @@ btnFastSteal.Activated:Connect(function()
     
     FastStealOn = not FastStealOn
     if FastStealOn then
-        btnFastSteal.Text = "⚡ ចុចយកពងលឿន: ON"
+        btnFastSteal.Text = "⚡ លួចពងលឿន VIP: ON"
         btnFastSteal.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
-        updateStatus("✅ បើកមុខងារយកពងលឿន!", Color3.fromRGB(100, 255, 100))
-        
-        -- កំណត់ឱ្យការចុចពង (ProximityPrompt) លឿនភ្លាមៗ (HoldDuration = 0)
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("ProximityPrompt") then v.HoldDuration = 0 end
-        end
+        updateStatus("✅ បើកមុខងារយកពងលឿនVIP!", Color3.fromRGB(100, 255, 100))
     else
-        btnFastSteal.Text = "⚡ ចុចយកពងលឿន: OFF"
+        btnFastSteal.Text = "⚡ លួចពងលឿន VIP: OFF"
         btnFastSteal.BackgroundColor3 = Color3.fromRGB(60, 30, 45)
         updateStatus("🛑 បានបិទមុខងារយកពងលឿន", Color3.fromRGB(255, 182, 193))
     end
 end)
 
--- [ ប្រព័ន្ធដំណើរការការចុចយកពង ]
-local function handleSteal()
-    if not FastStealOn or not BaseCFrame or isProcessing then return end
-    local hrp = getCharacter()
-    if not hrp then return end
-    
-    isProcessing = true
-    local OriginalPos = hrp.CFrame
-    
-    task.spawn(function()
-        instantTeleport(BaseCFrame) -- ហោះទៅ Base ភ្លាមៗ
-        task.wait(0.05) -- រង់ចាំបន្តិចឲ្យពងធ្លាក់
-        instantTeleport(OriginalPos) -- ហោះត្រឡប់មកវិញភ្លាមៗ
-        task.wait(0.1)
-        isProcessing = false
-    end)
-end
-
-local function hookInteractions(v)
-    pcall(function()
-        if v:IsA("ProximityPrompt") then
-            if FastStealOn then v.HoldDuration = 0 end
-            v.Triggered:Connect(function(plr) if plr == LocalPlayer then handleSteal() end end)
-        elseif v:IsA("ClickDetector") then
-            v.MouseClick:Connect(function(plr) if plr == LocalPlayer then handleSteal() end end)
-        end
-    end)
-end
-
-for _, v in pairs(workspace:GetDescendants()) do hookInteractions(v) end
-workspace.DescendantAdded:Connect(hookInteractions)
-
-print("✅ Teleport & Fast Steal loaded!")
+print("✅ VIP FAST STEAL LOADED SUCESSFULLY!")
 end)
 
 if not success then warn("❌ Error: " .. tostring(err)) end
