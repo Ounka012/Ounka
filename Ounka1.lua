@@ -1,7 +1,5 @@
 --[[
-    ═══════════════════════════════════════════════════════════
-      🌲⚡ AUTO TP — មានប៊ូតុង ON/OFF លើអេក្រង់
-    ═══════════════════════════════════════════════════════════
+    🌲⚡ AUTO TP — ON/OFF Button (Fixed)
 ]]
 
 local Players         = game:GetService("Players")
@@ -9,7 +7,7 @@ local Workspace       = game:GetService("Workspace")
 local UserInputService= game:GetService("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
-local CoreGui = (gethui and gethui()) or LocalPlayer:WaitForChild("PlayerGui")
+local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
 
 -- ═══ ការកំណត់ ═══
 local Targets = {
@@ -72,7 +70,7 @@ local function tpAndReturn(target)
     hrp.CFrame = backCF
 end
 
--- ═══ ⚡ AUTO LOOP ═══
+-- ═══ AUTO LOOP ═══
 task.spawn(function()
     while task.wait(0.2) do
         if AutoEnabled then
@@ -86,36 +84,47 @@ task.spawn(function()
 end)
 
 -- ═══════════════════════════════════════════════════════════
---  🎨 GUI — ប៊ូតុង ON/OFF លើអេក្រង់
+--  🎨 GUI — ប៊ូតុង ON/OFF
 -- ═══════════════════════════════════════════════════════════
-if CoreGui:FindFirstChild("TP_ONOFF") then CoreGui.TP_ONOFF:Destroy() end
+
+-- លុបចាស់បើមាន
+if PlayerGui:FindFirstChild("TP_ONOFF") then
+    PlayerGui.TP_ONOFF:Destroy()
+end
+if LocalPlayer.PlayerGui:FindFirstChild("TP_ONOFF") then
+    LocalPlayer.PlayerGui.TP_ONOFF:Destroy()
+end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "TP_ONOFF"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.Parent = CoreGui
+ScreenGui.IgnoreGuiInset = false
+ScreenGui.DisplayOrder = 999
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = PlayerGui
 
--- ═══ ប៊ូតុង ON/OFF ធំ ═══
+-- ═══ ប៊ូតុង ON/OFF ═══
 local Btn = Instance.new("TextButton")
-Btn.Size = UDim2.new(0, 90, 0, 90)
-Btn.Position = UDim2.new(0, 20, 0.5, -45)
-Btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)  -- ក្រហម = OFF
+Btn.Name = "TPButton"
+Btn.Size = UDim2.new(0, 100, 0, 100)
+Btn.Position = UDim2.new(0, 20, 0.5, -50)
+Btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 Btn.Text = "OFF"
 Btn.TextColor3 = Color3.new(1,1,1)
 Btn.Font = Enum.Font.GothamBold
-Btn.TextSize = 22
+Btn.TextSize = 24
 Btn.AutoButtonColor = false
 Btn.Active = true
+Btn.Visible = true
 Btn.Parent = ScreenGui
 Instance.new("UICorner", Btn).CornerRadius = UDim.new(1, 0)
 
 local stroke = Instance.new("UIStroke")
 stroke.Color = Color3.fromRGB(255, 255, 255)
-stroke.Thickness = 3
+stroke.Thickness = 4
 stroke.Parent = Btn
 
--- ═══ ធ្វើឱ្យអូសបាន ═══
+-- ═══ អូសបាន ═══
 local dragging, dragStart, startPos
 Btn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1
@@ -145,7 +154,7 @@ Btn.MouseButton1Click:Connect(function()
     AutoEnabled = not AutoEnabled
     if AutoEnabled then
         Btn.Text = "ON"
-        Btn.BackgroundColor3 = Color3.fromRGB(50, 200, 90)  -- បៃតង = ON
+        Btn.BackgroundColor3 = Color3.fromRGB(50, 200, 90)
         stroke.Color = Color3.fromRGB(200, 255, 200)
         print("[TP] ⚡ ON")
     else
@@ -158,4 +167,4 @@ end)
 
 -- ═══ ចាប់ផ្ដើម ═══
 SetHome()
-print("[TP] 🌲⚡ Ready — ចុចប៊ូតុង ON/OFF លើអេក្រង់")
+print("[TP] 🌲⚡ Ready — ប៊ូតុង ON/OFF នៅខាងឆ្វេងអេក្រង់")
