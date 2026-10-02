@@ -1,31 +1,35 @@
 --[[
-    ╔══════════════════════════════════════════╗
-    ║  DELTA-OPTIMIZED EGG STEAL v5.0          ║
-    ║  Tested on Delta Free & Premium         ║
-    ╚══════════════════════════════════════════╝
+    ╔═══════════════════════════════════════════╗
+    ║  DELTA FREE — BULLETPROOF STEAL v6.0      ║
+    ║  No blocked functions                     ║
+    ╚═══════════════════════════════════════════╝
 --]]
 
-print("═══════════════════════════════")
-print("[DELTA STEAL] Loading...")
+-- STEP 1: Test basic print
+print("╔════════════════════════════════════╗")
+print("║ STEP 1: Script loading...          ║")
+print("╚════════════════════════════════════╝")
 
--- ═══ SERVICES ═══
+-- STEP 2: Services (all safe)
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local StarterGui = game:GetService("StarterGui")
+
+print("STEP 2: Services loaded ✓")
+
+-- STEP 3: LocalPlayer
 local LP = Players.LocalPlayer
+print("STEP 3: Player =", LP.Name, "✓")
 
-print("[DELTA STEAL] Player:", LP.Name)
-
--- ═══ CONFIG ═══
+-- STEP 4: Config
 local Config = {
     Base = nil,
     Auto = false,
     Delay = 0.15,
     Busy = false,
 }
+print("STEP 4: Config ready ✓")
 
--- ═══ HELPERS ═══
+-- STEP 5: Helper functions
 local function getHRP()
     local c = LP.Character
     if not c then return nil end
@@ -34,58 +38,60 @@ end
 
 local function teleport(cf)
     local hrp = getHRP()
-    if not hrp then return end
-    pcall(function()
-        hrp.AssemblyLinearVelocity = Vector3.zero
-        hrp.AssemblyAngularVelocity = Vector3.zero
+    if not hrp then return false end
+    local ok = pcall(function()
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
         hrp.CFrame = cf
-        hrp.AssemblyLinearVelocity = Vector3.zero
-        hrp.AssemblyAngularVelocity = Vector3.zero
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
     end)
+    return ok
 end
+print("STEP 5: Helpers ready ✓")
 
--- ═══ STEAL LOGIC ═══
+-- STEP 6: Steal logic
 local function steal()
     if Config.Busy or not Config.Base or not Config.Auto then return end
     Config.Busy = true
     
     task.spawn(function()
         local hrp = getHRP()
-        if not hrp then Config.Busy = false; return end
+        if not hrp then 
+            Config.Busy = false
+            return 
+        end
         
         local orig = hrp.CFrame
         
-        -- Network ownership
-        pcall(function() hrp:SetNetworkOwner(LP) end)
+        -- SetNetworkOwner (safe on Delta)
+        pcall(function()
+            hrp:SetNetworkOwner(LP)
+        end)
         
-        -- Go to Base
         teleport(Config.Base)
         task.wait(Config.Delay)
-        
-        -- Return
         teleport(orig)
         
-        -- Release ownership
-        pcall(function() hrp:SetNetworkOwner(nil) end)
+        pcall(function()
+            hrp:SetNetworkOwner(nil)
+        end)
         
         Config.Busy = false
     end)
 end
+print("STEP 6: Steal logic ready ✓")
 
--- ═══ HOOK PROMPTS (DELTA-COMPATIBLE) ═══
--- ចំណុចសំខាន់: Delta មិនអនុញ្ញាត InputHoldBegin 
--- ដូច្នេះយើងចាប់តែ Triggered event
-
+-- STEP 7: Hook prompts (Delta-safe: Triggered only)
 local hooked = {}
 
 local function hookPrompt(p)
     if hooked[p] then return end
     hooked[p] = true
-    
     pcall(function()
         p.Triggered:Connect(function(plr)
             if plr == LP and Config.Auto then
-                print("[DELTA STEAL] Triggered!")
+                print("[STEAL] Prompt fired!")
                 steal()
             end
         end)
@@ -95,10 +101,10 @@ end
 local function hookClick(c)
     if hooked[c] then return end
     hooked[c] = true
-    
     pcall(function()
         c.MouseClick:Connect(function(plr)
             if plr == LP and Config.Auto then
+                print("[STEAL] Click fired!")
                 steal()
             end
         end)
@@ -116,87 +122,76 @@ local function scanWorld()
             n = n + 1
         end
     end
-    print("[DELTA STEAL] Scanned:", n)
+    print("[STEAL] Scanned", n, "prompts")
     return n
 end
 
--- Watch new objects
 workspace.DescendantAdded:Connect(function(o)
     if o:IsA("ProximityPrompt") then hookPrompt(o) end
     if o:IsA("ClickDetector") then hookClick(o) end
 end)
+print("STEP 7: Hooks ready ✓")
 
--- ═══ GUI (DELTA-SAFE) ═══
-print("[DELTA STEAL] Creating GUI...")
+-- STEP 8: GUI (ONLY CoreGui — no gethui)
+print("STEP 8: Creating GUI...")
 
--- Delta: ប្រើ CoreGui ផ្ទាល់ ព្រោះ gethui មិនដើរ
-local function getParent()
-    local ok, cg = pcall(function() return game:GetService("CoreGui") end)
-    if ok and cg then return cg end
-    return LP:WaitForChild("PlayerGui")
-end
+local guiParent = game:GetService("CoreGui")
 
-local parent = getParent()
-
--- Cleanup old
+-- Cleanup
 pcall(function()
-    for _, g in pairs(parent:GetChildren()) do
-        if g.Name == "DeltaSteal_v5" then g:Destroy() end
+    for _, g in pairs(guiParent:GetChildren()) do
+        if g.Name == "DeltaSteal_v6" then 
+            g:Destroy() 
+        end
     end
 end)
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "DeltaSteal_v5"
-gui.Parent = parent
+gui.Name = "DeltaSteal_v6"
+gui.Parent = guiParent
 gui.ResetOnSpawn = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+print("  → ScreenGui created ✓")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 330, 0, 330)
-frame.Position = UDim2.new(0.5, -165, 0.5, -165)
+frame.Size = UDim2.new(0, 320, 0, 340)
+frame.Position = UDim2.new(0.5, -160, 0.5, -170)
 frame.BackgroundColor3 = Color3.fromRGB(18, 12, 24)
 frame.BorderSizePixel = 0
 frame.Parent = gui
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
 
-local stroke = Instance.new("UIStroke", frame)
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+print("  → Frame created ✓")
+
+local stroke = Instance.new("UIStroke")
 stroke.Thickness = 2
 stroke.Color = Color3.fromRGB(180, 80, 255)
+stroke.Parent = frame
 
 -- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 42)
 title.BackgroundColor3 = Color3.fromRGB(35, 20, 50)
 title.BorderSizePixel = 0
-title.Text = "⚡ DELTA STEAL v5"
+title.Text = "⚡ DELTA STEAL v6"
 title.TextColor3 = Color3.fromRGB(200, 150, 255)
-title.Font = Enum.Font.GothamBlack
+title.Font = Enum.Font.GothamBold
 title.TextSize = 14
 title.Parent = frame
-Instance.new("UICorner", title).CornerRadius = UDim.new(0, 12)
 
--- Close btn
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -38, 0, 6)
-closeBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 100)
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 14
-closeBtn.Parent = title
-Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
-
-closeBtn.Activated:Connect(function()
-    Config.Auto = false
-    gui:Destroy()
-end)
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 12)
+titleCorner.Parent = title
 
 -- Drag
-local dragging, dragStart, startPos
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
 title.InputBegan:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseButton1 
-    or inp.UserInputType == Enum.UserInputType.Touch then
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 or 
+       inp.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = inp.Position
         startPos = frame.Position
@@ -204,8 +199,8 @@ title.InputBegan:Connect(function(inp)
 end)
 
 UserInputService.InputChanged:Connect(function(inp)
-    if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement 
-    or inp.UserInputType == Enum.UserInputType.Touch) then
+    if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or 
+                     inp.UserInputType == Enum.UserInputType.Touch) then
         local d = inp.Position - dragStart
         frame.Position = UDim2.new(
             startPos.X.Scale, startPos.X.Offset + d.X,
@@ -215,8 +210,8 @@ UserInputService.InputChanged:Connect(function(inp)
 end)
 
 UserInputService.InputEnded:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseButton1 
-    or inp.UserInputType == Enum.UserInputType.Touch then
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 or 
+       inp.UserInputType == Enum.UserInputType.Touch then
         dragging = false
     end
 end)
@@ -233,19 +228,21 @@ local function mkBtn(y, text, color)
     b.Font = Enum.Font.GothamBold
     b.TextSize = 13
     b.Parent = frame
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+    local bc = Instance.new("UICorner")
+    bc.CornerRadius = UDim.new(0, 8)
+    bc.Parent = b
     return b
 end
 
-local btnBase  = mkBtn(55, "📍 កំណត់ Base", Color3.fromRGB(120, 60, 200))
-local btnTest  = mkBtn(110, "🧪 សាកល្បងទៅ Base", Color3.fromRGB(50, 130, 200))
-local btnAuto  = mkBtn(165, "▶ ចាប់ផ្ដើម AUTO", Color3.fromRGB(200, 50, 130))
-local btnScan  = mkBtn(220, "🔍 Scan Prompts", Color3.fromRGB(80, 80, 100))
+local btnBase = mkBtn(55, "📍 កំណត់ Base", Color3.fromRGB(120, 60, 200))
+local btnTest = mkBtn(110, "🧪 សាកល្បងទៅ Base", Color3.fromRGB(50, 130, 200))
+local btnAuto = mkBtn(165, "▶ ចាប់ផ្ដើម AUTO", Color3.fromRGB(200, 50, 130))
+local btnScan = mkBtn(220, "🔍 Scan", Color3.fromRGB(80, 80, 100))
 
 -- Status
 local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, -30, 0, 40)
-status.Position = UDim2.new(0, 15, 1, -50)
+status.Size = UDim2.new(1, -30, 0, 50)
+status.Position = UDim2.new(0, 15, 1, -60)
 status.BackgroundTransparency = 1
 status.Text = "សូមកំណត់ Base មុន"
 status.TextColor3 = Color3.fromRGB(180, 180, 200)
@@ -259,27 +256,29 @@ status.Parent = frame
 local function setStatus(t, c)
     status.Text = t
     status.TextColor3 = c or Color3.fromRGB(180, 180, 200)
-    print("[DELTA STEAL]", t)
+    print("[STEAL] Status:", t)
 end
 
--- ═══ BUTTON EVENTS ═══
+print("  → GUI created fully ✓")
+
+-- STEP 9: Button events
 btnBase.Activated:Connect(function()
-    print("[DELTA STEAL] Set Base clicked")
+    print("[STEAL] Button: Set Base clicked")
     local hrp = getHRP()
     if hrp then
         Config.Base = hrp.CFrame
         setStatus(string.format("✅ Base: %.0f, %.0f, %.0f",
-            hrp.Position.X, hrp.Position.Y, hrp.Position.Z), 
+            hrp.Position.X, hrp.Position.Y, hrp.Position.Z),
             Color3.fromRGB(100, 255, 150))
     else
-        setStatus("❌ Character មិនទាន់ load!", Color3.fromRGB(255, 100, 100))
+        setStatus("❌ Character មិនទាន់ load", Color3.fromRGB(255, 100, 100))
     end
 end)
 
 btnTest.Activated:Connect(function()
-    print("[DELTA STEAL] Test clicked")
+    print("[STEAL] Button: Test clicked")
     if not Config.Base then
-        setStatus("❌ កំណត់ Base មុន!", Color3.fromRGB(255, 100, 100))
+        setStatus("❌ កំណត់ Base មុន", Color3.fromRGB(255, 100, 100))
         return
     end
     local hrp = getHRP()
@@ -288,22 +287,22 @@ btnTest.Activated:Connect(function()
         teleport(Config.Base)
         task.wait(0.5)
         teleport(orig)
-        setStatus("✅ Test ជោគជ័យ!", Color3.fromRGB(100, 255, 150))
+        setStatus("✅ Test ជោគជ័យ", Color3.fromRGB(100, 255, 150))
     else
-        setStatus("❌ រកមិនឃើញ HRP!", Color3.fromRGB(255, 100, 100))
+        setStatus("❌ រកមិនឃើញ HRP", Color3.fromRGB(255, 100, 100))
     end
 end)
 
 btnScan.Activated:Connect(function()
-    print("[DELTA STEAL] Scan clicked")
+    print("[STEAL] Button: Scan clicked")
     local n = scanWorld()
     setStatus("✅ ឃើញ " .. n .. " prompts", Color3.fromRGB(150, 200, 255))
 end)
 
 btnAuto.Activated:Connect(function()
-    print("[DELTA STEAL] Auto clicked")
+    print("[STEAL] Button: Auto clicked")
     if not Config.Base then
-        setStatus("❌ កំណត់ Base មុន!", Color3.fromRGB(255, 100, 100))
+        setStatus("❌ កំណត់ Base មុន", Color3.fromRGB(255, 100, 100))
         return
     end
     
@@ -312,9 +311,8 @@ btnAuto.Activated:Connect(function()
     if Config.Auto then
         btnAuto.Text = "⏸ បញ្ឈប់ AUTO"
         btnAuto.BackgroundColor3 = Color3.fromRGB(255, 180, 50)
-        setStatus("✅ AUTO កំពុងដំណើរការ", Color3.fromRGB(100, 255, 150))
+        setStatus("✅ AUTO ដំណើរការ", Color3.fromRGB(100, 255, 150))
         
-        -- Auto scan loop
         task.spawn(function()
             while Config.Auto and gui.Parent do
                 pcall(scanWorld)
@@ -328,18 +326,23 @@ btnAuto.Activated:Connect(function()
     end
 end)
 
--- Toggle key (Delta supports)
+print("STEP 9: Buttons connected ✓")
+
+-- STEP 10: Toggle key
 UserInputService.InputBegan:Connect(function(inp, gp)
     if not gp and inp.KeyCode == Enum.KeyCode.RightShift then
         frame.Visible = not frame.Visible
     end
 end)
 
--- ═══ INIT ═══
+-- STEP 11: Initial scan
 task.spawn(function()
     task.wait(0.5)
     pcall(scanWorld)
 end)
 
-print("[DELTA STEAL] ✅ LOADED SUCCESSFULLY")
+print("╔════════════════════════════════════╗")
+print("║ ✅ v6 LOADED SUCCESSFULLY          ║")
+print("║ Press RightShift to toggle         ║")
+print("╚════════════════════════════════════╝")
 setStatus("✅ Script loaded!", Color3.fromRGB(100, 255, 150))
