@@ -1,411 +1,731 @@
--- ═══════════════════════════════════════════════
--- OUNCOPYBARA PINK - SIMPLE EDITION
--- Delta Tested
--- ═══════════════════════════════════════════════
+--========================================================
+-- 🌸 OUNCOPYBARA PINK NEON GUI
+-- Roblox Studio - LocalScript
+--========================================================
 
-print(">>> START <<<")
-
--- 1) SERVICES
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
-local LP = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
 
-print(">>> Services OK")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- 2) GUI PARENT - ប្រើ PlayerGui ដែល Delta គាំទ្រ 100%
-local playerGui = LP:WaitForChild("PlayerGui", 10)
-if not playerGui then
-    warn("PlayerGui not found!")
-    return
+--========================================================
+-- CONFIG
+--========================================================
+
+local PINK = Color3.fromRGB(255, 40, 170)
+local LIGHT_PINK = Color3.fromRGB(255, 150, 220)
+local PURPLE = Color3.fromRGB(150, 60, 255)
+
+local BG = Color3.fromRGB(15, 10, 20)
+local PANEL = Color3.fromRGB(25, 15, 32)
+local BUTTON = Color3.fromRGB(40, 20, 48)
+
+--========================================================
+-- REMOVE OLD GUI
+--========================================================
+
+local old = PlayerGui:FindFirstChild("OuncopybaraPinkNeon")
+if old then
+	old:Destroy()
 end
 
-print(">>> PlayerGui OK")
+--========================================================
+-- SCREEN GUI
+--========================================================
 
--- 3) CREATE GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "OuncopybaraSimple"
-gui.Parent = playerGui
-gui.ResetOnSpawn = false
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "OuncopybaraPinkNeon"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.Parent = PlayerGui
 
-print(">>> ScreenGui OK")
+--========================================================
+-- MAIN FRAME
+--========================================================
 
--- 4) FRAME
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 280)
-frame.Position = UDim2.new(0.5, -150, 0.5, -140)
-frame.BackgroundColor3 = Color3.fromRGB(30, 20, 25)
-frame.BorderSizePixel = 0
-frame.Parent = gui
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 330, 0, 390)
+Main.Position = UDim2.new(0.5, -165, 0.5, -195)
+Main.BackgroundColor3 = BG
+Main.BorderSizePixel = 0
+Main.Parent = Gui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = frame
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 18)
+MainCorner.Parent = Main
 
-local stroke = Instance.new("UIStroke")
-stroke.Thickness = 2.5
-stroke.Color = Color3.fromRGB(255, 105, 180)
-stroke.Parent = frame
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = PINK
+MainStroke.Thickness = 2
+MainStroke.Transparency = 0.15
+MainStroke.Parent = Main
 
-print(">>> Frame OK")
+--========================================================
+-- GLOW
+--========================================================
 
--- 5) TITLE
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 42)
-title.BackgroundColor3 = Color3.fromRGB(45, 25, 35)
-title.BorderSizePixel = 0
-title.Text = "  🌟 OUNCOPYBARA PINK"
-title.TextColor3 = Color3.fromRGB(255, 182, 193)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 13
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = frame
+local Glow = Instance.new("ImageLabel")
+Glow.Name = "Glow"
+Glow.AnchorPoint = Vector2.new(0.5, 0.5)
+Glow.Position = UDim2.new(0.5, 0, 0.5, 0)
+Glow.Size = UDim2.new(1, 55, 1, 55)
+Glow.BackgroundTransparency = 1
+Glow.Image = "rbxassetid://5028857084"
+Glow.ImageColor3 = PINK
+Glow.ImageTransparency = 0.72
+Glow.ZIndex = 0
+Glow.Parent = Main
 
-local tCorner = Instance.new("UICorner")
-tCorner.CornerRadius = UDim.new(0, 10)
-tCorner.Parent = title
+Main.ZIndex = 2
 
--- 6) HIDE BUTTON
-local hideBtn = Instance.new("TextButton")
-hideBtn.Size = UDim2.new(0, 30, 0, 30)
-hideBtn.Position = UDim2.new(1, -74, 0, 6)
-hideBtn.BackgroundColor3 = Color3.fromRGB(200, 80, 140)
-hideBtn.Text = "–"
-hideBtn.TextColor3 = Color3.new(1, 1, 1)
-hideBtn.Font = Enum.Font.GothamBold
-hideBtn.TextSize = 18
-hideBtn.Parent = title
+--========================================================
+-- TOP BAR
+--========================================================
 
-local hCorner = Instance.new("UICorner")
-hCorner.CornerRadius = UDim.new(0, 6)
-hCorner.Parent = hideBtn
+local Top = Instance.new("Frame")
+Top.Name = "TopBar"
+Top.Size = UDim2.new(1, 0, 0, 65)
+Top.BackgroundColor3 = PANEL
+Top.BorderSizePixel = 0
+Top.ZIndex = 3
+Top.Parent = Main
 
--- 7) CLOSE BUTTON
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -38, 0, 6)
-closeBtn.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 14
-closeBtn.Parent = title
+local TopCorner = Instance.new("UICorner")
+TopCorner.CornerRadius = UDim.new(0, 18)
+TopCorner.Parent = Top
 
-local cCorner = Instance.new("UICorner")
-cCorner.CornerRadius = UDim.new(0, 6)
-cCorner.Parent = closeBtn
+-- Cover lower rounded corners of top bar
+local TopCover = Instance.new("Frame")
+TopCover.Size = UDim2.new(1, 0, 0, 18)
+TopCover.Position = UDim2.new(0, 0, 1, -18)
+TopCover.BackgroundColor3 = PANEL
+TopCover.BorderSizePixel = 0
+TopCover.ZIndex = 3
+TopCover.Parent = Top
 
-print(">>> Title + Buttons OK")
+--========================================================
+-- TITLE
+--========================================================
 
--- 8) DRAG
-local dragging, dragStart, startPos
-title.InputBegan:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseButton1 
-    or inp.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = inp.Position
-        startPos = frame.Position
-    end
-end)
-UIS.InputChanged:Connect(function(inp)
-    if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement 
-    or inp.UserInputType == Enum.UserInputType.Touch) then
-        local d = inp.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + d.X,
-            startPos.Y.Scale, startPos.Y.Offset + d.Y)
-    end
-end)
-UIS.InputEnded:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseButton1 
-    or inp.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
+local Title = Instance.new("TextLabel")
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 18, 0, 8)
+Title.Size = UDim2.new(1, -120, 0, 28)
+Title.Text = "🌸 OUNCOPYBARA"
+Title.TextColor3 = LIGHT_PINK
+Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.ZIndex = 4
+Title.Parent = Top
 
--- 9) BUTTONS
-local function makeBtn(y, txt, color)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -30, 0, 45)
-    b.Position = UDim2.new(0, 15, 0, y)
-    b.BackgroundColor3 = color
-    b.BorderSizePixel = 0
-    b.Text = txt
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 12
-    b.Parent = frame
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 8)
-    c.Parent = b
-    return b
+local SubTitle = Instance.new("TextLabel")
+SubTitle.BackgroundTransparency = 1
+SubTitle.Position = UDim2.new(0, 19, 0, 36)
+SubTitle.Size = UDim2.new(1, -120, 0, 20)
+SubTitle.Text = "PINK NEON  •  STUDIO"
+SubTitle.TextColor3 = Color3.fromRGB(170, 130, 180)
+SubTitle.TextSize = 9
+SubTitle.Font = Enum.Font.GothamMedium
+SubTitle.TextXAlignment = Enum.TextXAlignment.Left
+SubTitle.ZIndex = 4
+SubTitle.Parent = Top
+
+--========================================================
+-- MINIMIZE
+--========================================================
+
+local Minimize = Instance.new("TextButton")
+Minimize.Size = UDim2.new(0, 38, 0, 38)
+Minimize.Position = UDim2.new(1, -88, 0, 13)
+Minimize.BackgroundColor3 = BUTTON
+Minimize.Text = "—"
+Minimize.TextColor3 = LIGHT_PINK
+Minimize.TextSize = 20
+Minimize.Font = Enum.Font.GothamBold
+Minimize.AutoButtonColor = false
+Minimize.ZIndex = 5
+Minimize.Parent = Top
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 10)
+MinCorner.Parent = Minimize
+
+local MinStroke = Instance.new("UIStroke")
+MinStroke.Color = PINK
+MinStroke.Transparency = 0.35
+MinStroke.Parent = Minimize
+
+--========================================================
+-- CLOSE
+--========================================================
+
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0, 38, 0, 38)
+Close.Position = UDim2.new(1, -45, 0, 13)
+Close.BackgroundColor3 = Color3.fromRGB(90, 20, 60)
+Close.Text = "×"
+Close.TextColor3 = Color3.fromRGB(255, 180, 220)
+Close.TextSize = 22
+Close.Font = Enum.Font.GothamBold
+Close.AutoButtonColor = false
+Close.ZIndex = 5
+Close.Parent = Top
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 10)
+CloseCorner.Parent = Close
+
+--========================================================
+-- CONTENT
+--========================================================
+
+local Content = Instance.new("Frame")
+Content.BackgroundTransparency = 1
+Content.Position = UDim2.new(0, 15, 0, 78)
+Content.Size = UDim2.new(1, -30, 1, -90)
+Content.ZIndex = 3
+Content.Parent = Main
+
+--========================================================
+-- STATUS
+--========================================================
+
+local StatusBox = Instance.new("Frame")
+StatusBox.Size = UDim2.new(1, 0, 0, 48)
+StatusBox.BackgroundColor3 = Color3.fromRGB(30, 18, 38)
+StatusBox.BorderSizePixel = 0
+StatusBox.Parent = Content
+
+local StatusCorner = Instance.new("UICorner")
+StatusCorner.CornerRadius = UDim.new(0, 12)
+StatusCorner.Parent = StatusBox
+
+local StatusStroke = Instance.new("UIStroke")
+StatusStroke.Color = PURPLE
+StatusStroke.Transparency = 0.55
+StatusStroke.Parent = StatusBox
+
+local StatusDot = Instance.new("TextLabel")
+StatusDot.BackgroundTransparency = 1
+StatusDot.Position = UDim2.new(0, 12, 0, 8)
+StatusDot.Size = UDim2.new(0, 25, 0, 30)
+StatusDot.Text = "●"
+StatusDot.TextColor3 = Color3.fromRGB(80, 255, 160)
+StatusDot.TextSize = 17
+StatusDot.Font = Enum.Font.GothamBold
+StatusDot.Parent = StatusBox
+
+local Status = Instance.new("TextLabel")
+Status.BackgroundTransparency = 1
+Status.Position = UDim2.new(0, 40, 0, 7)
+Status.Size = UDim2.new(1, -50, 0, 34)
+Status.Text = "Ready • Set your Base"
+Status.TextColor3 = Color3.fromRGB(225, 205, 230)
+Status.TextSize = 11
+Status.Font = Enum.Font.GothamMedium
+Status.TextXAlignment = Enum.TextXAlignment.Left
+Status.Parent = StatusBox
+
+--========================================================
+-- BUTTON FUNCTION
+--========================================================
+
+local function CreateButton(name, text, y, accent)
+
+	local Button = Instance.new("TextButton")
+	Button.Name = name
+	Button.Size = UDim2.new(1, 0, 0, 52)
+	Button.Position = UDim2.new(0, 0, 0, y)
+	Button.BackgroundColor3 = BUTTON
+	Button.BorderSizePixel = 0
+	Button.Text = text
+	Button.TextColor3 = Color3.fromRGB(245, 225, 245)
+	Button.TextSize = 12
+	Button.Font = Enum.Font.GothamBold
+	Button.AutoButtonColor = false
+	Button.ZIndex = 4
+	Button.Parent = Content
+
+	local Corner = Instance.new("UICorner")
+	Corner.CornerRadius = UDim.new(0, 13)
+	Corner.Parent = Button
+
+	local Stroke = Instance.new("UIStroke")
+	Stroke.Color = accent
+	Stroke.Thickness = 1.4
+	Stroke.Transparency = 0.35
+	Stroke.Parent = Button
+
+	-- hover effect
+	Button.MouseEnter:Connect(function()
+		TweenService:Create(
+			Button,
+			TweenInfo.new(0.15),
+			{
+				BackgroundColor3 = Color3.fromRGB(
+					math.min(accent.R * 255 + 25, 255),
+					math.min(accent.G * 255 + 15, 255),
+					math.min(accent.B * 255 + 20, 255)
+				)
+			}
+		):Play()
+	end)
+
+	Button.MouseLeave:Connect(function()
+		TweenService:Create(
+			Button,
+			TweenInfo.new(0.15),
+			{
+				BackgroundColor3 = BUTTON
+			}
+		):Play()
+	end)
+
+	return Button
 end
 
-local btnBase = makeBtn(55, "📍 កំណត់ Base", Color3.fromRGB(255, 105, 180))
-local btnGo = makeBtn(108, "🚀 ហោះទៅ Base", Color3.fromRGB(138, 43, 226))
-local btnAuto = makeBtn(161, "⚡ AUTO: OFF", Color3.fromRGB(60, 30, 45))
-local btnTest = makeBtn(214, "🧪 Test TP", Color3.fromRGB(80, 80, 120))
+--========================================================
+-- BUTTONS
+--========================================================
 
-print(">>> Buttons OK")
+local SetBase = CreateButton(
+	"SetBase",
+	"📍   SET BASE",
+	60,
+	PINK
+)
 
--- 10) STATUS
-local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1, -30, 0, 20)
-status.Position = UDim2.new(0, 15, 1, -24)
-status.BackgroundTransparency = 1
-status.Text = "សូមកំណត់ Base"
-status.TextColor3 = Color3.fromRGB(255, 220, 235)
-status.Font = Enum.Font.Gotham
-status.TextSize = 10
-status.TextXAlignment = Enum.TextXAlignment.Left
-status.Parent = frame
+local GoBase = CreateButton(
+	"GoBase",
+	"🚀   GO BASE",
+	120,
+	PURPLE
+)
 
--- 11) FLOAT BUTTON
-local floatBtn = Instance.new("TextButton")
-floatBtn.Size = UDim2.new(0, 55, 0, 55)
-floatBtn.Position = UDim2.new(0, 20, 0.5, -27)
-floatBtn.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
-floatBtn.Text = "🌟"
-floatBtn.TextColor3 = Color3.new(1, 1, 1)
-floatBtn.Font = Enum.Font.GothamBold
-floatBtn.TextSize = 22
-floatBtn.Visible = false
-floatBtn.Parent = gui
+local Auto = CreateButton(
+	"Auto",
+	"⚡   AUTO : OFF",
+	180,
+	Color3.fromRGB(255, 80, 180)
+)
 
-local fCorner = Instance.new("UICorner")
-fCorner.CornerRadius = UDim.new(1, 0)
-fCorner.Parent = floatBtn
+local Test = CreateButton(
+	"Test",
+	"🧪   TEST TELEPORT",
+	240,
+	Color3.fromRGB(90, 100, 220)
+)
 
-local fStroke = Instance.new("UIStroke")
-fStroke.Thickness = 2.5
-fStroke.Color = Color3.fromRGB(255, 200, 220)
-fStroke.Parent = floatBtn
+--========================================================
+-- BASE POSITION
+--========================================================
 
--- 12) DRAG FLOAT
-local fdrag, fdragStart, fstartPos, fmoved
-floatBtn.InputBegan:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseButton1 
-    or inp.UserInputType == Enum.UserInputType.Touch then
-        fdrag = true
-        fdragStart = inp.Position
-        fstartPos = floatBtn.Position
-        fmoved = false
-    end
-end)
-UIS.InputChanged:Connect(function(inp)
-    if fdrag and (inp.UserInputType == Enum.UserInputType.MouseMovement 
-    or inp.UserInputType == Enum.UserInputType.Touch) then
-        local d = inp.Position - fdragStart
-        if math.abs(d.X) > 3 or math.abs(d.Y) > 3 then fmoved = true end
-        floatBtn.Position = UDim2.new(
-            fstartPos.X.Scale, fstartPos.X.Offset + d.X,
-            fstartPos.Y.Scale, fstartPos.Y.Offset + d.Y)
-    end
-end)
-UIS.InputEnded:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseButton1 
-    or inp.UserInputType == Enum.UserInputType.Touch then
-        fdrag = false
-    end
-end)
-
--- 13) HIDE/SHOW
-hideBtn.Activated:Connect(function()
-    frame.Visible = false
-    floatBtn.Visible = true
-end)
-
-floatBtn.Activated:Connect(function()
-    if not fmoved then
-        floatBtn.Visible = false
-        frame.Visible = true
-    end
-end)
-
-closeBtn.Activated:Connect(function()
-    gui:Destroy()
-end)
-
--- 14) TP FUNCTION
 local BaseCFrame = nil
-local Auto = false
-local Busy = false
+local AutoEnabled = false
 
-local function doTP(cf)
-    if not cf then return false end
-    local char = LP.Character
-    if not char then return false end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-    
-    local ok = pcall(function()
-        hrp.AssemblyLinearVelocity = Vector3.new(0,0,0)
-        hrp.AssemblyAngularVelocity = Vector3.new(0,0,0)
-        hrp.CFrame = cf
-    end)
-    return ok
+local function GetCharacter()
+	local Character = Player.Character
+	if not Character then
+		return nil
+	end
+
+	return Character
 end
 
-local function setStatus(t, c)
-    status.Text = t
-    status.TextColor3 = c or Color3.fromRGB(255, 220, 235)
-    print("[STATUS]", t)
+local function GetRoot()
+	local Character = GetCharacter()
+
+	if not Character then
+		return nil
+	end
+
+	return Character:FindFirstChild("HumanoidRootPart")
 end
 
--- 15) BASE BUTTON
-btnBase.Activated:Connect(function()
-    print(">>> Clicked Set Base")
-    local char = LP.Character
-    if not char then 
-        setStatus("❌ No character", Color3.fromRGB(255,100,100))
-        return 
-    end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        BaseCFrame = hrp.CFrame
-        setStatus(string.format("✅ Base saved: %.0f,%.0f,%.0f", 
-            hrp.Position.X, hrp.Position.Y, hrp.Position.Z),
-            Color3.fromRGB(100,255,150))
-    else
-        setStatus("❌ No HRP", Color3.fromRGB(255,100,100))
-    end
-end)
+local function SetStatus(text, color)
+	Status.Text = text
 
--- 16) GO BASE BUTTON
-btnGo.Activated:Connect(function()
-    print(">>> Clicked Go Base")
-    if not BaseCFrame then
-        setStatus("❌ Set Base first!", Color3.fromRGB(255,100,100))
-        return
-    end
-    local ok = doTP(BaseCFrame)
-    if ok then
-        setStatus("🚀 Teleported!", Color3.fromRGB(200,150,255))
-    else
-        setStatus("❌ TP failed", Color3.fromRGB(255,100,100))
-    end
-end)
-
--- 17) TEST BUTTON
-btnTest.Activated:Connect(function()
-    print(">>> Clicked Test")
-    if not BaseCFrame then
-        setStatus("❌ Set Base first!", Color3.fromRGB(255,100,100))
-        return
-    end
-    local char = LP.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local orig = hrp.CFrame
-    setStatus("🧪 Testing...", Color3.fromRGB(200,200,100))
-    doTP(BaseCFrame)
-    task.wait(0.5)
-    doTP(orig)
-    setStatus("✅ Test done", Color3.fromRGB(100,255,150))
-end)
-
--- 18) AUTO BUTTON + HOOKS
-local hooked = {}
-
-local function hookPrompt(p)
-    if hooked[p] then return end
-    hooked[p] = true
-    p.Triggered:Connect(function(plr)
-        if plr == LP and Auto and BaseCFrame and not Busy then
-            Busy = true
-            local char = LP.Character
-            if char then
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local orig = hrp.CFrame
-                    task.spawn(function()
-                        doTP(BaseCFrame)
-                        task.wait(0.15)
-                        doTP(orig)
-                        task.wait(0.05)
-                        Busy = false
-                    end)
-                end
-            end
-        end
-    end)
+	if color then
+		StatusDot.TextColor3 = color
+	else
+		StatusDot.TextColor3 = Color3.fromRGB(80, 255, 160)
+	end
 end
 
-local function hookClick(c)
-    if hooked[c] then return end
-    hooked[c] = true
-    c.MouseClick:Connect(function(plr)
-        if plr == LP and Auto and BaseCFrame and not Busy then
-            -- same as prompt
-        end
-    end)
-end
+--========================================================
+-- SET BASE
+--========================================================
 
-local function scanAll()
-    local n = 0
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("ProximityPrompt") then
-            hookPrompt(v)
-            n = n + 1
-        elseif v:IsA("ClickDetector") then
-            hookClick(v)
-            n = n + 1
-        end
-    end
-    print(">>> Scanned:", n)
-    return n
-end
+SetBase.Activated:Connect(function()
 
-workspace.DescendantAdded:Connect(function(o)
-    if o:IsA("ProximityPrompt") then hookPrompt(o) end
-    if o:IsA("ClickDetector") then hookClick(o) end
+	local Root = GetRoot()
+
+	if not Root then
+		SetStatus("Character not ready", Color3.fromRGB(255, 90, 100))
+		return
+	end
+
+	BaseCFrame = Root.CFrame
+
+	SetStatus(
+		string.format(
+			"Base saved  •  %.0f / %.0f / %.0f",
+			Root.Position.X,
+			Root.Position.Y,
+			Root.Position.Z
+		),
+		Color3.fromRGB(80, 255, 160)
+	)
+
+	SetBase.Text = "✓   BASE SAVED"
 end)
 
-btnAuto.Activated:Connect(function()
-    print(">>> Clicked Auto")
-    if not BaseCFrame then
-        setStatus("❌ Set Base first!", Color3.fromRGB(255,100,100))
-        return
-    end
-    Auto = not Auto
-    if Auto then
-        btnAuto.Text = "⚡ AUTO: ON"
-        btnAuto.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
-        setStatus("✅ AUTO ON", Color3.fromRGB(100,255,150))
-        task.spawn(function()
-            while Auto and gui.Parent do
-                pcall(scanAll)
-                task.wait(2)
-            end
-        end)
-    else
-        btnAuto.Text = "⚡ AUTO: OFF"
-        btnAuto.BackgroundColor3 = Color3.fromRGB(60, 30, 45)
-        setStatus("⏸ AUTO OFF", Color3.fromRGB(255,182,193))
-    end
+--========================================================
+-- GO BASE
+--========================================================
+
+GoBase.Activated:Connect(function()
+
+	if not BaseCFrame then
+		SetStatus("Set Base first", Color3.fromRGB(255, 90, 100))
+		return
+	end
+
+	local Root = GetRoot()
+
+	if not Root then
+		SetStatus("Character not ready", Color3.fromRGB(255, 90, 100))
+		return
+	end
+
+	Root.AssemblyLinearVelocity = Vector3.zero
+	Root.AssemblyAngularVelocity = Vector3.zero
+	Root.CFrame = BaseCFrame
+
+	SetStatus(
+		"Teleported to Base ✓",
+		Color3.fromRGB(180, 120, 255)
+	)
 end)
 
--- 19) KEYBOARD TOGGLE
-UIS.InputBegan:Connect(function(inp, gp)
-    if not gp and inp.KeyCode == Enum.KeyCode.RightShift then
-        if frame.Visible then
-            frame.Visible = false
-            floatBtn.Visible = true
-        else
-            floatBtn.Visible = false
-            frame.Visible = true
-        end
-    end
+--========================================================
+-- AUTO TOGGLE
+--========================================================
+
+Auto.Activated:Connect(function()
+
+	if not BaseCFrame then
+		SetStatus("Set Base first", Color3.fromRGB(255, 90, 100))
+		return
+	end
+
+	AutoEnabled = not AutoEnabled
+
+	if AutoEnabled then
+
+		Auto.Text = "⚡   AUTO : ON"
+
+		TweenService:Create(
+			Auto,
+			TweenInfo.new(0.2),
+			{
+				BackgroundColor3 = Color3.fromRGB(100, 25, 80)
+			}
+		):Play()
+
+		SetStatus(
+			"Auto mode enabled",
+			Color3.fromRGB(80, 255, 160)
+		)
+
+	else
+
+		Auto.Text = "⚡   AUTO : OFF"
+
+		TweenService:Create(
+			Auto,
+			TweenInfo.new(0.2),
+			{
+				BackgroundColor3 = BUTTON
+			}
+		):Play()
+
+		SetStatus(
+			"Auto mode disabled",
+			Color3.fromRGB(255, 180, 210)
+		)
+	end
 end)
 
--- 20) INITIAL SCAN
+--========================================================
+-- TEST
+--========================================================
+
+Test.Activated:Connect(function()
+
+	if not BaseCFrame then
+		SetStatus("Set Base first", Color3.fromRGB(255, 90, 100))
+		return
+	end
+
+	local Root = GetRoot()
+
+	if not Root then
+		return
+	end
+
+	local Original = Root.CFrame
+
+	SetStatus(
+		"Testing...",
+		Color3.fromRGB(255, 220, 100)
+	)
+
+	Root.CFrame = BaseCFrame
+
+	task.wait(0.6)
+
+	if Root.Parent then
+		Root.CFrame = Original
+	end
+
+	SetStatus(
+		"Test complete ✓",
+		Color3.fromRGB(80, 255, 160)
+	)
+end)
+
+--========================================================
+-- DRAG SYSTEM
+--========================================================
+
+local Dragging = false
+local DragStart
+local StartPosition
+
+Top.InputBegan:Connect(function(Input)
+
+	if Input.UserInputType == Enum.UserInputType.MouseButton1
+		or Input.UserInputType == Enum.UserInputType.Touch then
+
+		Dragging = true
+		DragStart = Input.Position
+		StartPosition = Main.Position
+	end
+end)
+
+UIS.InputChanged:Connect(function(Input)
+
+	if not Dragging then
+		return
+	end
+
+	if Input.UserInputType == Enum.UserInputType.MouseMovement
+		or Input.UserInputType == Enum.UserInputType.Touch then
+
+		local Delta = Input.Position - DragStart
+
+		Main.Position = UDim2.new(
+			StartPosition.X.Scale,
+			StartPosition.X.Offset + Delta.X,
+			StartPosition.Y.Scale,
+			StartPosition.Y.Offset + Delta.Y
+		)
+	end
+end)
+
+UIS.InputEnded:Connect(function(Input)
+
+	if Input.UserInputType == Enum.UserInputType.MouseButton1
+		or Input.UserInputType == Enum.UserInputType.Touch then
+
+		Dragging = false
+	end
+end)
+
+--========================================================
+-- FLOAT BUTTON
+--========================================================
+
+local Float = Instance.new("TextButton")
+Float.Name = "FloatingButton"
+Float.Size = UDim2.new(0, 58, 0, 58)
+Float.Position = UDim2.new(0, 20, 0.5, -29)
+Float.BackgroundColor3 = Color3.fromRGB(30, 15, 38)
+Float.Text = "🌸"
+Float.TextSize = 24
+Float.Font = Enum.Font.GothamBold
+Float.TextColor3 = LIGHT_PINK
+Float.Visible = false
+Float.AutoButtonColor = false
+Float.ZIndex = 10
+Float.Parent = Gui
+
+local FloatCorner = Instance.new("UICorner")
+FloatCorner.CornerRadius = UDim.new(1, 0)
+FloatCorner.Parent = Float
+
+local FloatStroke = Instance.new("UIStroke")
+FloatStroke.Color = PINK
+FloatStroke.Thickness = 2
+FloatStroke.Parent = Float
+
+--========================================================
+-- MINIMIZE / SHOW
+--========================================================
+
+Minimize.Activated:Connect(function()
+
+	Main.Visible = false
+	Float.Visible = true
+
+end)
+
+Float.Activated:Connect(function()
+
+	Main.Visible = true
+	Float.Visible = false
+
+end)
+
+--========================================================
+-- CLOSE
+--========================================================
+
+Close.Activated:Connect(function()
+
+	AutoEnabled = false
+	Gui:Destroy()
+
+end)
+
+--========================================================
+-- RIGHT SHIFT TOGGLE
+--========================================================
+
+UIS.InputBegan:Connect(function(Input, GameProcessed)
+
+	if GameProcessed then
+		return
+	end
+
+	if Input.KeyCode == Enum.KeyCode.RightShift then
+
+		if Main.Visible then
+			Main.Visible = false
+			Float.Visible = true
+		else
+			Main.Visible = true
+			Float.Visible = false
+		end
+	end
+end)
+
+--========================================================
+-- MOBILE FLOAT DRAG
+--========================================================
+
+local FloatDragging = false
+local FloatStart
+local FloatPosition
+local FloatMoved = false
+
+Float.InputBegan:Connect(function(Input)
+
+	if Input.UserInputType == Enum.UserInputType.MouseButton1
+		or Input.UserInputType == Enum.UserInputType.Touch then
+
+		FloatDragging = true
+		FloatMoved = false
+
+		FloatStart = Input.Position
+		FloatPosition = Float.Position
+	end
+end)
+
+UIS.InputChanged:Connect(function(Input)
+
+	if not FloatDragging then
+		return
+	end
+
+	if Input.UserInputType == Enum.UserInputType.MouseMovement
+		or Input.UserInputType == Enum.UserInputType.Touch then
+
+		local Delta = Input.Position - FloatStart
+
+		if math.abs(Delta.X) > 5 or math.abs(Delta.Y) > 5 then
+			FloatMoved = true
+		end
+
+		Float.Position = UDim2.new(
+			FloatPosition.X.Scale,
+			FloatPosition.X.Offset + Delta.X,
+			FloatPosition.Y.Scale,
+			FloatPosition.Y.Offset + Delta.Y
+		)
+	end
+end)
+
+UIS.InputEnded:Connect(function(Input)
+
+	if Input.UserInputType == Enum.UserInputType.MouseButton1
+		or Input.UserInputType == Enum.UserInputType.Touch then
+
+		FloatDragging = false
+	end
+end)
+
+--========================================================
+-- NEON ANIMATION
+--========================================================
+
 task.spawn(function()
-    task.wait(1)
-    pcall(scanAll)
+
+	while Gui.Parent do
+
+		TweenService:Create(
+			MainStroke,
+			TweenInfo.new(
+				1.2,
+				Enum.EasingStyle.Sine,
+				Enum.EasingDirection.InOut
+			),
+			{
+				Transparency = 0.5
+			}
+		):Play()
+
+		task.wait(1.2)
+
+		TweenService:Create(
+			MainStroke,
+			TweenInfo.new(
+				1.2,
+				Enum.EasingStyle.Sine,
+				Enum.EasingDirection.InOut
+			),
+			{
+				Transparency = 0.05
+			}
+		):Play()
+
+		task.wait(1.2)
+	end
+
 end)
 
-print("═════════════════════════════════════")
-print(">>> ✅ LOADED SUCCESSFULLY <<<")
-print("═════════════════════════════════════")
-setStatus("✅ Loaded! ចុច 📍 Set Base", Color3.fromRGB(100,255,150))
+--========================================================
+-- LOADED
+--========================================================
+
+SetStatus(
+	"Ready • Pink Neon loaded ✓",
+	Color3.fromRGB(80, 255, 160)
+)
+
+print("🌸 OUNCOPYBARA PINK NEON GUI LOADED")
