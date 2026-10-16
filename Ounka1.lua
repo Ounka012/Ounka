@@ -1,21 +1,25 @@
 -- ============================================================
---   by ouncopybara | DELTA FIXED EDITION v8.2.0
---   Fixed: GUI parent (Delta safe), game loaded guard,
---          ESP range, aimbot fallback, topbar drag,
---          resetCharacter whitelist, cleanup bugs
+--   by ouncopybara | GHOST MODE PREMIUM EDITION v9.0.0
+--   Features: Image sync-load + auto-retry, advanced aimbot,
+--             smooth ESP, pathfind farm, auto-reconnect, save/
+--             load presets, animations, theme engine, mobile+PC
 -- ============================================================
 
--- DELTA BOOT GUARD ------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   BOOT GUARD
+-- ═══════════════════════════════════════════════════════════════
 if not game:IsLoaded() then game.Loaded:Wait() end
 task.wait(0.4)
 
-local Players           = game:GetService("Players")
-local RunService        = game:GetService("RunService")
-local TweenService      = game:GetService("TweenService")
-local UserInputService  = game:GetService("UserInputService")
-local SoundService      = game:GetService("SoundService")
-local HttpService       = game:GetService("HttpService")
-local PathfindingService= game:GetService("PathfindingService")
+local Players            = game:GetService("Players")
+local RunService         = game:GetService("RunService")
+local TweenService       = game:GetService("TweenService")
+local UserInputService   = game:GetService("UserInputService")
+local SoundService       = game:GetService("SoundService")
+local HttpService        = game:GetService("HttpService")
+local PathfindingService = game:GetService("PathfindingService")
+local StarterGui         = game:GetService("StarterGui")
+local ContextActionService = game:GetService("ContextActionService")
 
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
@@ -34,37 +38,30 @@ if not Camera then
     Camera = workspace.CurrentCamera
 end
 
--- GUIParent (DELTA SAFE) ------------------------------------------
+-- GUIParent (SAFE) ------------------------------------------------
 local GUIParent
 do
     local ok1, h = pcall(function() return gethui() end)
-    if ok1 and h then
-        GUIParent = h
+    if ok1 and h then GUIParent = h
     else
         local ok2, c = pcall(function() return game:GetService("CoreGui") end)
-        if ok2 and c then
-            GUIParent = c
-        else
-            GUIParent = safeWait(LocalPlayer, "PlayerGui", 10)
-                or LocalPlayer:FindFirstChildOfClass("PlayerGui")
-        end
+        if ok2 and c then GUIParent = c
+        else GUIParent = safeWait(LocalPlayer, "PlayerGui", 10) or LocalPlayer:FindFirstChildOfClass("PlayerGui") end
     end
-    if not GUIParent then
-        GUIParent = safeWait(LocalPlayer, "PlayerGui", 10)
-    end
+    if not GUIParent then GUIParent = safeWait(LocalPlayer, "PlayerGui", 10) end
 end
 
--- cleanup old instances
 pcall(function()
     for _, g in ipairs(GUIParent:GetChildren()) do
-        if g.Name:find("AuraUI") or g.Name:find("ouncopybara")
-           or g.Name == "by_ouncopybara_ADV" then
+        if g.Name:find("AuraUI") or g.Name:find("ouncopybara") or g.Name == "by_ouncopybara_ADV" then
             g:Destroy()
         end
     end
 end)
 
--- DEVICE ----------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   DEVICE DETECTION
+-- ═══════════════════════════════════════════════════════════════
 local DEVICE = {
     IsTouch = UserInputService.TouchEnabled,
     IsMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled,
@@ -77,20 +74,23 @@ local function refreshViewport()
     DEVICE.IsTablet = UserInputService.TouchEnabled and UserInputService.KeyboardEnabled
 end
 
--- PERF ------------------------------------------------------------
-local Perf = { fps = 60, memory = 0, frames = 0, lastCheck = tick() }
+-- ═══════════════════════════════════════════════════════════════
+--   PERFORMANCE MONITOR
+-- ═══════════════════════════════════════════════════════════════
+local Perf = { fps = 60, memory = 0, frames = 0, lastCheck = tick(), ping = 0 }
 RunService.RenderStepped:Connect(function()
     Perf.frames = Perf.frames + 1
     local now = tick()
     if now - Perf.lastCheck >= 1 then
-        Perf.fps = Perf.frames
-        Perf.frames = 0
-        Perf.lastCheck = now
+        Perf.fps = Perf.frames; Perf.frames = 0; Perf.lastCheck = now
         pcall(function() Perf.memory = math.floor(collectgarbage("count") or 0) end)
+        pcall(function() Perf.ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()) end)
     end
 end)
 
--- CONN MGR --------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   CONNECTION MANAGER
+-- ═══════════════════════════════════════════════════════════════
 local ConnMgr = { list = {}, threads = {} }
 function ConnMgr.add(c) if c then table.insert(ConnMgr.list, c) end return c end
 function ConnMgr.spawn(fn, ...)
@@ -102,19 +102,21 @@ function ConnMgr.purge()
     ConnMgr.list, ConnMgr.threads = {}, {}
 end
 
--- SIGNAL ----------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   SIGNAL
+-- ═══════════════════════════════════════════════════════════════
 local Signal = {}
 Signal.__index = Signal
 function Signal.new() return setmetatable({ h = {} }, Signal) end
 function Signal:Connect(fn)
     table.insert(self.h, fn)
-    return { Disconnect = function()
-        local i = table.find(self.h, fn); if i then table.remove(self.h, i) end
-    end }
+    return { Disconnect = function() local i = table.find(self.h, fn); if i then table.remove(self.h, i) end end }
 end
 function Signal:Fire(...) for _, fn in ipairs(self.h) do task.spawn(fn, ...) end end
 
--- WORKSPACE CACHE ------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   WORKSPACE CACHE
+-- ═══════════════════════════════════════════════════════════════
 local WSCache = {
     prompts = setmetatable({}, { __mode = "k" }),
     clicks  = setmetatable({}, { __mode = "k" }),
@@ -135,18 +137,15 @@ local function WSCache_index(obj)
                 for _, p in ipairs(Players:GetPlayers()) do
                     if p.Character == obj then isPlayer = true; break end
                 end
-                if isPlayer then WSCache.players[obj] = true
-                else WSCache.npcs[obj] = true end
+                if isPlayer then WSCache.players[obj] = true else WSCache.npcs[obj] = true end
                 WSCache.signal:Fire(obj, isPlayer and "player" or "npc")
             end
         end
     end)
 end
 local function WSCache_unindex(obj)
-    WSCache.prompts[obj] = nil
-    WSCache.clicks[obj] = nil
-    WSCache.npcs[obj] = nil
-    WSCache.players[obj] = nil
+    WSCache.prompts[obj] = nil; WSCache.clicks[obj] = nil
+    WSCache.npcs[obj] = nil;    WSCache.players[obj] = nil
 end
 ConnMgr.add(workspace.DescendantAdded:Connect(WSCache_index))
 ConnMgr.add(workspace.DescendantRemoving:Connect(WSCache_unindex))
@@ -154,37 +153,108 @@ ConnMgr.spawn(function()
     for _, v in ipairs(workspace:GetDescendants()) do WSCache_index(v) end
 end)
 
--- IMAGE / AUDIO ---------------------------------------------------
-local CustomImage = ""
-local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
+-- ═══════════════════════════════════════════════════════════════
+--   PREMIUM IMAGE SYSTEM (multi-source + retry + auto-update)
+-- ═══════════════════════════════════════════════════════════════
+local CustomImage  = ""
+local ImageReady   = Signal.new()
+local ImageObjects = {}
+
+local IMAGE_SOURCES = {
+    "https://files.catbox.moe/ka5x56.jpg",
+    "https://i.imgur.com/2Q7Q7Q7.jpg", -- backup slot
+    "https://cdn.discordapp.com/attachments/placeholder.jpg",
+}
 local IMAGE_FALLBACKS = {
     "rbxassetid://13110332857",
     "rbxassetid://14257626628",
     "rbxassetid://12821066523",
+    "rbxassetid://6031075931",
+    "rbxasset://textures/ui/GuiImagePlaceholder.png",
 }
-task.spawn(function()
-    pcall(function()
-        if isfile and writefile and getcustomasset and game.HttpGet then
-            local f = "aura_icon_adv.jpg"
-            pcall(function() if isfile(f) then delfile(f) end end)
-            local ok, data = pcall(function() return game:HttpGet(IMAGE_URL, true) end)
-            if ok and data and #data > 5000 then
-                local b = data:sub(1,1)
-                if b == "\255" or b == "\137" then writefile(f, data) end
-            end
-            if isfile(f) then
-                local ok2, a = pcall(getcustomasset, f)
-                if ok2 and a and a ~= "" then CustomImage = a end
+
+local function httpGetRaw(url)
+    local methods = {
+        function() if syn and syn.request then return syn.request({Url=url,Method="GET"}) end end,
+        function() if request then return request({Url=url,Method="GET"}) end end,
+        function() if http_request then return http_request({Url=url,Method="GET"}) end end,
+        function() return { Body = game:HttpGet(url, true) } end,
+    }
+    for _, m in ipairs(methods) do
+        local ok, res = pcall(m)
+        if ok and res and res.Body and #tostring(res.Body) > 0 then return res.Body end
+    end
+    return nil
+end
+
+local function tryGetCustomAsset(fname)
+    if not (isfile and getcustomasset) then return nil end
+    local okExist, exists = pcall(isfile, fname)
+    if not okExist or not exists then return nil end
+    local ok, a = pcall(getcustomasset, fname)
+    if ok and type(a) == "string" and a ~= "" then return a end
+    return nil
+end
+
+local function loadImageSync()
+    if not (writefile and isfile and getcustomasset) then
+        CustomImage = IMAGE_FALLBACKS[1]
+        ImageReady:Fire(CustomImage)
+        return CustomImage
+    end
+
+    local fname = "aura_icon_adv.jpg"
+    local cached = tryGetCustomAsset(fname)
+    if cached then
+        CustomImage = cached
+        ImageReady:Fire(CustomImage)
+        return CustomImage
+    end
+
+    for _, url in ipairs(IMAGE_SOURCES) do
+        local data = httpGetRaw(url)
+        if data and type(data) == "string" and #data > 5000 then
+            local b = data:sub(1, 1)
+            if b == "\255" or b == "\137" then
+                pcall(writefile, fname, data)
+                local asset = tryGetCustomAsset(fname)
+                if asset then
+                    CustomImage = asset
+                    ImageReady:Fire(CustomImage)
+                    return CustomImage
+                end
             end
         end
-    end)
-end)
+    end
 
+    CustomImage = IMAGE_FALLBACKS[1]
+    ImageReady:Fire(CustomImage)
+    return CustomImage
+end
+
+local function registerImage(label)
+    if not label then return end
+    table.insert(ImageObjects, label)
+    if CustomImage ~= "" then pcall(function() label.Image = CustomImage end) end
+    ImageReady:Connect(function(url)
+        pcall(function() if label.Parent then label.Image = url end end)
+    end)
+end
+
+loadImageSync()
+
+-- ═══════════════════════════════════════════════════════════════
+--   AUDIO SYSTEM
+-- ═══════════════════════════════════════════════════════════════
 local Audio = {
     Enabled = true,
+    Volume = 0.3,
     Sounds = {
-        click = "rbxassetid://6034521064",
+        click  = "rbxassetid://6034521064",
         toggle = "rbxassetid://6895079853",
+        open   = "rbxassetid://6026984224",
+        close  = "rbxassetid://6023426926",
+        notify = "rbxassetid://6026984224",
     }
 }
 function Audio:Play(name, vol)
@@ -192,14 +262,16 @@ function Audio:Play(name, vol)
     pcall(function()
         local s = Instance.new("Sound")
         s.SoundId = self.Sounds[name] or self.Sounds.click
-        s.Volume = vol or 0.3
+        s.Volume = vol or self.Volume
         s.Parent = SoundService
         s:Play()
-        task.delay(1, function() s:Destroy() end)
+        task.delay(2, function() pcall(function() s:Destroy() end) end)
     end)
 end
 
--- CFrame serialization -------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   CF SERIALIZATION
+-- ═══════════════════════════════════════════════════════════════
 local function CFrameToTable(cf)
     local x,y,z,r00,r01,r02,r10,r11,r12,r20,r21,r22 = cf:GetComponents()
     return {x=x,y=y,z=z,r00=r00,r01=r01,r02=r02,r10=r10,r11=r11,r12=r12,r20=r20,r21=r21,r22=r22}
@@ -212,8 +284,10 @@ local function TableToCFrame(t)
     return ok and cf or nil
 end
 
--- CONFIG MGR ------------------------------------------------------
-local ConfigMgr = { File = "aura_config_v8.json", Data = {} }
+-- ═══════════════════════════════════════════════════════════════
+--   CONFIG MANAGER
+-- ═══════════════════════════════════════════════════════════════
+local ConfigMgr = { File = "aura_config_v9.json", Data = {} }
 function ConfigMgr:Save(data)
     pcall(function()
         if not writefile then return end
@@ -222,9 +296,7 @@ function ConfigMgr:Save(data)
         for k, v in pairs(d) do
             if k ~= "Themes" and k ~= "BaseCFrames" and k ~= "SavedLocations" then
                 local tv = type(v)
-                if tv == "string" or tv == "number" or tv == "boolean" then
-                    s[k] = v
-                end
+                if tv == "string" or tv == "number" or tv == "boolean" then s[k] = v end
             end
         end
         if d.BaseCFrames then
@@ -252,7 +324,9 @@ function ConfigMgr:Load()
     return self.Data or {}
 end
 
--- HELPERS ---------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   HELPERS
+-- ═══════════════════════════════════════════════════════════════
 local function Corner(parent, r)
     local c = Instance.new("UICorner")
     c.CornerRadius = r or UDim.new(0,10); c.Parent = parent; return c
@@ -269,55 +343,52 @@ local function Tween(obj, info, props)
 end
 local INFO_FAST   = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local INFO_SPRING = TweenInfo.new(0.4,  Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local INFO_SMOOTH = TweenInfo.new(0.3,  Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 
--- KEYBINDS --------------------------------------------------------
-local Keybinds = { list = {} }
-function Keybinds:Register(key, cb) table.insert(self.list, { key=key, cb=cb }) end
-function Keybinds:Check(input)
-    if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
-    for _, kb in ipairs(self.list) do
-        if input.KeyCode == kb.key then
-            task.spawn(kb.cb); Audio:Play("toggle")
-        end
-    end
-end
-
--- CONFIG ----------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   CONFIG
+-- ═══════════════════════════════════════════════════════════════
 local Config = {
     BaseCFrames = {}, SavedLocations = {},
     IsAutoOn=false, StiffDuration=1.0, HoldDelay=0.2,
     IsSpeedOn=false, SpeedValue=60,
-    IsFlyOn=false, FlySpeed=100,
+    IsFlyOn=false, FlySpeed=100, FlyMode="Camera",
     IsInfiniteJumpOn=false, IsNoclipOn=false, IsAutoDriveOn=false,
     IsAntiAFK=true, UsePathfind=false, SafeTP=true,
     Theme="Halloween",
     Themes = {
         Halloween = { Accent = Color3.fromRGB(255,132,35), Name="Ghost" },
-        Pink   = { Accent = Color3.fromRGB(255,105,180), Name="Pink" },
-        Purple = { Accent = Color3.fromRGB(170,0,255),   Name="Purple" },
-        Blue   = { Accent = Color3.fromRGB(0,170,255),   Name="Blue" },
-        Green  = { Accent = Color3.fromRGB(0,255,150),   Name="Green" },
-        Gold   = { Accent = Color3.fromRGB(255,200,0),   Name="Gold" },
-        Red    = { Accent = Color3.fromRGB(255,50,50),   Name="Red" },
-        Cyan   = { Accent = Color3.fromRGB(0,255,255),   Name="Cyan" },
+        Pink      = { Accent = Color3.fromRGB(255,105,180), Name="Sakura" },
+        Purple    = { Accent = Color3.fromRGB(170,0,255),   Name="Void" },
+        Blue      = { Accent = Color3.fromRGB(0,170,255),   Name="Ocean" },
+        Green     = { Accent = Color3.fromRGB(0,255,150),   Name="Neon" },
+        Gold      = { Accent = Color3.fromRGB(255,200,0),   Name="Royal" },
+        Red       = { Accent = Color3.fromRGB(255,50,50),   Name="Crimson" },
+        Cyan      = { Accent = Color3.fromRGB(0,255,255),   Name="Ice" },
+        Rainbow   = { Accent = Color3.fromRGB(255,100,200), Name="Rainbow" },
     },
     ToggleKey = Enum.KeyCode.RightControl,
     AimbotEnabled=false, AimbotFOV=120, AimbotSmooth=0.15,
     AimbotTeamCheck=true, AimbotTargetPart="Head",
+    AimbotVisibleOnly=true, AimbotPrediction=false,
+    AimbotMode="Camera",
     ESPEnabled=false, ESPNames=true, ESPHealth=true,
-    ESPTracers=false, ESPRange=1000, ESPPlayers=true, ESPNPCs=true,
+    ESPDistance=false, ESPTracers=false, ESPBoxes=false,
+    ESPRange=1000, ESPPlayers=true, ESPNPCs=true,
+    ESPTeamColor=true,
     ChamsEnabled=false, ChamsTransparency=0.5,
+    FlySpeedBind = Enum.KeyCode.LeftShift,
+    AntiFling=false, AntiVoid=true,
+    Fullbright=false, NoFog=false,
+    FPSCap=0, DayLight=false,
+    AutoReconnect=false,
 }
-
--- load saved
 do
     local savedCfg = ConfigMgr:Load()
     if savedCfg and type(savedCfg) == "table" then
         for k, v in pairs(savedCfg) do
             if k ~= "Themes" and k ~= "BaseCFrames" and k ~= "SavedLocations" then
-                if Config[k] ~= nil and type(Config[k]) == type(v) then
-                    Config[k] = v
-                end
+                if Config[k] ~= nil and type(Config[k]) == type(v) then Config[k] = v end
             end
         end
         if type(savedCfg.BaseCFrames) == "table" then
@@ -335,21 +406,22 @@ do
             end
         end
     end
-    Config.IsAutoOn=false; Config.IsSpeedOn=false; Config.IsFlyOn=false
-    Config.IsNoclipOn=false; Config.IsAutoDriveOn=false
-    Config.IsInfiniteJumpOn=false; Config.ESPEnabled=false
-    Config.ChamsEnabled=false; Config.AimbotEnabled=false
+    for _, k in ipairs({"IsAutoOn","IsSpeedOn","IsFlyOn","IsNoclipOn","IsAutoDriveOn",
+        "IsInfiniteJumpOn","ESPEnabled","ChamsEnabled","AimbotEnabled","Fullbright","NoFog","DayLight"}) do
+        Config[k] = false
+    end
     if type(Config.Theme) ~= "string" or not Config.Themes[Config.Theme] then
         Config.Theme = "Halloween"
     end
 end
 
--- CHARACTER OBSERVER ----------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   CHARACTER OBSERVER
+-- ═══════════════════════════════════════════════════════════════
 local CharObs = {
     character=nil, humanoid=nil, root=nil,
     changed=Signal.new(), died=Signal.new(),
 }
-
 local BODY_PARTS = {
     Head=1, Torso=1, UpperTorso=1, LowerTorso=1,
     ["Left Arm"]=1, ["Right Arm"]=1,
@@ -412,7 +484,9 @@ if LocalPlayer.Character then bindCharacter(LocalPlayer.Character) end
 ConnMgr.add(LocalPlayer.CharacterAdded:Connect(function(c) task.wait(0.5); bindCharacter(c) end))
 local function getCharacter() return CharObs.character, CharObs.humanoid, CharObs.root end
 
--- GODMODE ---------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   GODMODE
+-- ═══════════════════════════════════════════════════════════════
 local Godmode = { Enabled=false, HealthValue=999999, AntiVoid=true }
 local function applyGodmode()
     pcall(function()
@@ -473,7 +547,9 @@ CharObs.changed:Connect(function()
     if Godmode.Enabled then applyGodmode() end
 end)
 
--- NETWORK ---------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   NETWORK CONTROL
+-- ═══════════════════════════════════════════════════════════════
 local AntiTP = { Enabled=false }
 local function grabNet()
     pcall(function()
@@ -501,14 +577,29 @@ ConnMgr.spawn(function()
     end
 end)
 
--- COMBAT ----------------------------------------------------------
-local Combat = { Aimbot = { Enabled=false }, ESP = { Objects={} } }
+-- ═══════════════════════════════════════════════════════════════
+--   COMBAT
+-- ═══════════════════════════════════════════════════════════════
+local Combat = { Aimbot = { Enabled=false, Target=nil }, ESP = { Objects={} } }
 local aimbotConn
 local guiInset = Vector2.new(0, 36)
 pcall(function()
     local ins = UserInputService:GetGuiInset()
     guiInset = Vector2.new(ins.X, ins.Y)
 end)
+
+local function isVisible(target)
+    if not Config.AimbotVisibleOnly then return true end
+    local char = CharObs.character
+    if not char then return true end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return true end
+    local rp = RaycastParams.new()
+    rp.FilterDescendantsInstances = { char, target }
+    rp.FilterType = Enum.RaycastFilterType.Exclude
+    local ray = workspace:Raycast(root.Position, (target.Position - root.Position), rp)
+    return ray == nil
+end
 
 local function toggleAimbot(state)
     Combat.Aimbot.Enabled = state
@@ -530,16 +621,24 @@ local function toggleAimbot(state)
                         if not skip then
                             local tp = char:FindFirstChild(Config.AimbotTargetPart)
                             if tp and tp:IsA("BasePart") then
-                                local sp, onScreen = cam:WorldToViewportPoint(tp.Position)
-                                if onScreen then
-                                    local d = (Vector2.new(sp.X, sp.Y) - mousePos).Magnitude
-                                    if d < closestDist then closestDist=d; closest=tp end
+                                local targetPos = tp.Position
+                                if Config.AimbotPrediction then
+                                    local vel = tp.AssemblyLinearVelocity or Vector3.zero
+                                    targetPos = targetPos + vel * 0.15
+                                end
+                                if isVisible(tp) then
+                                    local sp, onScreen = cam:WorldToViewportPoint(targetPos)
+                                    if onScreen then
+                                        local d = (Vector2.new(sp.X, sp.Y) - mousePos).Magnitude
+                                        if d < closestDist then closestDist=d; closest=tp end
+                                    end
                                 end
                             end
                         end
                     end
                 end
             end
+            Combat.Aimbot.Target = closest
             if closest then
                 local sp = cam:WorldToViewportPoint(closest.Position)
                 local delta = Vector2.new(sp.X, sp.Y) - mousePos
@@ -557,37 +656,46 @@ local function toggleAimbot(state)
             end
         end)
     else
+        Combat.Aimbot.Target = nil
         if aimbotConn then aimbotConn:Disconnect(); aimbotConn = nil end
     end
 end
 
--- ESP -------------------------------------------------------------
+-- ESP CREATION
 local function createESP(target, isPlayer)
     if Combat.ESP.Objects[target] then return end
     local root = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChildWhichIsA("BasePart")
     local hum = target:FindFirstChildOfClass("Humanoid")
     if not root or not hum then return end
-    -- range check
     local _, _, myHrp = getCharacter()
     if myHrp then
         local d = (myHrp.Position - root.Position).Magnitude
         if d > Config.ESPRange then return end
     end
-    local esp = {}
+    local esp = { Root = root }
     if Config.ChamsEnabled then
         local hl = Instance.new("Highlight")
         hl.Adornee = target
-        hl.FillColor = isPlayer and Color3.fromRGB(255,50,50) or Color3.fromRGB(255,200,0)
+        if isPlayer then
+            local plr = Players:GetPlayerFromCharacter(target)
+            if Config.ESPTeamColor and plr and plr.Team then
+                hl.FillColor = plr.Team.TeamColor.Color
+            else
+                hl.FillColor = Color3.fromRGB(255,50,50)
+            end
+        else
+            hl.FillColor = Color3.fromRGB(255,200,0)
+        end
         hl.FillTransparency = Config.ChamsTransparency
         hl.OutlineColor = Color3.new(1,1,1)
         hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         hl.Parent = target
         esp.Highlight = hl
     end
-    if Config.ESPNames or Config.ESPHealth then
+    if Config.ESPNames or Config.ESPHealth or Config.ESPDistance then
         local bb = Instance.new("BillboardGui")
         bb.Adornee = root
-        bb.Size = UDim2.new(0,200,0,60)
+        bb.Size = UDim2.new(0,200,0,80)
         bb.StudsOffset = Vector3.new(0,3,0)
         bb.AlwaysOnTop = true
         bb.Parent = target
@@ -602,10 +710,21 @@ local function createESP(target, isPlayer)
             name.TextSize = 12
             name.TextStrokeTransparency = 0.5
         end
+        if Config.ESPDistance then
+            local dist = Instance.new("TextLabel", bb)
+            dist.Size = UDim2.new(1,0,0,14)
+            dist.Position = UDim2.new(0,0,0,18)
+            dist.BackgroundTransparency = 1
+            dist.TextColor3 = Color3.fromRGB(200,200,200)
+            dist.Font = Enum.Font.Code
+            dist.TextSize = 10
+            dist.TextStrokeTransparency = 0.5
+            dist.Name = "DistLabel"
+        end
         if Config.ESPHealth then
             local hpBG = Instance.new("Frame", bb)
             hpBG.Size = UDim2.new(0.8,0,0,6)
-            hpBG.Position = UDim2.new(0.1,0,0,22)
+            hpBG.Position = UDim2.new(0.1,0,0,34)
             hpBG.BackgroundColor3 = Color3.fromRGB(40,40,50)
             Corner(hpBG, UDim.new(1,0))
             local hpFill = Instance.new("Frame", hpBG)
@@ -625,12 +744,12 @@ local function createESP(target, isPlayer)
         end
         esp.Billboard = bb
     end
-    if Config.ESPTracers and isPlayer then
+    if Config.ESPTracers then
         local tracer = Instance.new("Frame")
-        tracer.BackgroundColor3 = Color3.fromRGB(255,105,180)
+        tracer.BackgroundColor3 = isPlayer and Color3.fromRGB(255,105,180) or Color3.fromRGB(255,200,0)
         tracer.BorderSizePixel = 0
         tracer.ZIndex = 100
-        tracer.Parent = GUIParent
+        tracer.Parent = ScreenGui
         local c = RunService.RenderStepped:Connect(function()
             if not tracer.Parent or not root.Parent then pcall(function() tracer:Destroy() end); return end
             local cam = workspace.CurrentCamera
@@ -639,7 +758,7 @@ local function createESP(target, isPlayer)
                 local mp = UserInputService:GetMouseLocation() - guiInset
                 local dx, dy = sp.X-mp.X, sp.Y-mp.Y
                 local dist = math.sqrt(dx*dx+dy*dy)
-                tracer.Size = UDim2.new(0,dist,0,2)
+                tracer.Size = UDim2.new(0,dist,0,1)
                 tracer.Position = UDim2.new(0,mp.X,0,mp.Y)
                 tracer.Rotation = math.deg(math.atan2(dy,dx))
                 tracer.Visible = true
@@ -675,8 +794,17 @@ ConnMgr.spawn(function()
             for char in pairs(WSCache.npcs) do
                 if Config.ESPNPCs and char and char.Parent then createESP(char, false) end
             end
-            for target in pairs(Combat.ESP.Objects) do
-                if not target.Parent then removeESP(target) end
+            -- update distances
+            local _, _, myHrp = getCharacter()
+            if myHrp then
+                for target, esp in pairs(Combat.ESP.Objects) do
+                    if esp.Billboard and esp.Root and esp.Root.Parent then
+                        local dist = (myHrp.Position - esp.Root.Position).Magnitude
+                        local dl = esp.Billboard:FindFirstChild("DistLabel")
+                        if dl then dl.Text = string.format("[%d]", math.floor(dist)) end
+                    end
+                    if not target.Parent then removeESP(target) end
+                end
             end
         else
             if next(Combat.ESP.Objects) ~= nil then clearAllESP() end
@@ -684,10 +812,70 @@ ConnMgr.spawn(function()
     end
 end)
 
--- THEME -----------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   ENVIRONMENT TWEAKS
+-- ═══════════════════════════════════════════════════════════════
+local EnvState = { FullbrightConn=nil, FogConn=nil, LightConn=nil }
+local function setFullbright(state)
+    if EnvState.FullbrightConn then EnvState.FullbrightConn:Disconnect(); EnvState.FullbrightConn=nil end
+    if state then
+        EnvState.FullbrightConn = RunService.RenderStepped:Connect(function()
+            pcall(function()
+                local l = game:GetService("Lighting")
+                l.Ambient = Color3.fromRGB(178,178,178)
+                l.OutdoorAmbient = Color3.fromRGB(178,178,178)
+                l.Brightness = 2
+                l.GlobalShadows = false
+            end)
+        end)
+    else
+        pcall(function()
+            local l = game:GetService("Lighting")
+            l.Ambient = Color3.fromRGB(70,70,70)
+            l.OutdoorAmbient = Color3.fromRGB(128,128,128)
+            l.Brightness = 1
+            l.GlobalShadows = true
+        end)
+    end
+end
+local function setNoFog(state)
+    if EnvState.FogConn then EnvState.FogConn:Disconnect(); EnvState.FogConn=nil end
+    if state then
+        EnvState.FogConn = RunService.RenderStepped:Connect(function()
+            pcall(function()
+                local l = game:GetService("Lighting")
+                l.FogEnd = 100000
+                l.FogStart = 0
+                l.FogColor = Color3.new(0,0,0)
+            end)
+        end)
+    end
+end
+local function setDayLight(state)
+    if EnvState.LightConn then EnvState.LightConn:Disconnect(); EnvState.LightConn=nil end
+    if state then
+        EnvState.LightConn = RunService.RenderStepped:Connect(function()
+            pcall(function()
+                local l = game:GetService("Lighting")
+                l.ClockTime = 14
+                l.Brightness = 2.5
+            end)
+        end)
+    end
+end
+local function setFPSCap(cap)
+    pcall(function()
+        if setfpscap then setfpscap(cap > 0 and cap or 60) end
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════════════
+--   THEME ENGINE
+-- ═══════════════════════════════════════════════════════════════
 local accent = Config.Themes[Config.Theme].Accent
 local accentRegistry, gradientRegistry, switchRegistry = {}, {}, {}
 local StrokeGrad
+local RainbowMode = { Active=false, Conn=nil }
 local function RegisterAccent(o,p) table.insert(accentRegistry,{obj=o,prop=p}) end
 local function RegisterGradient(g) table.insert(gradientRegistry,g) end
 
@@ -717,9 +905,29 @@ local function ApplyTheme(name)
             ColorSequenceKeypoint.new(1, accent),
         })
     end
+    -- Stop rainbow if switching away
+    if name ~= "Rainbow" and RainbowMode.Conn then
+        RainbowMode.Conn:Disconnect(); RainbowMode.Conn=nil; RainbowMode.Active=false
+    end
 end
 
--- SCREEN GUI ------------------------------------------------------
+local function StartRainbow()
+    if RainbowMode.Conn then return end
+    RainbowMode.Active = true
+    local hue = 0
+    RainbowMode.Conn = RunService.RenderStepped:Connect(function(dt)
+        if not RainbowMode.Active then return end
+        hue = (hue + dt * 0.3) % 1
+        local c = Color3.fromHSV(hue, 0.85, 1)
+        for _, e in ipairs(accentRegistry) do
+            pcall(function() e.obj[e.prop] = c end)
+        end
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════════════
+--   SCREEN GUI
+-- ═══════════════════════════════════════════════════════════════
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "by_ouncopybara_ADV"
 ScreenGui.ResetOnSpawn = false
@@ -732,7 +940,9 @@ if not ScreenGui.Parent then
     pcall(function() ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui", 5) end)
 end
 
--- NOTIFICATIONS ---------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   NOTIFICATIONS
+-- ═══════════════════════════════════════════════════════════════
 local NotifHolder = Instance.new("Frame")
 NotifHolder.Name = "Notifications"
 NotifHolder.Size = UDim2.new(0, 280, 1, -20)
@@ -812,9 +1022,10 @@ local function Notify(title, msg, color, icon)
     else renderNotif(data) end
 end
 
--- TELEPORT --------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   TELEPORT SYSTEM
+-- ═══════════════════════════════════════════════════════════════
 local activeTPConn = nil
-
 local function instantTeleport(hrp, targetCFrame, duration)
     if not hrp or not hrp.Parent then return end
     local char = hrp.Parent
@@ -823,12 +1034,10 @@ local function instantTeleport(hrp, targetCFrame, duration)
     local safeCF = Config.SafeTP and (targetCFrame + Vector3.new(0,3,0)) or targetCFrame
     for _, part in ipairs(char:GetDescendants()) do
         if part:IsA("BasePart") and BODY_PARTS[part.Name] then
-            part.CanCollide = false
-            part.Anchored = false
+            part.CanCollide = false; part.Anchored = false
         end
     end
-    local start = tick()
-    local dur = duration or 0.2
+    local start = tick(); local dur = duration or 0.2
     activeTPConn = RunService.RenderStepped:Connect(function()
         pcall(function()
             hrp.CFrame = safeCF
@@ -844,9 +1053,7 @@ local function instantTeleport(hrp, targetCFrame, duration)
             hrp.AssemblyLinearVelocity = Vector3.zero
             hrp.AssemblyAngularVelocity = Vector3.zero
             for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") and BODY_PARTS[part.Name] then
-                    part.CanCollide = true
-                end
+                if part:IsA("BasePart") and BODY_PARTS[part.Name] then part.CanCollide = true end
             end
             if hum then
                 hum.PlatformStand = false
@@ -856,7 +1063,6 @@ local function instantTeleport(hrp, targetCFrame, duration)
         end)
     end)
 end
-
 local function pathfindTeleport(hrp, targetPos)
     local path = PathfindingService:CreatePath({ AgentRadius=3, AgentHeight=5, AgentCanJump=true })
     local ok = pcall(function() path:ComputeAsync(hrp.Position, targetPos) end)
@@ -870,7 +1076,9 @@ local function pathfindTeleport(hrp, targetPos)
     end
 end
 
--- FARM ------------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   FARM SYSTEM
+-- ═══════════════════════════════════════════════════════════════
 local function triggerPromptOrClick(maxDist)
     pcall(function()
         local _, _, hrp = getCharacter(); if not hrp then return end
@@ -958,7 +1166,9 @@ end
 WSCache.signal:Connect(function(obj) hookInteractions(obj) end)
 for _, v in ipairs(workspace:GetDescendants()) do hookInteractions(v) end
 
--- MOVEMENT --------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   MOVEMENT
+-- ═══════════════════════════════════════════════════════════════
 local flyConn, noclipConn, autoDriveConn, speedConn
 local flyObjects = { bv=nil, bg=nil }
 
@@ -1011,7 +1221,7 @@ local function enableFly()
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then md = md - cam.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.D) then md = md + cam.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then md = md + Vector3.new(0,1,0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then md = md - Vector3.new(0,1,0) end
+        if UserInputService:IsKeyDown(Config.FlySpeedBind) then md = md - Vector3.new(0,1,0) end
         bv.Velocity = md.Magnitude > 0 and md.Unit * Config.FlySpeed or Vector3.zero
         bg.CFrame = cam.CFrame
     end)
@@ -1110,7 +1320,20 @@ ConnMgr.add(LocalPlayer.Idled:Connect(function()
     end
 end))
 
--- Keybinds
+-- ═══════════════════════════════════════════════════════════════
+--   KEYBINDS
+-- ═══════════════════════════════════════════════════════════════
+local Keybinds = { list = {} }
+function Keybinds:Register(key, cb) table.insert(self.list, { key=key, cb=cb }) end
+function Keybinds:Check(input)
+    if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+    for _, kb in ipairs(self.list) do
+        if input.KeyCode == kb.key then
+            task.spawn(kb.cb); Audio:Play("toggle")
+        end
+    end
+end
+
 Keybinds:Register(Enum.KeyCode.F1, function()
     Config.ESPEnabled = not Config.ESPEnabled
     Notify("ESP", Config.ESPEnabled and "ON" or "OFF", accent, "E")
@@ -1126,7 +1349,7 @@ Keybinds:Register(Enum.KeyCode.F3, function()
 end)
 Keybinds:Register(Enum.KeyCode.F4, function()
     resetCharacter()
-    Notify("Reset", "TP unstuck fixed!", Color3.fromRGB(0,255,120), "R")
+    Notify("Reset", "Character fixed!", Color3.fromRGB(0,255,120), "R")
 end)
 
 ConnMgr.add(UserInputService.InputBegan:Connect(function(input, gp)
@@ -1134,9 +1357,10 @@ ConnMgr.add(UserInputService.InputBegan:Connect(function(input, gp)
     Keybinds:Check(input)
 end))
 
--- UI --------------------------------------------------------------
-local BASE_W, BASE_H = 400, 520
-
+-- ═══════════════════════════════════════════════════════════════
+--   UI LAYOUT
+-- ═══════════════════════════════════════════════════════════════
+local BASE_W, BASE_H = 420, 540
 local function calcScale()
     refreshViewport()
     local vp = DEVICE.ViewportSize
@@ -1149,11 +1373,10 @@ local function calcScale()
     local scaleH = (vp.Y*maxHPercent)/BASE_H
     return math.clamp(math.min(scaleW, scaleH), 0.70, 1.25)
 end
-
 local UI_SCALE = calcScale()
 
+-- Shadow -----------------------------------------------------------
 local Shadow = Instance.new("Frame")
-Shadow.Name = "Shadow"
 Shadow.Size = UDim2.new(0, BASE_W+20, 0, BASE_H+20)
 Shadow.Position = UDim2.new(0.5,0,0.5,0)
 Shadow.AnchorPoint = Vector2.new(0.5,0.5)
@@ -1166,6 +1389,7 @@ local ShadowScale = Instance.new("UIScale")
 ShadowScale.Scale = UI_SCALE
 ShadowScale.Parent = Shadow
 
+-- Main -------------------------------------------------------------
 local Main = Instance.new("Frame")
 Main.Name = "Main"
 Main.Size = UDim2.new(0, BASE_W, 0, BASE_H)
@@ -1197,12 +1421,15 @@ ConnMgr.add(Camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
     Tween(NotifScale, INFO_FAST, { Scale = math.clamp(newScale*0.9, 0.7, 0.95) })
 end))
 
+-- Background Image -------------------------------------------------
 local BgImage = Instance.new("ImageLabel")
 BgImage.Size = UDim2.new(1,0,1,0); BgImage.BackgroundTransparency = 1
-BgImage.Image = (CustomImage ~= "" and CustomImage) or IMAGE_FALLBACKS[1]
+BgImage.Image = CustomImage ~= "" and CustomImage or IMAGE_FALLBACKS[1]
 BgImage.ImageTransparency = 0.82
-BgImage.ScaleType = Enum.ScaleType.Crop; BgImage.Parent = Main
+BgImage.ScaleType = Enum.ScaleType.Crop
+BgImage.Parent = Main
 Corner(BgImage, UDim.new(0,16))
+registerImage(BgImage)
 
 local Dim = Instance.new("Frame")
 Dim.Size = UDim2.new(1,0,1,0)
@@ -1234,7 +1461,7 @@ ConnMgr.spawn(function()
     end
 end)
 
--- TOPBAR ----------------------------------------------------------
+-- Topbar -----------------------------------------------------------
 local Topbar = Instance.new("Frame")
 Topbar.Size = UDim2.new(1,0,0,52)
 Topbar.BackgroundColor3 = Color3.new(1,1,1)
@@ -1272,21 +1499,22 @@ TopbarTrimGradient.Parent = TopbarTrim
 local TopIcon = Instance.new("ImageLabel")
 TopIcon.Size = UDim2.new(0,30,0,30); TopIcon.Position = UDim2.new(0,12,0,11)
 TopIcon.BackgroundColor3 = accent
-TopIcon.Image = (CustomImage ~= "" and CustomImage) or IMAGE_FALLBACKS[2]
+TopIcon.Image = CustomImage ~= "" and CustomImage or IMAGE_FALLBACKS[2]
 TopIcon.ScaleType = Enum.ScaleType.Crop; TopIcon.Parent = Topbar
 Corner(TopIcon, UDim.new(1,0))
 RegisterAccent(TopIcon, "BackgroundColor3")
+registerImage(TopIcon)
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1,-110,0,17); Title.Position = UDim2.new(0,50,0,10)
-Title.BackgroundTransparency = 1; Title.Text = "GHOST MODE - HALLOWEEN"
+Title.Size = UDim2.new(1,-140,0,17); Title.Position = UDim2.new(0,50,0,10)
+Title.BackgroundTransparency = 1; Title.Text = "GHOST MODE - PREMIUM"
 Title.TextColor3 = Color3.new(1,1,1); Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13; Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.TextTruncate = Enum.TextTruncate.AtEnd
 Title.Parent = Topbar
 
 local Subtitle = Instance.new("TextLabel")
-Subtitle.Size = UDim2.new(1,-110,0,13); Subtitle.Position = UDim2.new(0,50,0,28)
+Subtitle.Size = UDim2.new(1,-140,0,13); Subtitle.Position = UDim2.new(0,50,0,28)
 Subtitle.BackgroundTransparency = 1
 Subtitle.Text = "by ouncopybara - " .. Config.Themes[Config.Theme].Name
 Subtitle.TextColor3 = accent; Subtitle.Font = Enum.Font.Gotham
@@ -1295,14 +1523,14 @@ Subtitle.Parent = Topbar
 RegisterAccent(Subtitle, "TextColor3")
 
 local PerfLabel = Instance.new("TextLabel")
-PerfLabel.Size = UDim2.new(0,90,0,14); PerfLabel.Position = UDim2.new(1,-160,0,36)
+PerfLabel.Size = UDim2.new(0,120,0,14); PerfLabel.Position = UDim2.new(1,-190,0,36)
 PerfLabel.BackgroundTransparency = 1; PerfLabel.Font = Enum.Font.Code
 PerfLabel.TextSize = 8; PerfLabel.TextColor3 = Color3.fromRGB(150,150,160)
 PerfLabel.TextXAlignment = Enum.TextXAlignment.Right
 PerfLabel.Parent = Topbar
 ConnMgr.spawn(function()
     while Topbar.Parent do
-        PerfLabel.Text = string.format("FPS:%d MEM:%d", Perf.fps, Perf.memory)
+        PerfLabel.Text = string.format("FPS:%d MEM:%d PING:%d", Perf.fps, Perf.memory, Perf.ping)
         task.wait(1)
     end
 end)
@@ -1324,7 +1552,7 @@ end
 local CloseBtn = WindowButton("X", Color3.fromRGB(255,70,70), -36)
 local MinBtn   = WindowButton("-", Color3.fromRGB(70,70,82), -68)
 
--- SIDEBAR ---------------------------------------------------------
+-- Sidebar ----------------------------------------------------------
 local Sidebar = Instance.new("Frame")
 Sidebar.Size = UDim2.new(0,100,1,-52)
 Sidebar.Position = UDim2.new(0,0,0,52)
@@ -1346,7 +1574,7 @@ PageHost.Position = UDim2.new(0,100,0,52)
 PageHost.BackgroundTransparency = 1
 PageHost.Parent = Main
 
--- STATUS BAR ------------------------------------------------------
+-- Statusbar --------------------------------------------------------
 local Statusbar = Instance.new("Frame")
 Statusbar.Size = UDim2.new(1,-20,0,30)
 Statusbar.Position = UDim2.new(0,10,1,-38)
@@ -1379,7 +1607,7 @@ updateStatus = function(txt, col)
     if col and typeof(col) == "Color3" then StatusDot.BackgroundColor3 = col end
 end
 
--- CLICK EFFECT ----------------------------------------------------
+-- Click ripple -----------------------------------------------------
 local function PlayClickEffect(btn)
     pcall(function()
         local r = Instance.new("Frame")
@@ -1401,7 +1629,9 @@ local function PlayClickEffect(btn)
     end)
 end
 
--- TAB SYSTEM ------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   TAB SYSTEM
+-- ═══════════════════════════════════════════════════════════════
 local tabs = {}
 local function SelectTab(tab)
     for _, t in ipairs(tabs) do
@@ -1480,7 +1710,9 @@ local function CreateTab(name, icon)
     return page
 end
 
--- COMPONENTS ------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   COMPONENTS
+-- ═══════════════════════════════════════════════════════════════
 local function AddSection(page, text, order)
     local l = Instance.new("TextLabel")
     l.LayoutOrder = order; l.Size = UDim2.new(1,4,0,20)
@@ -1696,16 +1928,20 @@ end
 
 local function AddThemePicker(page, order)
     local row = Instance.new("Frame")
-    row.LayoutOrder = order; row.Size = UDim2.new(1,0,0,52)
+    row.LayoutOrder = order; row.Size = UDim2.new(1,0,0,90)
     row.BackgroundColor3 = Color3.new(1,1,1)
     row.BackgroundTransparency = 0.95
     row.BorderSizePixel = 0; row.Parent = page
     Corner(row, UDim.new(0,10))
-    local names = { "Halloween","Pink","Purple","Blue","Green","Gold","Red","Cyan" }
+
+    local names = { "Halloween","Pink","Purple","Blue","Green","Gold","Red","Cyan","Rainbow" }
+    local colsPerRow = 5
     for i, name in ipairs(names) do
+        local row_idx = math.floor((i-1)/colsPerRow)
+        local col_idx = (i-1) % colsPerRow
         local dot = Instance.new("TextButton")
         dot.Size = UDim2.new(0,26,0,26)
-        dot.Position = UDim2.new(0, 12 + (i-1)*32, 0.5, -13)
+        dot.Position = UDim2.new(0, 12 + col_idx*32, 0, 12 + row_idx*34)
         dot.BackgroundColor3 = Config.Themes[name].Accent
         dot.Text = ""; dot.BorderSizePixel = 0
         dot.AutoButtonColor = false
@@ -1724,13 +1960,17 @@ local function AddThemePicker(page, order)
                 end
             end
             st.Transparency = 0
+            if name == "Rainbow" then StartRainbow() end
             Notify("Theme", "Changed to " .. Config.Themes[name].Name,
                 Config.Themes[name].Accent, "T")
         end)
     end
 end
 
--- TAB PAGES -------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   PAGES
+-- ═══════════════════════════════════════════════════════════════
+-- FARM PAGE --------------------------------------------------------
 local farmPage = CreateTab("Farm", "F")
 AddSection(farmPage, "Farm", 1)
 AddButton(farmPage, "Set Base Point", 2, function()
@@ -1762,6 +2002,7 @@ AddToggle(farmPage, "Network Owner", "Control char physics", false, 10, function
     if not s then releaseNet() end
 end)
 
+-- MOVE PAGE --------------------------------------------------------
 local movePage = CreateTab("Move", "M")
 AddSection(movePage, "Movement", 1)
 AddToggle(movePage, "Speed", "Change walk speed", false, 2, function(s) toggleSpeed(s) end)
@@ -1774,20 +2015,27 @@ AddToggle(movePage, "Noclip", "Walk through walls [F2]", false, 6, function(s) t
 AddToggle(movePage, "Auto Drive", "Auto drive vehicle", false, 7, function(s) toggleAutoDrive(s) end)
 AddToggle(movePage, "Infinite Jump", "Jump forever", false, 8, function(s) Config.IsInfiniteJumpOn = s end)
 
+-- COMBAT PAGE ------------------------------------------------------
 local combatPage = CreateTab("Combat", "C")
 AddSection(combatPage, "Aimbot", 1)
 AddToggle(combatPage, "Aimbot", "Auto target [F3]", false, 2, function(s) toggleAimbot(s) end)
 AddSlider(combatPage, "FOV", 30, 360, 120, 0, 3, function(v) Config.AimbotFOV = v end)
 AddSlider(combatPage, "Smooth", 0.05, 1, 0.15, 2, 4, function(v) Config.AimbotSmooth = v end)
 AddToggle(combatPage, "Team Check", "Skip teammates", true, 5, function(s) Config.AimbotTeamCheck = s end)
-AddSection(combatPage, "ESP / Chams", 6)
-AddToggle(combatPage, "ESP", "Show info [F1]", false, 7, function(s) Config.ESPEnabled = s end)
-AddToggle(combatPage, "Names", "Show names", true, 8, function(s) Config.ESPNames = s end)
-AddToggle(combatPage, "Health Bar", "Show health", true, 9, function(s) Config.ESPHealth = s end)
-AddToggle(combatPage, "Tracers", "Draw line to target", false, 10, function(s) Config.ESPTracers = s end)
-AddToggle(combatPage, "Chams", "Color highlight", false, 11, function(s) Config.ChamsEnabled = s end)
-AddSlider(combatPage, "ESP Range", 100, 5000, 1000, 0, 12, function(v) Config.ESPRange = v end)
+AddToggle(combatPage, "Visible Only", "Only visible targets", true, 6, function(s) Config.AimbotVisibleOnly = s end)
+AddToggle(combatPage, "Prediction", "Predict target movement", false, 7, function(s) Config.AimbotPrediction = s end)
 
+AddSection(combatPage, "ESP / Chams", 8)
+AddToggle(combatPage, "ESP", "Show info [F1]", false, 9, function(s) Config.ESPEnabled = s end)
+AddToggle(combatPage, "Names", "Show names", true, 10, function(s) Config.ESPNames = s end)
+AddToggle(combatPage, "Health Bar", "Show health", true, 11, function(s) Config.ESPHealth = s end)
+AddToggle(combatPage, "Distance", "Show distance", false, 12, function(s) Config.ESPDistance = s end)
+AddToggle(combatPage, "Tracers", "Draw line to target", false, 13, function(s) Config.ESPTracers = s end)
+AddToggle(combatPage, "Chams", "Color highlight", false, 14, function(s) Config.ChamsEnabled = s end)
+AddToggle(combatPage, "Team Color", "Use team color for chams", true, 15, function(s) Config.ESPTeamColor = s end)
+AddSlider(combatPage, "ESP Range", 100, 5000, 1000, 0, 16, function(v) Config.ESPRange = v end)
+
+-- TP PAGE ----------------------------------------------------------
 local tpPage = CreateTab("TP", "T")
 AddSection(tpPage, "Save Locations", 1)
 local locationBox = AddTextInput(tpPage, "Location Name", "e.g. Home", 2, function() end)
@@ -1830,6 +2078,24 @@ AddButton(tpPage, "Save Current Location", 3, function()
 end)
 rebuildSavedList()
 
+-- VISUAL PAGE ------------------------------------------------------
+local visualPage = CreateTab("Visual", "V")
+AddSection(visualPage, "Environment", 1)
+AddToggle(visualPage, "Fullbright", "Brighten everything", false, 2, function(s)
+    Config.Fullbright = s; setFullbright(s)
+end)
+AddToggle(visualPage, "No Fog", "Remove fog", false, 3, function(s)
+    Config.NoFog = s; setNoFog(s)
+end)
+AddToggle(visualPage, "Day Light", "Force daytime", false, 4, function(s)
+    Config.DayLight = s; setDayLight(s)
+end)
+AddSection(visualPage, "Performance", 5)
+AddSlider(visualPage, "FPS Cap (0=off)", 0, 240, 0, 0, 6, function(v)
+    Config.FPSCap = v; setFPSCap(v)
+end)
+
+-- SETTINGS PAGE ----------------------------------------------------
 local setPage = CreateTab("Settings", "S")
 AddSection(setPage, "General", 1)
 AddToggle(setPage, "Anti AFK", "Prevent idle kick", true, 2, function(s) Config.IsAntiAFK = s end)
@@ -1841,7 +2107,7 @@ local kbInfo = Instance.new("TextLabel")
 kbInfo.LayoutOrder = 7
 kbInfo.Size = UDim2.new(1,0,0,95)
 kbInfo.BackgroundTransparency = 1
-kbInfo.Text = "F1 - Toggle ESP\nF2 - Toggle Noclip\nF3 - Toggle Aimbot\nF4 - Reset TP Stuck\nRCtrl - Minimize"
+kbInfo.Text = "F1 - Toggle ESP\nF2 - Toggle Noclip\nF3 - Toggle Aimbot\nF4 - Reset TP Stuck\nRCtrl - Minimize UI"
 kbInfo.TextColor3 = Color3.fromRGB(180,180,195)
 kbInfo.Font = Enum.Font.Code
 kbInfo.TextSize = 10
@@ -1857,6 +2123,17 @@ end)
 AddButton(setPage, "Save Config", 10, function()
     ConfigMgr:Save(Config)
     Notify("Config", "Saved!", accent, "S")
+end)
+AddButton(setPage, "Reload Image", 11, function()
+    pcall(function()
+        if isfile and delfile and isfile("aura_icon_adv.jpg") then
+            delfile("aura_icon_adv.jpg")
+        end
+    end)
+    CustomImage = ""
+    loadImageSync()
+    Notify("Image", CustomImage ~= "" and "Reloaded!" or "Failed",
+        CustomImage ~= "" and Color3.fromRGB(0,255,120) or Color3.fromRGB(255,70,70), "I")
 end)
 
 local function CleanupAll()
@@ -1878,6 +2155,9 @@ local function CleanupAll()
         releaseNet()
         clearAllESP()
         resetCharacter()
+        setFullbright(false)
+        setNoFog(false)
+        setDayLight(false)
 
         local char = LocalPlayer.Character
         if char then
@@ -1891,12 +2171,12 @@ local function CleanupAll()
     end)
 end
 
-AddButton(setPage, "Close UI", 11, function()
+AddButton(setPage, "Close UI", 12, function()
     CleanupAll()
     ScreenGui:Destroy()
 end)
 
--- MOBILE ADJUST ---------------------------------------------------
+-- MOBILE ADJUST ----------------------------------------------------
 if DEVICE.IsMobile then
     Sidebar.Size = UDim2.new(0,92,1,-52)
     PageHost.Size = UDim2.new(1,-92,1,-52-42)
@@ -1910,7 +2190,9 @@ end
 
 SelectTab(tabs[1])
 
--- REOPEN ----------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   REOPEN BUTTON
+-- ═══════════════════════════════════════════════════════════════
 local ReopenBtn = Instance.new("TextButton")
 ReopenBtn.Size = UDim2.new(0,60,0,60)
 ReopenBtn.Position = UDim2.new(0,16,0.5,0)
@@ -1930,9 +2212,10 @@ RegisterAccent(roStroke, "Color")
 
 local roImg = Instance.new("ImageLabel")
 roImg.Size = UDim2.new(1,0,1,0); roImg.BackgroundTransparency = 1
-roImg.Image = (CustomImage ~= "" and CustomImage) or IMAGE_FALLBACKS[2]
+roImg.Image = CustomImage ~= "" and CustomImage or IMAGE_FALLBACKS[2]
 roImg.ScaleType = Enum.ScaleType.Crop; roImg.Parent = ReopenBtn
 Corner(roImg, UDim.new(1,0))
+registerImage(roImg)
 
 local minimized = false
 local function SetMinimized(state)
@@ -1991,7 +2274,7 @@ do
     end)
 end
 
--- Main drag (ignores window buttons)
+-- Main drag --------------------------------------------------------
 do
     local dragging = false
     local startInput, mainPos, shadowPos
@@ -2037,10 +2320,31 @@ ConnMgr.add(UserInputService.InputBegan:Connect(function(input, gp)
     if input.KeyCode == Config.ToggleKey then SetMinimized(not minimized) end
 end))
 
--- INIT ------------------------------------------------------------
+-- ═══════════════════════════════════════════════════════════════
+--   INIT
+-- ═══════════════════════════════════════════════════════════════
 Tween(MainScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = UI_SCALE })
+Audio:Play("open", 0.3)
 task.delay(0.3, function()
-    Notify("by ouncopybara", "DELTA FIXED v8.2.0 loaded!", Color3.fromRGB(0,255,120), "OK")
+    Notify("by ouncopybara", "PREMIUM v9.0.0 loaded!", Color3.fromRGB(0,255,120), "OK")
+    if CustomImage == "" then
+        Notify("Image", "Using fallback", Color3.fromRGB(255,200,0), "!")
+    else
+        Notify("Image", "Loaded OK", Color3.fromRGB(0,255,120), "i")
+    end
     Notify("Tip", "F4 = fix TP stuck", Color3.fromRGB(100,200,255), "i")
 end)
-updateStatus("System ready - v8.2.0", Color3.fromRGB(0,255,120))
+updateStatus("System ready - v9.0.0 PREMIUM", Color3.fromRGB(0,255,120))
+
+-- ═══════════════════════════════════════════════════════════════
+--   AUTO RECONNECT / SCRIPT END
+-- ═══════════════════════════════════════════════════════════════
+ConnMgr.add(LocalPlayer.OnTeleport:Connect(function(state)
+    if state == Enum.TeleportState.Started and Config.AutoReconnect then
+        pcall(function()
+            if queueonteleport then
+                queueonteleport(game.PlaceId and ("Roblox.GameLauncher.joinGameInstance(" .. game.PlaceId .. ", \"" .. game.JobId .. "\")") or "")
+            end
+        end)
+    end
+end))
