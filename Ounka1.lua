@@ -292,8 +292,9 @@ local Config = {
     IsAntiAFK = true,
     UsePathfind = false,
     SafeTP = true,
-    Theme = "Pink",
+    Theme = "Halloween",
     Themes = {
+        Halloween = { Accent = Color3.fromRGB(255, 132, 35), Name = "រាត្រីខ្មោច" },
         Pink   = { Accent = Color3.fromRGB(255, 105, 180), Name = "ផ្កាឈូក" },
         Purple = { Accent = Color3.fromRGB(170, 0, 255), Name = "ស្វាយ" },
         Blue   = { Accent = Color3.fromRGB(0, 170, 255), Name = "ខៀវ" },
@@ -350,7 +351,7 @@ do
     Config.AimbotEnabled = false
 
     if type(Config.Theme) ~= "string" or not Config.Themes[Config.Theme] then
-        Config.Theme = "Pink"
+        Config.Theme = "Halloween"
     end
 end
 
@@ -1271,14 +1272,15 @@ BgImage.Active = false
 Corner(BgImage, UDim.new(0, 16))
 
 local Dim = Instance.new("Frame")
-Dim.Size = UDim2.new(1,0,1,0); Dim.BackgroundColor3 = Color3.fromRGB(12,12,18)
-Dim.BackgroundTransparency = 0.3; Dim.BorderSizePixel = 0; Dim.Parent = Main
+Dim.Size = UDim2.new(1,0,1,0); Dim.BackgroundColor3 = Color3.fromRGB(16, 9, 27)
+Dim.BackgroundTransparency = 0.16; Dim.BorderSizePixel = 0; Dim.Parent = Main
 Dim.Active = false
 Corner(Dim, UDim.new(0, 16))
 local DimGrad = Instance.new("UIGradient")
 DimGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(26,26,36)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(10,10,16)),
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(47, 22, 64)),
+    ColorSequenceKeypoint.new(0.52, Color3.fromRGB(18, 13, 31)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(67, 30, 24)),
 })
 DimGrad.Rotation = 35; DimGrad.Parent = Dim
 
@@ -1306,6 +1308,33 @@ Topbar.BackgroundTransparency = 0.94
 Topbar.BorderSizePixel = 0
 Topbar.Active = true
 Topbar.Parent = Main
+local TopbarGradient = Instance.new("UIGradient")
+TopbarGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(150, 74, 255)),
+    ColorSequenceKeypoint.new(0.52, Color3.fromRGB(46, 29, 61)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 132, 35)),
+})
+TopbarGradient.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.42),
+    NumberSequenceKeypoint.new(0.5, 0.78),
+    NumberSequenceKeypoint.new(1, 0.35),
+})
+TopbarGradient.Rotation = 0
+TopbarGradient.Parent = Topbar
+local TopbarTrim = Instance.new("Frame")
+TopbarTrim.Size = UDim2.new(1, -24, 0, 2)
+TopbarTrim.Position = UDim2.new(0, 12, 1, -1)
+TopbarTrim.BackgroundColor3 = accent
+TopbarTrim.BorderSizePixel = 0
+TopbarTrim.Active = false
+TopbarTrim.Parent = Topbar
+local TopbarTrimGradient = Instance.new("UIGradient")
+TopbarTrimGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 132, 35)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(196, 105, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(91, 237, 255)),
+})
+TopbarTrimGradient.Parent = TopbarTrim
 
 local TopIcon = Instance.new("ImageLabel")
 TopIcon.Size = UDim2.new(0,30,0,30); TopIcon.Position = UDim2.new(0,12,0,11)
@@ -1340,7 +1369,7 @@ end)
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1,-110,0,17); Title.Position = UDim2.new(0,50,0,10)
-Title.BackgroundTransparency = 1; Title.Text = "by ouncopybara | ADVANCED VIP"
+Title.BackgroundTransparency = 1; Title.Text = "🎃 GHOST MODE • HALLOWEEN"
 Title.TextColor3 = Color3.new(1,1,1); Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13; Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.TextTruncate = Enum.TextTruncate.AtEnd
@@ -1350,7 +1379,7 @@ Title.Parent = Topbar
 local Subtitle = Instance.new("TextLabel")
 Subtitle.Size = UDim2.new(1,-110,0,13); Subtitle.Position = UDim2.new(0,50,0,28)
 Subtitle.BackgroundTransparency = 1
-Subtitle.Text = "v8.0.9 • " .. Config.Themes[Config.Theme].Name
+Subtitle.Text = "👻 រាត្រីខ្មោច • " .. Config.Themes[Config.Theme].Name
 Subtitle.TextColor3 = accent; Subtitle.Font = Enum.Font.Gotham
 Subtitle.TextSize = 9; Subtitle.TextXAlignment = Enum.TextXAlignment.Left
 Subtitle.Active = false
@@ -1428,7 +1457,7 @@ Corner(Statusbar, UDim.new(0, 8))
 local StatusDot = Instance.new("Frame")
 StatusDot.Size = UDim2.new(0, 7, 0, 7)
 StatusDot.Position = UDim2.new(0, 12, 0.5, -3.5)
-StatusDot.BackgroundColor3 = Color3.fromRGB(0,255,120)
+StatusDot.BackgroundColor3 = Color3.fromRGB(255, 145, 55)
 StatusDot.BorderSizePixel = 0; StatusDot.Parent = Statusbar
 Corner(StatusDot, UDim.new(1,0))
 ConnMgr.spawn(function()
@@ -1855,7 +1884,7 @@ local function AddThemePicker(page, order)
     row.BorderSizePixel = 0; row.Parent = page
     row.Active = false
     Corner(row, UDim.new(0,10))
-    local names = { "Pink", "Purple", "Blue", "Green", "Gold", "Red", "Cyan" }
+    local names = { "Halloween", "Pink", "Purple", "Blue", "Green", "Gold", "Red", "Cyan" }
     for i, name in ipairs(names) do
         local dot = Instance.new("TextButton")
         dot.Size = UDim2.new(0,26,0,26)
@@ -1873,7 +1902,7 @@ local function AddThemePicker(page, order)
         dot.MouseButton1Click:Connect(function()
             ApplyTheme(name)
             PlayClickEffect(dot)
-            Subtitle.Text = "v8.0.9 • " .. Config.Themes[name].Name
+            Subtitle.Text = "👻 រាត្រីខ្មោច • " .. Config.Themes[name].Name
             for _, c in ipairs(row:GetChildren()) do
                 if c:IsA("TextButton") then
                     local s2 = c:FindFirstChildOfClass("UIStroke")
