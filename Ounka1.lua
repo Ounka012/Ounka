@@ -1,7 +1,7 @@
 -- ============================================================
 --   👻 GHOST MODE v10.2 | FULL GUI EDITION (ANTI-AFK ONLY)
 --   by ouncopybara | Halloween Ghost Theme + All Systems
---   (កែសម្រួល GUIParent សម្រាប់ Mobile Executors)
+--   (បន្ថែមប៊ូតុង Auto Fly Placeholder ទុកសម្រាប់ដាក់កូដពេលក្រោយ)
 -- ============================================================
 
 if not game:IsLoaded() then game.Loaded:Wait() end
@@ -328,7 +328,7 @@ ConnMgr.add(LocalPlayer.CharacterAdded:Connect(function(c) task.wait(0.5); bindC
 local function getCharacter() return CharObs.character, CharObs.humanoid, CharObs.root end
 
 -- ═══════════════════════════════════════════════════════════════
---   ANTI-AFK & NEUTERED HACK FUNCTIONS (បិទកូដ Hack)
+--   ANTI-AFK & NEUTERED HACK FUNCTIONS
 -- ═══════════════════════════════════════════════════════════════
 
 -- PURE ANTI-AFK
@@ -755,20 +755,44 @@ local function AddThemePicker(page, order)
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   TAB PAGES (កូដ UI ទុកនៅដដែល ប៉ុន្តែចុចទៅវាលែង Hack)
+--   TAB PAGES 
 -- ═══════════════════════════════════════════════════════════════
 local farmPage = CreateTab("Farm", "🎃")
 AddSection(farmPage, "Farm", 1)
 AddButton(farmPage, "Set Base Point", 2, function() Notify("System", "Disabled in AFK-Only Mode", PALETTE.Blood, "!") end)
-AddToggle(farmPage, "Auto Farm", "Auto collect and deliver", false, 3, function(s) Config.IsAutoOn = s; Notify("Farm", "Farm Disabled in AFK Mode", PALETTE.Blood, "!") end)
-AddSlider(farmPage, "Farm Delay", 0.5, 5, 1, 1, 4, function(v) end)
-AddSlider(farmPage, "Hold Delay", 0, 1, 0.2, 1, 5, function(v) end)
-AddToggle(farmPage, "Use Pathfind", "Avoid detection", false, 6, function(s) end)
-AddToggle(farmPage, "Safe TP", "Offset 3 studs up", true, 7, function(s) end)
 
-AddSection(farmPage, "Protection", 8)
-AddToggle(farmPage, "Godmode", "Infinite HP + Anti-Void", false, 9, function(s) Notify("Godmode", "Disabled in AFK-Only Mode", PALETTE.Blood, "👻") end)
-AddToggle(farmPage, "Network Owner", "Control char physics", false, 10, function(s) end)
+-- [ ប៊ូតុងថ្មីសម្រាប់ Auto Fly ]
+AddToggle(farmPage, "Auto Fly 🚀", "ហោះទៅរក Wisps (Placeholder)", false, 3, function(s)
+    if s then
+        Notify("Auto Fly", "បើកដំណើរការ (ទាមទារកូដ)", PALETTE.Toxic, "🚀")
+        -- ==========================================
+        -- ⬇️ ដាក់កូដហោះ (Auto Fly) របស់អ្នកនៅទីនេះ ⬇️
+        -- ==========================================
+        
+        
+        
+        -- ==========================================
+    else
+        Notify("Auto Fly", "បិទដំណើរការ", PALETTE.Blood, "🚀")
+        -- ==========================================
+        -- ⬇️ ដាក់កូដសម្រាប់ឈប់ហោះនៅទីនេះ ⬇️
+        -- ==========================================
+        
+        
+        
+        -- ==========================================
+    end
+end)
+
+AddToggle(farmPage, "Auto Farm", "Auto collect and deliver", false, 4, function(s) Config.IsAutoOn = s; Notify("Farm", "Farm Disabled in AFK Mode", PALETTE.Blood, "!") end)
+AddSlider(farmPage, "Farm Delay", 0.5, 5, 1, 1, 5, function(v) end)
+AddSlider(farmPage, "Hold Delay", 0, 1, 0.2, 1, 6, function(v) end)
+AddToggle(farmPage, "Use Pathfind", "Avoid detection", false, 7, function(s) end)
+AddToggle(farmPage, "Safe TP", "Offset 3 studs up", true, 8, function(s) end)
+
+AddSection(farmPage, "Protection", 9)
+AddToggle(farmPage, "Godmode", "Infinite HP + Anti-Void", false, 10, function(s) Notify("Godmode", "Disabled in AFK-Only Mode", PALETTE.Blood, "👻") end)
+AddToggle(farmPage, "Network Owner", "Control char physics", false, 11, function(s) end)
 
 local movePage = CreateTab("Move", "🏃")
 AddSection(movePage, "Movement", 1)
