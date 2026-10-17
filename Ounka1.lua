@@ -1,6 +1,7 @@
 -- ============================================================
---   👻 GHOST MODE v10.2 | EVADE HALLOWEEN AUTO FARM EDITION
---   by ouncopybara | Halloween Ghost Theme + Evade Farm
+--   👻 GHOST MODE v10.2 | FULL GUI EDITION (ANTI-AFK ONLY)
+--   by ouncopybara | Halloween Ghost Theme + All Systems
+--   (កែសម្រួល GUIParent សម្រាប់ Mobile Executors)
 -- ============================================================
 
 if not game:IsLoaded() then game.Loaded:Wait() end
@@ -12,6 +13,7 @@ local TweenService      = game:GetService("TweenService")
 local UserInputService  = game:GetService("UserInputService")
 local SoundService      = game:GetService("SoundService")
 local HttpService       = game:GetService("HttpService")
+local PathfindingService= game:GetService("PathfindingService")
 
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
@@ -31,19 +33,9 @@ if not Camera then
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   GUIParent
+--   GUIParent (កែសម្រួលរួច)
 -- ═══════════════════════════════════════════════════════════════
-local GUIParent
-do
-    local ok1, h = pcall(function() return gethui() end)
-    if ok1 and h then GUIParent = h
-    else
-        local ok2, c = pcall(function() return game:GetService("CoreGui") end)
-        if ok2 and c then GUIParent = c
-        else GUIParent = safeWait(LocalPlayer, "PlayerGui", 10) or LocalPlayer:FindFirstChildOfClass("PlayerGui") end
-    end
-    if not GUIParent then GUIParent = safeWait(LocalPlayer, "PlayerGui", 10) end
-end
+local GUIParent = LocalPlayer:WaitForChild("PlayerGui")
 
 pcall(function()
     for _, g in ipairs(GUIParent:GetChildren()) do
@@ -104,7 +96,7 @@ end
 function Signal:Fire(...) for _, fn in ipairs(self.h) do task.spawn(fn, ...) end end
 
 -- ═══════════════════════════════════════════════════════════════
---   PREMIUM IMAGE SYSTEM
+--   PREMIUM IMAGE SYSTEM 
 -- ═══════════════════════════════════════════════════════════════
 local CustomImage  = ""
 local ImageReady   = Signal.new()
@@ -214,16 +206,26 @@ function Audio:Play(name, vol)
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   CONFIG MGR
+--   CF SERIALIZATION & CONFIG MGR
 -- ═══════════════════════════════════════════════════════════════
-local ConfigMgr = { File = "aura_ghost_evade.json", Data = {} }
+local function CFrameToTable(cf)
+    local x,y,z,r00,r01,r02,r10,r11,r12,r20,r21,r22 = cf:GetComponents()
+    return {x=x,y=y,z=z,r00=r00,r01=r01,r02=r02,r10=r10,r11=r11,r12=r12,r20=r20,r21=r21,r22=r22}
+end
+local function TableToCFrame(t)
+    if not t or type(t) ~= "table" then return nil end
+    local ok, cf = pcall(function() return CFrame.new(t.x,t.y,t.z,t.r00,t.r01,t.r02,t.r10,t.r11,t.r12,t.r20,t.r21,t.r22) end)
+    return ok and cf or nil
+end
+
+local ConfigMgr = { File = "aura_ghost_v10.json", Data = {} }
 function ConfigMgr:Save(data)
     pcall(function()
         if not writefile then return end
         local d = data or self.Data
         local s = {}
         for k, v in pairs(d) do
-            if k ~= "Themes" then
+            if k ~= "Themes" and k ~= "BaseCFrames" and k ~= "SavedLocations" then
                 local tv = type(v)
                 if tv == "string" or tv == "number" or tv == "boolean" then s[k] = v end
             end
@@ -254,7 +256,7 @@ local INFO_FAST   = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirect
 local INFO_SPRING = TweenInfo.new(0.4,  Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
 -- ═══════════════════════════════════════════════════════════════
---   GHOST PALETTE & CONFIG
+--   GHOST PALETTE
 -- ═══════════════════════════════════════════════════════════════
 local PALETTE = {
     GhostWhite   = Color3.fromRGB(240,245,255),
@@ -270,10 +272,17 @@ local PALETTE = {
     EyeGlowRed   = Color3.fromRGB(255,60,60),
 }
 
+-- ═══════════════════════════════════════════════════════════════
+--   CONFIG
+-- ═══════════════════════════════════════════════════════════════
 local Config = {
-    IsAutoFarmEvade = false,
-    IsAntiAFK = true,
-    Theme = "Halloween",
+    BaseCFrames = {}, SavedLocations = {},
+    IsAutoOn=false, StiffDuration=1.0, HoldDelay=0.2,
+    IsSpeedOn=false, SpeedValue=60,
+    IsFlyOn=false, FlySpeed=100,
+    IsInfiniteJumpOn=false, IsNoclipOn=false, IsAutoDriveOn=false,
+    IsAntiAFK=true, UsePathfind=false, SafeTP=true,
+    Theme="Halloween",
     Themes = {
         Halloween = { Accent = Color3.fromRGB(255,132,35), Name="Ghost" },
         Pink      = { Accent = Color3.fromRGB(255,105,180), Name="Pink" },
@@ -285,26 +294,29 @@ local Config = {
         Cyan      = { Accent = Color3.fromRGB(0,255,255),   Name="Cyan" },
     },
     ToggleKey = Enum.KeyCode.RightControl,
+    AimbotEnabled=false, AimbotFOV=120, AimbotSmooth=0.15,
+    AimbotTeamCheck=true, AimbotTargetPart="Head",
+    ESPEnabled=false, ESPNames=true, ESPHealth=true,
+    ESPTracers=false, ESPRange=1000, ESPPlayers=true, ESPNPCs=true,
+    ChamsEnabled=false, ChamsTransparency=0.5,
 }
 
-do
-    local savedCfg = ConfigMgr:Load()
-    if savedCfg and type(savedCfg) == "table" then
-        for k, v in pairs(savedCfg) do
-            if k ~= "Themes" then
-                if Config[k] ~= nil and type(Config[k]) == type(v) then Config[k] = v end
-            end
+-- ═══════════════════════════════════════════════════════════════
+--   CHARACTER OBSERVER 
+-- ═══════════════════════════════════════════════════════════════
+local CharObs = { character=nil, humanoid=nil, root=nil, changed=Signal.new(), died=Signal.new() }
+local function resetCharacter()
+    pcall(function()
+        local char = CharObs.character; if not char then return end
+        local hum = CharObs.humanoid
+        if hum then
+            hum.PlatformStand = false
+            hum.WalkSpeed = 16
+            hum.JumpPower = 50
         end
-    end
-    if type(Config.Theme) ~= "string" or not Config.Themes[Config.Theme] then
-        Config.Theme = "Halloween"
-    end
+    end)
 end
 
--- ═══════════════════════════════════════════════════════════════
---   CHARACTER OBSERVER
--- ═══════════════════════════════════════════════════════════════
-local CharObs = { character=nil, humanoid=nil, root=nil, changed=Signal.new() }
 local function bindCharacter(char)
     CharObs.character = char
     CharObs.humanoid = safeWait(char, "Humanoid", 5)
@@ -316,49 +328,10 @@ ConnMgr.add(LocalPlayer.CharacterAdded:Connect(function(c) task.wait(0.5); bindC
 local function getCharacter() return CharObs.character, CharObs.humanoid, CharObs.root end
 
 -- ═══════════════════════════════════════════════════════════════
---   EVADE AUTO FARM SYSTEM (Wisps, Spellbooks, Collectibles)
+--   ANTI-AFK & NEUTERED HACK FUNCTIONS (បិទកូដ Hack)
 -- ═══════════════════════════════════════════════════════════════
-local updateStatus = function() end
 
-local function findEvadeItems()
-    local targets = {}
-    pcall(function()
-        for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj:IsA("BasePart") or obj:IsA("Model") then
-                local name = string.lower(obj.Name)
-                -- រកមើល Wisps, Spellbooks ឬ Collectibles ផ្សេងៗក្នុង Evade
-                if name:find("wisp") or name:find("spellbook") or name:find("collectible") or name:find("item") or name:find("event") then
-                    table.insert(targets, obj)
-                end
-            end
-        end
-    end)
-    return targets
-end
-
-ConnMgr.spawn(function()
-    while task.wait(0.5) do
-        if Config.IsAutoFarmEvade then
-            pcall(function()
-                local _, _, hrp = getCharacter()
-                if not hrp then return end
-                
-                local items = findEvadeItems()
-                for _, item in ipairs(items) do
-                    if not Config.IsAutoFarmEvade then break end
-                    local targetPart = item:IsA("Model") and (item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")) or item
-                    if targetPart and targetPart:IsA("BasePart") then
-                        -- Teleport ឬຍាគទៅជិត Item ភ្លាមៗដើម្បីເກັບ
-                        hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
-                        task.wait(0.2)
-                    end
-                end
-            end)
-        end
-    end
-end)
-
--- Anti-AFK
+-- PURE ANTI-AFK
 ConnMgr.add(LocalPlayer.Idled:Connect(function()
     if Config.IsAntiAFK then
         pcall(function()
@@ -368,12 +341,30 @@ ConnMgr.add(LocalPlayer.Idled:Connect(function()
     end
 end))
 
+local Godmode = { Enabled=false, HealthValue=999999, AntiVoid=true }
+local function applyGodmode() end
+local function disableGodmode() end
+local AntiTP = { Enabled=false }
+local function grabNet() end
+local function releaseNet() end
+local Combat = { Aimbot = { Enabled=false }, ESP = { Objects={} } }
+local function toggleAimbot(state) Config.AimbotEnabled = state end
+local function clearAllESP() end
+local function handleSteal() end
+local function toggleSpeed(state) Config.IsSpeedOn = state end
+local function enableFly() Config.IsFlyOn = true end
+local function disableFly() Config.IsFlyOn = false end
+local function toggleNoclip(state) Config.IsNoclipOn = state end
+local function toggleAutoDrive(state) Config.IsAutoDriveOn = state end
+
 -- ═══════════════════════════════════════════════════════════════
 --   THEME SYSTEM
 -- ═══════════════════════════════════════════════════════════════
 local accent = Config.Themes[Config.Theme].Accent
 local accentRegistry, gradientRegistry, switchRegistry = {}, {}, {}
 local StrokeGrad
+local function RegisterAccent(o,p) table.insert(accentRegistry,{obj=o,prop=p}) end
+local function RegisterGradient(g) table.insert(gradientRegistry,g) end
 
 local function ApplyTheme(name)
     local t = Config.Themes[name]; if not t then return end
@@ -398,9 +389,7 @@ end
 --   SCREEN GUI
 -- ═══════════════════════════════════════════════════════════════
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GhostUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.IgnoreGuiInset = true; ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling; ScreenGui.DisplayOrder = 2147483647; ScreenGui.Enabled = true
-pcall(function() ScreenGui.Parent = GUIParent end)
-if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+ScreenGui.Name = "GhostUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.IgnoreGuiInset = true; ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling; ScreenGui.DisplayOrder = 2147483647; ScreenGui.Enabled = true; ScreenGui.Parent = GUIParent
 
 local Vignette = Instance.new("Frame", ScreenGui)
 Vignette.Size = UDim2.new(1,0,1,0); Vignette.BackgroundColor3 = Color3.new(0,0,0); Vignette.BackgroundTransparency = 0.78; Vignette.BorderSizePixel = 0; Vignette.ZIndex = 0
@@ -611,7 +600,7 @@ StatusDot.Size = UDim2.new(0, 8, 0, 8); StatusDot.Position = UDim2.new(0, 14, 0.
 local StatusText = Instance.new("TextLabel", StatusBar)
 StatusText.Size = UDim2.new(1, -34, 1, 0); StatusText.Position = UDim2.new(0, 30, 0, 0); StatusText.BackgroundTransparency = 1; StatusText.Text = "System ready"; StatusText.TextColor3 = PALETTE.GhostWhite; StatusText.Font = Enum.Font.GothamBold; StatusText.TextSize = 11; StatusText.TextXAlignment = Enum.TextXAlignment.Left; StatusText.TextTruncate = Enum.TextTruncate.AtEnd; StatusText.ZIndex = 7
 
-updateStatus = function(txt, col)
+local updateStatus = function(txt, col)
     StatusText.Text = txt
     if col and typeof(col) == "Color3" then StatusDot.BackgroundColor3 = col end
 end
@@ -692,6 +681,35 @@ local function AddToggle(page, title, desc, default, order, callback)
     row.MouseLeave:Connect(function() if not isOn then Tween(row, INFO_FAST, { BackgroundTransparency = 0.35 }) end end)
 end
 
+local function AddSlider(page, title, min, max, default, decimals, order, callback)
+    local row = Instance.new("Frame", page)
+    row.LayoutOrder = order; row.Size = UDim2.new(1,0,0,56); row.BackgroundColor3 = PALETTE.NightLight; row.BackgroundTransparency = 0.35; row.BorderSizePixel = 0; row.ZIndex = 8; Corner(row, UDim.new(0,12)); Stroke(row, PALETTE.Witch, 1, 0.6)
+    local ttl = Instance.new("TextLabel", row)
+    ttl.Size = UDim2.new(1,-70,0,16); ttl.Position = UDim2.new(0,12,0,9); ttl.BackgroundTransparency = 1; ttl.Text = title; ttl.TextColor3 = PALETTE.GhostWhite; ttl.Font = Enum.Font.GothamBold; ttl.TextSize = 11; ttl.TextXAlignment = Enum.TextXAlignment.Left; ttl.ZIndex = 9
+    local valLbl = Instance.new("TextLabel", row)
+    valLbl.Size = UDim2.new(0,50,0,16); valLbl.Position = UDim2.new(1,-58,0,9); valLbl.BackgroundTransparency = 1; valLbl.Text = tostring(default); valLbl.TextColor3 = PALETTE.Pumpkin; valLbl.Font = Enum.Font.GothamBold; valLbl.TextSize = 11; valLbl.TextXAlignment = Enum.TextXAlignment.Right; valLbl.ZIndex = 9
+    local bar = Instance.new("Frame", row)
+    bar.Size = UDim2.new(1,-24,0,6); bar.Position = UDim2.new(0,12,1,-18); bar.BackgroundColor3 = Color3.fromRGB(35,30,50); bar.BorderSizePixel = 0; bar.ZIndex = 9; Corner(bar, UDim.new(1,0))
+    local fill = Instance.new("Frame", bar)
+    fill.Size = UDim2.new((default-min)/(max-min),0,1,0); fill.BackgroundColor3 = PALETTE.Pumpkin; fill.BorderSizePixel = 0; fill.ZIndex = 10; Corner(fill, UDim.new(1,0))
+    local fg = Instance.new("UIGradient", fill)
+    fg.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, PALETTE.Witch), ColorSequenceKeypoint.new(1, PALETTE.Pumpkin)})
+    local knob = Instance.new("TextButton", bar)
+    knob.Size = UDim2.new(0,20,0,20); knob.Position = UDim2.new((default-min)/(max-min),-10,0.5,-10); knob.BackgroundColor3 = PALETTE.GhostWhite; knob.Text = ""; knob.BorderSizePixel = 0; knob.AutoButtonColor = false; knob.ZIndex = 11; Corner(knob, UDim.new(1,0)); Stroke(knob, PALETTE.Pumpkin, 2)
+    local dragging = false
+    local mult = 10 ^ (decimals or 0)
+    local function update(input)
+        local rel = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        local val = math.floor((min + (max-min)*rel) * mult + 0.5) / mult
+        fill.Size = UDim2.new(rel,0,1,0); knob.Position = UDim2.new(rel,-10,0.5,-10); valLbl.Text = tostring(val)
+        if callback then pcall(callback, val) end
+    end
+    knob.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true end end)
+    bar.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true; update(input) end end)
+    ConnMgr.add(UserInputService.InputChanged:Connect(function(input) if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then update(input) end end))
+    ConnMgr.add(UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end end))
+end
+
 local function AddButton(page, title, order, callback)
     local b = Instance.new("TextButton", page)
     b.LayoutOrder = order; b.Size = UDim2.new(1,0,0,42); b.BackgroundColor3 = PALETTE.WitchDeep; b.Text = title; b.TextColor3 = PALETTE.GhostWhite; b.Font = Enum.Font.GothamBlack; b.TextSize = 12; b.BorderSizePixel = 0; b.AutoButtonColor = false; b.ClipsDescendants = true; b.ZIndex = 8; Corner(b, UDim.new(0,12))
@@ -704,6 +722,17 @@ local function AddButton(page, title, order, callback)
     b.MouseButton1Up:Connect(function() Tween(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1.03 }) end)
     b.MouseButton1Click:Connect(function() Audio:Play("click", 0.2); pcall(callback) end)
     return b
+end
+
+local function AddTextInput(page, title, placeholder, order, callback)
+    local row = Instance.new("Frame", page)
+    row.LayoutOrder = order; row.Size = UDim2.new(1,0,0,46); row.BackgroundColor3 = PALETTE.NightLight; row.BackgroundTransparency = 0.35; row.BorderSizePixel = 0; row.ZIndex = 8; Corner(row, UDim.new(0,12)); Stroke(row, PALETTE.Witch, 1, 0.6)
+    local ttl = Instance.new("TextLabel", row)
+    ttl.Size = UDim2.new(0.4,0,1,0); ttl.Position = UDim2.new(0,12,0,0); ttl.BackgroundTransparency = 1; ttl.Text = title; ttl.TextColor3 = PALETTE.GhostWhite; ttl.Font = Enum.Font.GothamBold; ttl.TextSize = 11; ttl.TextXAlignment = Enum.TextXAlignment.Left; ttl.ZIndex = 9
+    local box = Instance.new("TextBox", row)
+    box.Size = UDim2.new(0.55,0,0,32); box.Position = UDim2.new(0.42,0,0.5,-16); box.BackgroundColor3 = Color3.fromRGB(30,25,45); box.PlaceholderText = placeholder; box.Text = ""; box.TextColor3 = PALETTE.GhostWhite; box.PlaceholderColor3 = Color3.fromRGB(110,100,140); box.Font = Enum.Font.Gotham; box.TextSize = 12; box.BorderSizePixel = 0; box.ClearTextOnFocus = false; box.ZIndex = 9; Corner(box, UDim.new(0,8)); Stroke(box, PALETTE.Pumpkin, 1, 0.5)
+    box.FocusLost:Connect(function() if callback then pcall(callback, box.Text) end end)
+    return box
 end
 
 local function AddThemePicker(page, order)
@@ -726,15 +755,49 @@ local function AddThemePicker(page, order)
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   TAB PAGES
+--   TAB PAGES (កូដ UI ទុកនៅដដែល ប៉ុន្តែចុចទៅវាលែង Hack)
 -- ═══════════════════════════════════════════════════════════════
 local farmPage = CreateTab("Farm", "🎃")
-AddSection(farmPage, "Evade Halloween Farm", 1)
-AddToggle(farmPage, "Auto Farm Evade", "Collects Wisps & Spellbooks automatically", false, 2, function(s)
-    Config.IsAutoFarmEvade = s
-    updateStatus(s and "Auto Farm: ON" or "Auto Farm: OFF", s and PALETTE.Toxic or PALETTE.Pumpkin)
-    Notify("Evade Farm", s ? "Auto Farm Started!" : "Auto Farm Stopped", s and PALETTE.Toxic or PALETTE.Blood, "🎃")
-end)
+AddSection(farmPage, "Farm", 1)
+AddButton(farmPage, "Set Base Point", 2, function() Notify("System", "Disabled in AFK-Only Mode", PALETTE.Blood, "!") end)
+AddToggle(farmPage, "Auto Farm", "Auto collect and deliver", false, 3, function(s) Config.IsAutoOn = s; Notify("Farm", "Farm Disabled in AFK Mode", PALETTE.Blood, "!") end)
+AddSlider(farmPage, "Farm Delay", 0.5, 5, 1, 1, 4, function(v) end)
+AddSlider(farmPage, "Hold Delay", 0, 1, 0.2, 1, 5, function(v) end)
+AddToggle(farmPage, "Use Pathfind", "Avoid detection", false, 6, function(s) end)
+AddToggle(farmPage, "Safe TP", "Offset 3 studs up", true, 7, function(s) end)
+
+AddSection(farmPage, "Protection", 8)
+AddToggle(farmPage, "Godmode", "Infinite HP + Anti-Void", false, 9, function(s) Notify("Godmode", "Disabled in AFK-Only Mode", PALETTE.Blood, "👻") end)
+AddToggle(farmPage, "Network Owner", "Control char physics", false, 10, function(s) end)
+
+local movePage = CreateTab("Move", "🏃")
+AddSection(movePage, "Movement", 1)
+AddToggle(movePage, "Speed", "Change walk speed", false, 2, function(s) Notify("Move", "Disabled in AFK-Only Mode", PALETTE.Blood, "!") end)
+AddSlider(movePage, "Speed Value", 16, 500, 60, 0, 3, function(v) end)
+AddToggle(movePage, "Fly", "Camera-relative flight", false, 4, function(s) Notify("Move", "Disabled in AFK-Only Mode", PALETTE.Blood, "!") end)
+AddSlider(movePage, "Fly Speed", 20, 1000, 100, 0, 5, function(v) end)
+AddToggle(movePage, "Noclip", "Walk through walls [F2]", false, 6, function(s) end)
+AddToggle(movePage, "Auto Drive", "Auto drive vehicle", false, 7, function(s) end)
+AddToggle(movePage, "Infinite Jump", "Jump forever", false, 8, function(s) end)
+
+local combatPage = CreateTab("Combat", "⚔️")
+AddSection(combatPage, "Aimbot", 1)
+AddToggle(combatPage, "Aimbot", "Auto target [F3]", false, 2, function(s) Notify("Combat", "Disabled in AFK-Only Mode", PALETTE.Blood, "!") end)
+AddSlider(combatPage, "FOV", 30, 360, 120, 0, 3, function(v) end)
+AddSlider(combatPage, "Smooth", 0.05, 1, 0.15, 2, 4, function(v) end)
+AddToggle(combatPage, "Team Check", "Skip teammates", true, 5, function(s) end)
+AddSection(combatPage, "ESP / Chams", 6)
+AddToggle(combatPage, "ESP", "Show info [F1]", false, 7, function(s) Notify("Combat", "Disabled in AFK-Only Mode", PALETTE.Blood, "!") end)
+AddToggle(combatPage, "Names", "Show names", true, 8, function(s) end)
+AddToggle(combatPage, "Health Bar", "Show health", true, 9, function(s) end)
+AddToggle(combatPage, "Tracers", "Draw line to target", false, 10, function(s) end)
+AddToggle(combatPage, "Chams", "Color highlight", false, 11, function(s) end)
+AddSlider(combatPage, "ESP Range", 100, 5000, 1000, 0, 12, function(v) end)
+
+local tpPage = CreateTab("TP", "📍")
+AddSection(tpPage, "Save Locations", 1)
+local locationBox = AddTextInput(tpPage, "Location Name", "e.g. Home", 2, function() end)
+AddButton(tpPage, "Save Current Location", 3, function() Notify("TP", "Disabled in AFK-Only Mode", PALETTE.Blood, "!") end)
 
 local setPage = CreateTab("Set", "⚙️")
 AddSection(setPage, "General", 1)
@@ -742,17 +805,33 @@ AddToggle(setPage, "Anti AFK", "Prevent idle kick", true, 2, function(s) Config.
 AddToggle(setPage, "Sound", "UI sounds on/off", true, 3, function(s) Audio.Enabled = s end)
 AddSection(setPage, "Theme", 4)
 AddThemePicker(setPage, 5)
-AddSection(setPage, "Data", 6)
-AddButton(setPage, "Save Config", 7, function() ConfigMgr:Save(Config); Notify("Config", "Saved!", PALETTE.Pumpkin, "💾") end)
+AddSection(setPage, "Keybinds", 6)
+local kbInfo = Instance.new("TextLabel", setPage)
+kbInfo.LayoutOrder = 7; kbInfo.Size = UDim2.new(1,0,0,95); kbInfo.BackgroundTransparency = 1; kbInfo.Text = "F1 - Toggle ESP\nF2 - Toggle Noclip\nF3 - Toggle Aimbot\nF4 - Reset TP Stuck\nRCtrl - Minimize"; kbInfo.TextColor3 = PALETTE.GhostWhite; kbInfo.Font = Enum.Font.Code; kbInfo.TextSize = 10; kbInfo.TextXAlignment = Enum.TextXAlignment.Left; kbInfo.TextYAlignment = Enum.TextYAlignment.Top; kbInfo.ZIndex = 8
+
+AddSection(setPage, "Data", 8)
+AddButton(setPage, "Reset TP Stuck (F4)", 9, function() resetCharacter(); Notify("Reset", "Character fixed!", PALETTE.Toxic, "✓") end)
+AddButton(setPage, "Save Config", 10, function() ConfigMgr:Save(Config); Notify("Config", "Saved!", PALETTE.Pumpkin, "💾") end)
+AddButton(setPage, "Reload Image", 11, function()
+    pcall(function() if isfile and delfile and isfile("aura_icon_adv.jpg") then delfile("aura_icon_adv.jpg") end end)
+    CustomImage = ""; loadImageSync()
+    Notify("Image", CustomImage ~= "" and "Reloaded!" or "Failed", CustomImage ~= "" and PALETTE.Toxic or PALETTE.Blood, "🖼")
+end)
 
 local function CleanupAll()
     pcall(function()
-        Config.IsAutoFarmEvade = false
+        Godmode.Enabled=false; AntiTP.Enabled=false; Combat.Aimbot.Enabled=false
+        resetCharacter()
+        local char = LocalPlayer.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then hrp.CFrame = hrp.CFrame + Vector3.new(0,3,0); hrp.AssemblyLinearVelocity = Vector3.zero end
+        end
         ConnMgr.purge()
     end)
 end
 
-AddButton(setPage, "Close UI", 8, function()
+AddButton(setPage, "Close UI", 12, function()
     Audio:Play("close", 0.3)
     CleanupAll(); ScreenGui:Destroy()
 end)
@@ -844,8 +923,9 @@ end))
 Audio:Play("open", 0.25)
 Tween(MainScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = UI_SCALE })
 task.delay(0.3, function()
-    Notify("by ouncopybara", "GHOST MODE Evade Edition loaded!", PALETTE.Toxic, "👻")
+    Notify("by ouncopybara", "GHOST MODE v10.2 loaded (AFK ONLY)!", PALETTE.Toxic, "👻")
+    Notify("Image", CustomImage ~= "" and "Loaded OK" or "Using fallback", CustomImage ~= "" and PALETTE.Toxic or PALETTE.Pumpkin, "🖼")
 end)
-updateStatus("👻 Evade Farm Ready • v10.2", PALETTE.Toxic)
+updateStatus("👻 Ghost ready (AFK Only) • v10.2", PALETTE.Toxic)
 
-print("[GhostUI] Evade Auto Farm Edition loaded")
+print("[GhostUI] v10.2 loaded (AFK Edition) | Image:", CustomImage ~= "" and "OK" or "Fallback")
