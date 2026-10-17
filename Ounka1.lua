@@ -1,5 +1,5 @@
 -- ============================================================
---   👻 GHOST MODE v10.2 | EGG FARM ONLY (NO TP + FULL VISUALS)
+--   👻 GHOST MODE v10.2 | EGG FARM ONLY (NO BASE TP + FULL VISUALS)
 --   by ouncopybara | Halloween Ghost Theme
 -- ============================================================
 
