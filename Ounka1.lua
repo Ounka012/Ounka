@@ -1,5 +1,5 @@
 -- ============================================================
---   👻 GHOST MODE v10.2 | EGG FARM AUTO (FIXED GUI)
+--   👻 GHOST MODE v10.2 | VISUALS & SETTINGS ONLY
 --   by ouncopybara | Halloween Ghost Theme
 -- ============================================================
 
@@ -107,32 +107,6 @@ function Signal:Connect(fn)
     end }
 end
 function Signal:Fire(...) for _, fn in ipairs(self.h) do task.spawn(fn, ...) end end
-
--- ═══════════════════════════════════════════════════════════════
---   WORKSPACE CACHE
--- ═══════════════════════════════════════════════════════════════
-local WSCache = {
-    prompts = setmetatable({}, { __mode = "k" }),
-    clicks  = setmetatable({}, { __mode = "k" }),
-    signal  = Signal.new(),
-}
-local function WSCache_index(obj)
-    pcall(function()
-        if obj:IsA("ProximityPrompt") then
-            WSCache.prompts[obj] = true; WSCache.signal:Fire(obj, "prompt")
-        elseif obj:IsA("ClickDetector") then
-            WSCache.clicks[obj] = true; WSCache.signal:Fire(obj, "click")
-        end
-    end)
-end
-local function WSCache_unindex(obj)
-    WSCache.prompts[obj] = nil; WSCache.clicks[obj] = nil
-end
-ConnMgr.add(workspace.DescendantAdded:Connect(WSCache_index))
-ConnMgr.add(workspace.DescendantRemoving:Connect(WSCache_unindex))
-ConnMgr.spawn(function()
-    for _, v in ipairs(workspace:GetDescendants()) do WSCache_index(v) end
-end)
 
 -- ═══════════════════════════════════════════════════════════════
 --   PREMIUM IMAGE SYSTEM 
@@ -246,7 +220,7 @@ end
 -- ═══════════════════════════════════════════════════════════════
 --   CONFIG MGR
 -- ═══════════════════════════════════════════════════════════════
-local ConfigMgr = { File = "aura_ghost_farm.json", Data = {} }
+local ConfigMgr = { File = "aura_ghost_visuals.json", Data = {} }
 function ConfigMgr:Save(data)
     pcall(function()
         if not writefile then return end
@@ -310,7 +284,6 @@ local PALETTE = {
 }
 
 local Config = {
-    IsAutoOn=false, HoldDelay=0.2, MaxDistance=20,
     IsAntiAFK=true, Theme="Halloween",
     Themes = {
         Halloween = { Accent = Color3.fromRGB(255,132,35), Name="Ghost" },
@@ -334,25 +307,10 @@ do
             end
         end
     end
-    Config.IsAutoOn=false
     if type(Config.Theme) ~= "string" or not Config.Themes[Config.Theme] then
         Config.Theme = "Halloween"
     end
 end
-
--- ═══════════════════════════════════════════════════════════════
---   CHARACTER OBSERVER
--- ═══════════════════════════════════════════════════════════════
-local CharObs = { character=nil, humanoid=nil, root=nil, changed=Signal.new() }
-local function bindCharacter(char)
-    CharObs.character = char
-    CharObs.humanoid = safeWait(char, "Humanoid", 5)
-    CharObs.root = safeWait(char, "HumanoidRootPart", 5)
-    CharObs.changed:Fire(char, CharObs.humanoid, CharObs.root)
-end
-if LocalPlayer.Character then bindCharacter(LocalPlayer.Character) end
-ConnMgr.add(LocalPlayer.CharacterAdded:Connect(function(c) task.wait(0.5); bindCharacter(c) end))
-local function getCharacter() return CharObs.character, CharObs.humanoid, CharObs.root end
 
 -- ═══════════════════════════════════════════════════════════════
 --   THEME
@@ -526,7 +484,7 @@ StrokeGrad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0.7, PALETTE.Witch),
     ColorSequenceKeypoint.new(1,   PALETTE.Pumpkin),
 })
-StrokeGrad.Parent = GhostStroke
+StrokeGrad.Parent = StrokeGrad
 ConnMgr.spawn(function()
     while Ghost.Parent do
         StrokeGrad.Rotation = 0
@@ -582,7 +540,7 @@ local MouthStroke = Stroke(Mouth, PALETTE.EyeGlow, 2, 0.3)
 local TitleBadge = Instance.new("TextLabel")
 TitleBadge.Size = UDim2.new(0, 300, 0, 36); TitleBadge.Position = UDim2.new(0.5, -150, 0, 122)
 TitleBadge.BackgroundColor3 = PALETTE.WitchDeep; TitleBadge.BackgroundTransparency = 0.25
-TitleBadge.Text = "👻  EGG FARM AUTO  👻"
+TitleBadge.Text = "👻  GHOST THEME  👻"
 TitleBadge.TextColor3 = PALETTE.GhostWhite; TitleBadge.Font = Enum.Font.GothamBlack
 TitleBadge.TextSize = 16; TitleBadge.BorderSizePixel = 0; TitleBadge.ZIndex = 7; TitleBadge.Parent = Ghost
 Corner(TitleBadge, UDim.new(1, 0)); Stroke(TitleBadge, PALETTE.Pumpkin, 1.5, 0.25)
@@ -758,48 +716,7 @@ local function Notify(title, msg, color, icon)
     if activeNotifs >= MAX_NOTIFS then table.insert(notifQueue, data) else renderNotif(data) end
 end
 
--- ═══════════════════════════════════════════════════════════════
---   AUTO FARM SYSTEM (NO TP)
--- ═══════════════════════════════════════════════════════════════
-local updateStatus = function() end
-
-local function triggerPromptsAndClicks()
-    pcall(function()
-        local _, _, hrp = getCharacter(); if not hrp then return end
-        local pos = hrp.Position
-        for prompt in pairs(WSCache.prompts) do
-            if prompt.Parent and prompt.Enabled then
-                local part = prompt.Parent
-                if part:IsA("BasePart") then
-                    local d = (pos - part.Position).Magnitude
-                    if d <= (Config.MaxDistance or 20) then
-                        pcall(fireproximityprompt, prompt)
-                    end
-                end
-            end
-        end
-        for cd in pairs(WSCache.clicks) do
-            if cd.Parent then
-                local part = cd.Parent
-                if part:IsA("BasePart") then
-                    local d = (pos - part.Position).Magnitude
-                    if d <= (Config.MaxDistance or 20) then
-                        pcall(fireclickdetector, cd)
-                    end
-                end
-            end
-        end
-    end)
-end
-
-ConnMgr.spawn(function()
-    while task.wait(0.2) do
-        if Config.IsAutoOn then
-            triggerPromptsAndClicks()
-        end
-    end
-end)
-
+-- Anti AFK
 ConnMgr.add(LocalPlayer.Idled:Connect(function()
     if Config.IsAntiAFK then
         pcall(function()
@@ -842,11 +759,6 @@ local StatusText = Instance.new("TextLabel")
 StatusText.Size = UDim2.new(1, -34, 1, 0); StatusText.Position = UDim2.new(0, 30, 0, 0)
 StatusText.BackgroundTransparency = 1; StatusText.Text = "System ready"; StatusText.TextColor3 = PALETTE.GhostWhite
 StatusText.Font = Enum.Font.GothamBold; StatusText.TextSize = 11; StatusText.TextXAlignment = Enum.TextXAlignment.Left; StatusText.TextTruncate = Enum.TextTruncate.AtEnd; StatusText.ZIndex = 7; StatusText.Parent = StatusBar
-
-updateStatus = function(txt, col)
-    StatusText.Text = txt
-    if col and typeof(col) == "Color3" then StatusDot.BackgroundColor3 = col end
-end
 
 local function PlayClickEffect(btn)
     pcall(function()
@@ -950,40 +862,6 @@ local function AddToggle(page, title, desc, default, order, callback)
     return { Set = function(v) isOn = v and true or false; refresh() end }
 end
 
-local function AddSlider(page, title, min, max, default, decimals, order, callback)
-    local row = Instance.new("Frame")
-    row.LayoutOrder = order; row.Size = UDim2.new(1,0,0,56); row.BackgroundColor3 = PALETTE.NightLight
-    row.BackgroundTransparency = 0.35; row.BorderSizePixel = 0; row.ZIndex = 8; row.Parent = page
-    Corner(row, UDim.new(0,12)); Stroke(row, PALETTE.Witch, 1, 0.6)
-    local ttl = Instance.new("TextLabel")
-    ttl.Size = UDim2.new(1,-70,0,16); ttl.Position = UDim2.new(0,12,0,9); ttl.BackgroundTransparency = 1; ttl.Text = title
-    ttl.TextColor3 = PALETTE.GhostWhite; ttl.Font = Enum.Font.GothamBold; ttl.TextSize = 11; ttl.TextXAlignment = Enum.TextXAlignment.Left; ttl.ZIndex = 9; ttl.Parent = row
-    local valLbl = Instance.new("TextLabel")
-    valLbl.Size = UDim2.new(0,50,0,16); valLbl.Position = UDim2.new(1,-58,0,9); valLbl.BackgroundTransparency = 1; valLbl.Text = tostring(default)
-    valLbl.TextColor3 = PALETTE.Pumpkin; valLbl.Font = Enum.Font.GothamBold; valLbl.TextSize = 11; valLbl.TextXAlignment = Enum.TextXAlignment.Right; valLbl.ZIndex = 9; valLbl.Parent = row
-    local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(1,-24,0,6); bar.Position = UDim2.new(0,12,1,-18); bar.BackgroundColor3 = Color3.fromRGB(35,30,50); bar.BorderSizePixel = 0; bar.ZIndex = 9; row.Parent = row; Corner(bar, UDim.new(1,0))
-    local fill = Instance.new("Frame")
-    fill.Size = UDim2.new((default-min)/(max-min),0,1,0); fill.BackgroundColor3 = PALETTE.Pumpkin; fill.BorderSizePixel = 0; fill.ZIndex = 10; fill.Parent = bar; Corner(fill, UDim.new(1,0))
-    local fg = Instance.new("UIGradient")
-    fg.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, PALETTE.Witch), ColorSequenceKeypoint.new(1, PALETTE.Pumpkin)}); fg.Parent = fill
-    local knob = Instance.new("TextButton")
-    knob.Size = UDim2.new(0,20,0,20); knob.Position = UDim2.new((default-min)/(max-min),-10,0.5,-10)
-    knob.BackgroundColor3 = PALETTE.GhostWhite; knob.Text = ""; knob.BorderSizePixel = 0; knob.AutoButtonColor = false; knob.ZIndex = 11; knob.Parent = bar; Corner(knob, UDim.new(1,0)); Stroke(knob, PALETTE.Pumpkin, 2)
-
-    local dragging = false; local mult = 10 ^ (decimals or 0)
-    local function update(input)
-        local rel = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-        local val = math.floor((min + (max-min)*rel) * mult + 0.5) / mult
-        fill.Size = UDim2.new(rel,0,1,0); knob.Position = UDim2.new(rel,-10,0.5,-10); valLbl.Text = tostring(val)
-        if callback then pcall(callback, val) end
-    end
-    knob.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true end end)
-    bar.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true; update(input) end end)
-    ConnMgr.add(UserInputService.InputChanged:Connect(function(input) if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then update(input) end end))
-    ConnMgr.add(UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end end))
-end
-
 local function AddButton(page, title, order, callback)
     local b = Instance.new("TextButton")
     b.LayoutOrder = order; b.Size = UDim2.new(1,0,0,42); b.BackgroundColor3 = PALETTE.WitchDeep; b.Text = title; b.TextColor3 = PALETTE.GhostWhite
@@ -1027,16 +905,8 @@ local function AddThemePicker(page, order)
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   PAGES (AUTO FARM & SETTINGS ONLY)
+--   SETTINGS PAGE ONLY
 -- ═══════════════════════════════════════════════════════════════
-local farmPage = CreateTab("Farm", "🎃")
-AddSection(farmPage, "Egg Auto Farm", 1)
-AddToggle(farmPage, "Auto Collect Eggs", "Auto trigger prompts/clicks", false, 2, function(s)
-    Config.IsAutoOn = s
-    updateStatus(s and "Auto Farm: ON" or "Auto Farm: OFF", s and PALETTE.Toxic or PALETTE.Pumpkin)
-end)
-AddSlider(farmPage, "Max Distance", 5, 50, 20, 0, 3, function(v) Config.MaxDistance = v end)
-
 local setPage = CreateTab("Set", "⚙️")
 AddSection(setPage, "General", 1)
 AddToggle(setPage, "Anti AFK", "Prevent idle kick", true, 2, function(s) Config.IsAntiAFK = s end)
@@ -1056,7 +926,6 @@ end)
 
 local function CleanupAll()
     pcall(function()
-        Config.IsAutoOn = false
         ConnMgr.purge()
     end)
 end
@@ -1169,7 +1038,6 @@ end))
 Audio:Play("open", 0.25)
 Tween(MainScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = UI_SCALE })
 task.delay(0.3, function()
-    Notify("by ouncopybara", "EGG FARM ONLY loaded!", PALETTE.Toxic, "👻")
+    Notify("by ouncopybara", "Visuals UI loaded!", PALETTE.Toxic, "👻")
 end)
-updateStatus("👻 Farm ready", PALETTE.Toxic)
-print("[GhostUI] Egg Farm Only Edition loaded")
+print("[GhostUI] Visuals Only Edition loaded")
