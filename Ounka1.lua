@@ -1,5 +1,5 @@
 -- ============================================================
---   👻 GHOST MODE v10.2 | LITE EDITION (FARM ONLY + FULL VISUALS)
+--   👻 GHOST MODE v10.2 | EGG FARM ONLY (NO TP + FULL VISUALS)
 --   by ouncopybara | Halloween Ghost Theme
 -- ============================================================
 
@@ -12,7 +12,6 @@ local TweenService      = game:GetService("TweenService")
 local UserInputService  = game:GetService("UserInputService")
 local SoundService      = game:GetService("SoundService")
 local HttpService       = game:GetService("HttpService")
-local PathfindingService= game:GetService("PathfindingService")
 
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
@@ -234,36 +233,18 @@ function Audio:Play(name, vol)
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   CF SERIALIZATION & CONFIG MGR
+--   CONFIG MGR
 -- ═══════════════════════════════════════════════════════════════
-local function CFrameToTable(cf)
-    local x,y,z,r00,r01,r02,r10,r11,r12,r20,r21,r22 = cf:GetComponents()
-    return {x=x,y=y,z=z,r00=r00,r01=r01,r02=r02,r10=r10,r11=r11,r12=r12,r20=r20,r21=r21,r22=r22}
-end
-local function TableToCFrame(t)
-    if not t or type(t) ~= "table" then return nil end
-    local ok, cf = pcall(function()
-        return CFrame.new(t.x,t.y,t.z,t.r00,t.r01,t.r02,t.r10,t.r11,t.r12,t.r20,t.r21,t.r22)
-    end)
-    return ok and cf or nil
-end
-
-local ConfigMgr = { File = "aura_ghost_lite.json", Data = {} }
+local ConfigMgr = { File = "aura_ghost_farm.json", Data = {} }
 function ConfigMgr:Save(data)
     pcall(function()
         if not writefile then return end
         local d = data or self.Data
         local s = {}
         for k, v in pairs(d) do
-            if k ~= "Themes" and k ~= "BaseCFrames" then
+            if k ~= "Themes" then
                 local tv = type(v)
                 if tv == "string" or tv == "number" or tv == "boolean" then s[k] = v end
-            end
-        end
-        if d.BaseCFrames then
-            s.BaseCFrames = {}
-            for i, cf in ipairs(d.BaseCFrames) do
-                if typeof(cf) == "CFrame" then s.BaseCFrames[i] = CFrameToTable(cf) end
             end
         end
         writefile(self.File, HttpService:JSONEncode(s))
@@ -318,10 +299,8 @@ local PALETTE = {
 }
 
 local Config = {
-    BaseCFrames = {},
-    IsAutoOn=false, StiffDuration=1.0, HoldDelay=0.2,
-    IsAntiAFK=true, UsePathfind=false, SafeTP=true,
-    Theme="Halloween",
+    IsAutoOn=false, HoldDelay=0.2, MaxDistance=20,
+    IsAntiAFK=true, Theme="Halloween",
     Themes = {
         Halloween = { Accent = Color3.fromRGB(255,132,35), Name="Ghost" },
         Pink      = { Accent = Color3.fromRGB(255,105,180), Name="Pink" },
@@ -339,15 +318,8 @@ do
     local savedCfg = ConfigMgr:Load()
     if savedCfg and type(savedCfg) == "table" then
         for k, v in pairs(savedCfg) do
-            if k ~= "Themes" and k ~= "BaseCFrames" then
+            if k ~= "Themes" then
                 if Config[k] ~= nil and type(Config[k]) == type(v) then Config[k] = v end
-            end
-        end
-        if type(savedCfg.BaseCFrames) == "table" then
-            Config.BaseCFrames = {}
-            for i, tbl in ipairs(savedCfg.BaseCFrames) do
-                local cf = TableToCFrame(tbl)
-                if cf then Config.BaseCFrames[i] = cf end
             end
         end
     end
@@ -360,55 +332,12 @@ end
 -- ═══════════════════════════════════════════════════════════════
 --   CHARACTER OBSERVER
 -- ═══════════════════════════════════════════════════════════════
-local CharObs = { character=nil, humanoid=nil, root=nil, changed=Signal.new(), died=Signal.new() }
-local BODY_PARTS = {
-    Head=1, Torso=1, UpperTorso=1, LowerTorso=1,
-    ["Left Arm"]=1, ["Right Arm"]=1, ["Left Leg"]=1, ["Right Leg"]=1,
-    LeftUpperArm=1, LeftLowerArm=1, LeftHand=1,
-    RightUpperArm=1, RightLowerArm=1, RightHand=1,
-    LeftUpperLeg=1, LeftLowerLeg=1, LeftFoot=1,
-    RightUpperLeg=1, RightLowerLeg=1, RightFoot=1,
-    HumanoidRootPart=1,
-}
-
-local function resetCharacter()
-    pcall(function()
-        local char = CharObs.character; if not char then return end
-        local hum = CharObs.humanoid
-        local hrp = CharObs.root
-        if hum then
-            hum.PlatformStand = false
-            hum.AutoRotate = true
-            pcall(function() hum:ChangeState(Enum.HumanoidStateType.GettingUp) end)
-        end
-        for _, p in ipairs(char:GetDescendants()) do
-            if p:IsA("BasePart") and BODY_PARTS[p.Name] then
-                p.CanCollide = true
-                p.Anchored = false
-            end
-        end
-        if hrp then
-            pcall(function()
-                if hrp.Position.Y < -50 then
-                    hrp.CFrame = CFrame.new(hrp.Position.X, 50, hrp.Position.Z)
-                end
-                hrp.AssemblyLinearVelocity = Vector3.zero
-                hrp.AssemblyAngularVelocity = Vector3.zero
-            end)
-        end
-    end)
-end
-
+local CharObs = { character=nil, humanoid=nil, root=nil, changed=Signal.new() }
 local function bindCharacter(char)
     CharObs.character = char
     CharObs.humanoid = safeWait(char, "Humanoid", 5)
     CharObs.root = safeWait(char, "HumanoidRootPart", 5)
     CharObs.changed:Fire(char, CharObs.humanoid, CharObs.root)
-    if CharObs.humanoid then
-        ConnMgr.add(CharObs.humanoid.Died:Connect(function() CharObs.died:Fire() end))
-    end
-    task.wait(0.3)
-    resetCharacter()
 end
 if LocalPlayer.Character then bindCharacter(LocalPlayer.Character) end
 ConnMgr.add(LocalPlayer.CharacterAdded:Connect(function(c) task.wait(0.5); bindCharacter(c) end))
@@ -420,8 +349,6 @@ local function getCharacter() return CharObs.character, CharObs.humanoid, CharOb
 local accent = Config.Themes[Config.Theme].Accent
 local accentRegistry, gradientRegistry, switchRegistry = {}, {}, {}
 local StrokeGrad
-local function RegisterAccent(o,p) table.insert(accentRegistry,{obj=o,prop=p}) end
-local function RegisterGradient(g) table.insert(gradientRegistry,g) end
 
 local function ApplyTheme(name)
     local t = Config.Themes[name]; if not t then return end
@@ -452,7 +379,7 @@ local function ApplyTheme(name)
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   SCREEN GUI & FULL VISUALS RESTORED
+--   SCREEN GUI & FULL VISUALS
 -- ═══════════════════════════════════════════════════════════════
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GhostUI"
@@ -551,9 +478,7 @@ GhostAura.ScaleType = Enum.ScaleType.Slice
 GhostAura.SliceCenter = Rect.new(24,24,276,276)
 GhostAura.ZIndex = 1
 GhostAura.Parent = ScreenGui
-local AuraScale = Instance.new("UIScale")
-AuraScale.Scale = UI_SCALE
-AuraScale.Parent = GhostAura
+local AuraScale = Instance.new("UIScale"); AuraScale.Scale = UI_SCALE; AuraScale.Parent = GhostAura
 
 -- MAIN GHOST
 local Ghost = Instance.new("Frame")
@@ -568,9 +493,7 @@ Ghost.ZIndex = 5
 Ghost.Parent = ScreenGui
 Corner(Ghost, UDim.new(0, 110))
 
-local MainScale = Instance.new("UIScale")
-MainScale.Scale = UI_SCALE
-MainScale.Parent = Ghost
+local MainScale = Instance.new("UIScale"); MainScale.Scale = UI_SCALE; MainScale.Parent = Ghost
 
 local GhostGrad = Instance.new("UIGradient")
 GhostGrad.Color = ColorSequence.new({
@@ -578,8 +501,7 @@ GhostGrad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0.35, PALETTE.Night),
     ColorSequenceKeypoint.new(1,    Color3.fromRGB(6,4,14)),
 })
-GhostGrad.Rotation = 90
-GhostGrad.Parent = Ghost
+GhostGrad.Rotation = 90; GhostGrad.Parent = Ghost
 
 local GhostStroke = Stroke(Ghost, PALETTE.Witch, 2.5, 0.15)
 StrokeGrad = Instance.new("UIGradient")
@@ -590,7 +512,7 @@ StrokeGrad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0.7, PALETTE.Witch),
     ColorSequenceKeypoint.new(1,   PALETTE.Pumpkin),
 })
-StrokeGrad.Parent = GhostStroke
+StrokeGrad.Parent = StrokeGrad
 ConnMgr.spawn(function()
     while Ghost.Parent do
         StrokeGrad.Rotation = 0
@@ -600,115 +522,67 @@ ConnMgr.spawn(function()
 end)
 
 local GhostBgImg = Instance.new("ImageLabel")
-GhostBgImg.Size = UDim2.new(1,0,1,0)
-GhostBgImg.BackgroundTransparency = 1
+GhostBgImg.Size = UDim2.new(1,0,1,0); GhostBgImg.BackgroundTransparency = 1
 GhostBgImg.Image = CustomImage ~= "" and CustomImage or IMAGE_FALLBACKS[1]
-GhostBgImg.ImageTransparency = 0.92
-GhostBgImg.ScaleType = Enum.ScaleType.Crop
-GhostBgImg.ZIndex = 3
-GhostBgImg.Parent = Ghost
-Corner(GhostBgImg, UDim.new(0, 110))
-registerImage(GhostBgImg)
+GhostBgImg.ImageTransparency = 0.92; GhostBgImg.ScaleType = Enum.ScaleType.Crop
+GhostBgImg.ZIndex = 3; GhostBgImg.Parent = Ghost
+Corner(GhostBgImg, UDim.new(0, 110)); registerImage(GhostBgImg)
 
 -- WAVY BOTTOM
 local WaveHolder = Instance.new("Frame")
-WaveHolder.Size = UDim2.new(1,0,0,50)
-WaveHolder.Position = UDim2.new(0,0,1,-25)
-WaveHolder.BackgroundTransparency = 1
-WaveHolder.ZIndex = 4
-WaveHolder.Parent = Ghost
+WaveHolder.Size = UDim2.new(1,0,0,50); WaveHolder.Position = UDim2.new(0,0,1,-25)
+WaveHolder.BackgroundTransparency = 1; WaveHolder.ZIndex = 4; WaveHolder.Parent = Ghost
 for i = 0, 2 do
     local wave = Instance.new("Frame")
-    wave.Size = UDim2.new(0.34, 0, 0, 50)
-    wave.Position = UDim2.new(i * 0.33, 0, 0, 0)
-    wave.BackgroundColor3 = PALETTE.Night
-    wave.BackgroundTransparency = 0.02
-    wave.BorderSizePixel = 0
-    wave.ZIndex = 4
-    wave.Parent = WaveHolder
+    wave.Size = UDim2.new(0.34, 0, 0, 50); wave.Position = UDim2.new(i * 0.33, 0, 0, 0)
+    wave.BackgroundColor3 = PALETTE.Night; wave.BackgroundTransparency = 0.02
+    wave.BorderSizePixel = 0; wave.ZIndex = 4; wave.Parent = WaveHolder
     Corner(wave, UDim.new(1, 0))
 end
 
 -- FACE
 local FaceHolder = Instance.new("Frame")
-FaceHolder.Size = UDim2.new(1, 0, 0, 100)
-FaceHolder.Position = UDim2.new(0, 0, 0, 14)
-FaceHolder.BackgroundTransparency = 1
-FaceHolder.ZIndex = 6
-FaceHolder.Parent = Ghost
+FaceHolder.Size = UDim2.new(1, 0, 0, 100); FaceHolder.Position = UDim2.new(0, 0, 0, 14)
+FaceHolder.BackgroundTransparency = 1; FaceHolder.ZIndex = 6; FaceHolder.Parent = Ghost
 
 local EyeL = Instance.new("Frame")
-EyeL.Size = UDim2.new(0, 30, 0, 38)
-EyeL.Position = UDim2.new(0.5, -78, 0, 26)
-EyeL.BackgroundColor3 = PALETTE.EyeGlow
-EyeL.BorderSizePixel = 0
-EyeL.ZIndex = 7
-EyeL.Parent = FaceHolder
+EyeL.Size = UDim2.new(0, 30, 0, 38); EyeL.Position = UDim2.new(0.5, -78, 0, 26)
+EyeL.BackgroundColor3 = PALETTE.EyeGlow; EyeL.BorderSizePixel = 0; EyeL.ZIndex = 7; EyeL.Parent = FaceHolder
 Corner(EyeL, UDim.new(1, 0))
 local EyeLGlow = Instance.new("ImageLabel")
-EyeLGlow.Size = UDim2.new(1, 70, 1, 70)
-EyeLGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
-EyeLGlow.AnchorPoint = Vector2.new(0.5, 0.5)
-EyeLGlow.BackgroundTransparency = 1
-EyeLGlow.Image = "rbxassetid://5028857084"
-EyeLGlow.ImageColor3 = PALETTE.EyeGlow
-EyeLGlow.ImageTransparency = 0.25
-EyeLGlow.ScaleType = Enum.ScaleType.Slice
-EyeLGlow.SliceCenter = Rect.new(24,24,276,276)
-EyeLGlow.ZIndex = 6
-EyeLGlow.Parent = EyeL
+EyeLGlow.Size = UDim2.new(1, 70, 1, 70); EyeLGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+EyeLGlow.AnchorPoint = Vector2.new(0.5, 0.5); EyeLGlow.BackgroundTransparency = 1
+EyeLGlow.Image = "rbxassetid://5028857084"; EyeLGlow.ImageColor3 = PALETTE.EyeGlow
+EyeLGlow.ImageTransparency = 0.25; EyeLGlow.ScaleType = Enum.ScaleType.Slice
+EyeLGlow.SliceCenter = Rect.new(24,24,276,276); EyeLGlow.ZIndex = 6; EyeLGlow.Parent = EyeL
 
-local EyeR = EyeL:Clone()
-EyeR.Position = UDim2.new(0.5, 48, 0, 26)
-EyeR.Parent = FaceHolder
+local EyeR = EyeL:Clone(); EyeR.Position = UDim2.new(0.5, 48, 0, 26); EyeR.Parent = FaceHolder
 
 local Mouth = Instance.new("Frame")
-Mouth.Size = UDim2.new(0, 70, 0, 28)
-Mouth.Position = UDim2.new(0.5, -35, 0, 74)
-Mouth.BackgroundColor3 = PALETTE.Night
-Mouth.BorderSizePixel = 0
-Mouth.ZIndex = 7
-Mouth.Parent = FaceHolder
+Mouth.Size = UDim2.new(0, 70, 0, 28); Mouth.Position = UDim2.new(0.5, -35, 0, 74)
+Mouth.BackgroundColor3 = PALETTE.Night; Mouth.BorderSizePixel = 0; Mouth.ZIndex = 7; Mouth.Parent = FaceHolder
 Corner(Mouth, UDim.new(0, 14))
 local MouthStroke = Stroke(Mouth, PALETTE.EyeGlow, 2, 0.3)
 
 -- TITLE
 local TitleBadge = Instance.new("TextLabel")
-TitleBadge.Size = UDim2.new(0, 300, 0, 36)
-TitleBadge.Position = UDim2.new(0.5, -150, 0, 122)
-TitleBadge.BackgroundColor3 = PALETTE.WitchDeep
-TitleBadge.BackgroundTransparency = 0.25
-TitleBadge.Text = "👻  EGG FARM LITE  👻"
-TitleBadge.TextColor3 = PALETTE.GhostWhite
-TitleBadge.Font = Enum.Font.GothamBlack
-TitleBadge.TextSize = 16
-TitleBadge.BorderSizePixel = 0
-TitleBadge.ZIndex = 7
-TitleBadge.Parent = Ghost
-Corner(TitleBadge, UDim.new(1, 0))
-Stroke(TitleBadge, PALETTE.Pumpkin, 1.5, 0.25)
+TitleBadge.Size = UDim2.new(0, 300, 0, 36); TitleBadge.Position = UDim2.new(0.5, -150, 0, 122)
+TitleBadge.BackgroundColor3 = PALETTE.WitchDeep; TitleBadge.BackgroundTransparency = 0.25
+TitleBadge.Text = "👻  EGG FARM AUTO  👻"
+TitleBadge.TextColor3 = PALETTE.GhostWhite; TitleBadge.Font = Enum.Font.GothamBlack
+TitleBadge.TextSize = 16; TitleBadge.BorderSizePixel = 0; TitleBadge.ZIndex = 7; TitleBadge.Parent = Ghost
+Corner(TitleBadge, UDim.new(1, 0)); Stroke(TitleBadge, PALETTE.Pumpkin, 1.5, 0.25)
 
 local Subtitle = Instance.new("TextLabel")
-Subtitle.Size = UDim2.new(0, 340, 0, 16)
-Subtitle.Position = UDim2.new(0.5, -170, 0, 162)
-Subtitle.BackgroundTransparency = 1
-Subtitle.Text = "by ouncopybara  •  " .. Config.Themes[Config.Theme].Name
-Subtitle.TextColor3 = PALETTE.Pumpkin
-Subtitle.Font = Enum.Font.GothamBold
-Subtitle.TextSize = 10
-Subtitle.ZIndex = 7
-Subtitle.Parent = Ghost
-Subtitle.TextStrokeTransparency = 0.4
+Subtitle.Size = UDim2.new(0, 340, 0, 16); Subtitle.Position = UDim2.new(0.5, -170, 0, 162)
+Subtitle.BackgroundTransparency = 1; Subtitle.Text = "by ouncopybara  •  " .. Config.Themes[Config.Theme].Name
+Subtitle.TextColor3 = PALETTE.Pumpkin; Subtitle.Font = Enum.Font.GothamBold
+Subtitle.TextSize = 10; Subtitle.ZIndex = 7; Subtitle.Parent = Ghost; Subtitle.TextStrokeTransparency = 0.4
 
 local PerfLabel = Instance.new("TextLabel")
-PerfLabel.Size = UDim2.new(0, 200, 0, 14)
-PerfLabel.Position = UDim2.new(0.5, -100, 0, 180)
-PerfLabel.BackgroundTransparency = 1
-PerfLabel.Font = Enum.Font.Code
-PerfLabel.TextSize = 9
-PerfLabel.TextColor3 = Color3.fromRGB(150,140,180)
-PerfLabel.ZIndex = 7
-PerfLabel.Parent = Ghost
+PerfLabel.Size = UDim2.new(0, 200, 0, 14); PerfLabel.Position = UDim2.new(0.5, -100, 0, 180)
+PerfLabel.BackgroundTransparency = 1; PerfLabel.Font = Enum.Font.Code; PerfLabel.TextSize = 9
+PerfLabel.TextColor3 = Color3.fromRGB(150,140,180); PerfLabel.ZIndex = 7; PerfLabel.Parent = Ghost
 ConnMgr.spawn(function()
     while PerfLabel.Parent do
         PerfLabel.Text = string.format("FPS:%d  MEM:%d  PING:%d", Perf.fps, Perf.memory, Perf.ping)
@@ -719,47 +593,30 @@ end)
 -- WINDOW BUTTONS
 local function GhostButton(text, xOff, color)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 34, 0, 34)
-    b.Position = UDim2.new(1, xOff, 0, 20)
-    b.BackgroundColor3 = color
-    b.Text = text
-    b.TextColor3 = PALETTE.GhostWhite
-    b.Font = Enum.Font.GothamBlack
-    b.TextSize = 15
-    b.BorderSizePixel = 0
-    b.AutoButtonColor = false
-    b.ZIndex = 20
-    b.Parent = Ghost
-    Corner(b, UDim.new(1, 0))
+    b.Size = UDim2.new(0, 34, 0, 34); b.Position = UDim2.new(1, xOff, 0, 20)
+    b.BackgroundColor3 = color; b.Text = text; b.TextColor3 = PALETTE.GhostWhite
+    b.Font = Enum.Font.GothamBlack; b.TextSize = 15; b.BorderSizePixel = 0; b.AutoButtonColor = false
+    b.ZIndex = 20; b.Parent = Ghost; Corner(b, UDim.new(1, 0))
     local st = Stroke(b, PALETTE.GhostWhite, 1.2, 0.4)
-    b.MouseEnter:Connect(function()
-        Tween(b, INFO_FAST, { Size = UDim2.new(0, 38, 0, 38) })
-        Tween(st, INFO_FAST, { Color = PALETTE.Pumpkin })
-    end)
-    b.MouseLeave:Connect(function()
-        Tween(b, INFO_FAST, { Size = UDim2.new(0, 34, 0, 34) })
-        Tween(st, INFO_FAST, { Color = PALETTE.GhostWhite })
-    end)
+    b.MouseEnter:Connect(function() Tween(b, INFO_FAST, { Size = UDim2.new(0, 38, 0, 38) }); Tween(st, INFO_FAST, { Color = PALETTE.Pumpkin }) end)
+    b.MouseLeave:Connect(function() Tween(b, INFO_FAST, { Size = UDim2.new(0, 34, 0, 34) }); Tween(st, INFO_FAST, { Color = PALETTE.GhostWhite }) end)
     return b
 end
 local CloseBtn = GhostButton("✕", -46, PALETTE.Blood)
 local MinBtn   = GhostButton("–", -88, PALETTE.WitchDeep)
 
--- FLOATING ANIMATION
-local basePos = Ghost.Position
+-- ANIMATIONS
 ConnMgr.spawn(function()
     while Ghost.Parent do
         local t = tick()
         local dx = math.sin(t * 1.4) * 3
         local dy = math.sin(t * 1.8 + 0.5) * 8
-        Ghost.Position = UDim2.new(basePos.X.Scale, basePos.X.Offset + dx,
-                                   basePos.Y.Scale, basePos.Y.Offset + dy)
+        Ghost.Position = UDim2.new(0.5, dx, 0.5, dy)
         GhostAura.Position = UDim2.new(0.5, dx, 0.5, dy)
         RunService.RenderStepped:Wait()
     end
 end)
 
--- BLINK ANIMATION
 ConnMgr.spawn(function()
     while Ghost.Parent do
         task.wait(math.random(30, 60) / 10)
@@ -771,20 +628,14 @@ ConnMgr.spawn(function()
     end
 end)
 
--- EYE PULSE ANIMATION
 ConnMgr.spawn(function()
     while Ghost.Parent do
-        Tween(EyeL, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-            BackgroundColor3 = PALETTE.EyeGlowRed
-        })
-        Tween(EyeR, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-            BackgroundColor3 = PALETTE.EyeGlowRed
-        })
+        Tween(EyeL, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { BackgroundColor3 = PALETTE.EyeGlowRed })
+        Tween(EyeR, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { BackgroundColor3 = PALETTE.EyeGlowRed })
         task.wait(6)
     end
 end)
 
--- MOUTH PULSE ANIMATION
 ConnMgr.spawn(function()
     while Ghost.Parent do
         MouthStroke.Transparency = 0.2
@@ -795,7 +646,6 @@ ConnMgr.spawn(function()
     end
 end)
 
--- LIGHTNING ANIMATION
 ConnMgr.spawn(function()
     while Ghost.Parent do
         task.wait(math.random(10, 25))
@@ -810,30 +660,15 @@ end)
 
 -- ORBS
 local orbHolder = Instance.new("Frame")
-orbHolder.Size = UDim2.new(1, 0, 1, 0)
-orbHolder.BackgroundTransparency = 1
-orbHolder.ZIndex = 3
-orbHolder.Parent = Ghost
+orbHolder.Size = UDim2.new(1, 0, 1, 0); orbHolder.BackgroundTransparency = 1; orbHolder.ZIndex = 3; orbHolder.Parent = Ghost
 for i = 1, 5 do
     local orb = Instance.new("Frame")
-    orb.Size = UDim2.new(0, 9, 0, 9)
-    orb.BackgroundColor3 = (i % 2 == 0) and PALETTE.Pumpkin or PALETTE.Witch
-    orb.BorderSizePixel = 0
-    orb.ZIndex = 3
-    orb.Parent = orbHolder
-    Corner(orb, UDim.new(1, 0))
+    orb.Size = UDim2.new(0, 9, 0, 9); orb.BackgroundColor3 = (i % 2 == 0) and PALETTE.Pumpkin or PALETTE.Witch
+    orb.BorderSizePixel = 0; orb.ZIndex = 3; orb.Parent = orbHolder; Corner(orb, UDim.new(1, 0))
     local glow = Instance.new("ImageLabel")
-    glow.Size = UDim2.new(1, 50, 1, 50)
-    glow.Position = UDim2.new(0.5, 0, 0.5, 0)
-    glow.AnchorPoint = Vector2.new(0.5, 0.5)
-    glow.BackgroundTransparency = 1
-    glow.Image = "rbxassetid://5028857084"
-    glow.ImageColor3 = orb.BackgroundColor3
-    glow.ImageTransparency = 0.4
-    glow.ScaleType = Enum.ScaleType.Slice
-    glow.SliceCenter = Rect.new(24,24,276,276)
-    glow.ZIndex = 2
-    glow.Parent = orb
+    glow.Size = UDim2.new(1, 50, 1, 50); glow.Position = UDim2.new(0.5, 0, 0.5, 0); glow.AnchorPoint = Vector2.new(0.5, 0.5)
+    glow.BackgroundTransparency = 1; glow.Image = "rbxassetid://5028857084"; glow.ImageColor3 = orb.BackgroundColor3
+    glow.ImageTransparency = 0.4; glow.ScaleType = Enum.ScaleType.Slice; glow.SliceCenter = Rect.new(24,24,276,276); glow.ZIndex = 2; glow.Parent = orb
     ConnMgr.spawn(function()
         local angle = (i / 5) * math.pi * 2
         while Ghost.Parent do
@@ -910,56 +745,11 @@ local function Notify(title, msg, color, icon)
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   TELEPORT & FARM SYSTEM
+--   AUTO FARM SYSTEM (NO TP)
 -- ═══════════════════════════════════════════════════════════════
-local activeTPConn = nil
-local function instantTeleport(hrp, targetCFrame, duration)
-    if not hrp or not hrp.Parent then return end
-    local char = hrp.Parent
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if activeTPConn then pcall(function() activeTPConn:Disconnect() end); activeTPConn = nil end
-    local safeCF = Config.SafeTP and (targetCFrame + Vector3.new(0,3,0)) or targetCFrame
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") and BODY_PARTS[part.Name] then
-            part.CanCollide = false; part.Anchored = false
-        end
-    end
-    local start = tick(); local dur = duration or 0.2
-    activeTPConn = RunService.RenderStepped:Connect(function()
-        pcall(function() hrp.CFrame = safeCF; hrp.AssemblyLinearVelocity = Vector3.zero end)
-        if tick() - start > dur then
-            if activeTPConn then pcall(function() activeTPConn:Disconnect() end); activeTPConn = nil end
-        end
-    end)
-    task.delay(dur + 0.05, function()
-        pcall(function()
-            if not hrp.Parent then return end
-            hrp.AssemblyLinearVelocity = Vector3.zero; hrp.AssemblyAngularVelocity = Vector3.zero
-            for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") and BODY_PARTS[part.Name] then part.CanCollide = true end
-            end
-            if hum then
-                hum.PlatformStand = false; hum.AutoRotate = true
-                pcall(function() hum:ChangeState(Enum.HumanoidStateType.GettingUp) end)
-            end
-        end)
-    end)
-end
+local updateStatus = function() end
 
-local function pathfindTeleport(hrp, targetPos)
-    local path = PathfindingService:CreatePath({ AgentRadius=3, AgentHeight=5, AgentCanJump=true })
-    local ok = pcall(function() path:ComputeAsync(hrp.Position, targetPos) end)
-    if ok and path.Status == Enum.PathStatus.Success then
-        for _, wp in ipairs(path:GetWaypoints()) do
-            instantTeleport(hrp, CFrame.new(wp.Position + Vector3.new(0,3,0)), 0.1)
-            task.wait(0.08)
-        end
-    else
-        instantTeleport(hrp, CFrame.new(targetPos), 0.2)
-    end
-end
-
-local function triggerPromptOrClick(maxDist)
+local function triggerPromptsAndClicks()
     pcall(function()
         local _, _, hrp = getCharacter(); if not hrp then return end
         local pos = hrp.Position
@@ -968,7 +758,7 @@ local function triggerPromptOrClick(maxDist)
                 local part = prompt.Parent
                 if part:IsA("BasePart") then
                     local d = (pos - part.Position).Magnitude
-                    if d <= math.min(prompt.MaxActivationDistance or 15, maxDist or 15) then
+                    if d <= (Config.MaxDistance or 20) then
                         pcall(fireproximityprompt, prompt)
                     end
                 end
@@ -979,7 +769,7 @@ local function triggerPromptOrClick(maxDist)
                 local part = cd.Parent
                 if part:IsA("BasePart") then
                     local d = (pos - part.Position).Magnitude
-                    if d <= math.min(cd.MaxActivationDistance or 32, maxDist or 32) then
+                    if d <= (Config.MaxDistance or 20) then
                         pcall(fireclickdetector, cd)
                     end
                 end
@@ -988,63 +778,13 @@ local function triggerPromptOrClick(maxDist)
     end)
 end
 
-local isProcessing = false
-local updateStatus = function() end
-
-local function handleSteal()
-    if not Config.IsAutoOn or isProcessing then return end
-    local baseCF = Config.BaseCFrames[1]
-    if not baseCF or typeof(baseCF) ~= "CFrame" then
-        Notify("Farm", "Set base point first", PALETTE.Blood, "!")
-        return
-    end
-    local _, hum, hrp = getCharacter()
-    if not hrp or not hum or hum.Health <= 0 then return end
-    isProcessing = true
-    local originalLocation = hrp.CFrame
-    updateStatus("Collecting...", PALETTE.Pumpkin)
-    ConnMgr.spawn(function()
-        if not Config.IsAutoOn then isProcessing=false; return end
-        triggerPromptOrClick(15)
-        task.wait(Config.HoldDelay)
-        if not Config.IsAutoOn then isProcessing=false; return end
-        updateStatus("To base...", PALETTE.Witch)
-        if Config.UsePathfind then pathfindTeleport(hrp, baseCF.Position)
-        else instantTeleport(hrp, baseCF, 0.15) end
-        task.wait(0.2)
-        if not Config.IsAutoOn then isProcessing=false; return end
-        task.wait(Config.StiffDuration)
-        if not Config.IsAutoOn then isProcessing=false; return end
-        triggerPromptOrClick(32)
-        task.wait(0.1)
-        if not Config.IsAutoOn then isProcessing=false; return end
-        updateStatus("Returning...", PALETTE.Toxic)
-        instantTeleport(hrp, originalLocation + (Config.SafeTP and Vector3.new(0,3,0) or Vector3.zero), 0.05)
-        task.wait(0.1)
-        resetCharacter()
-        isProcessing = false
-        updateStatus("Waiting next egg...", PALETTE.GhostWhite)
-    end)
-end
-
-local hookedInteractions = setmetatable({}, { __mode = "k" })
-local function hookInteractions(v)
-    if hookedInteractions[v] then return end
-    hookedInteractions[v] = true
-    pcall(function()
-        if v:IsA("ProximityPrompt") then
-            ConnMgr.add(v.Triggered:Connect(function(plr)
-                if plr == LocalPlayer then handleSteal() end
-            end))
-        elseif v:IsA("ClickDetector") then
-            ConnMgr.add(v.MouseClick:Connect(function(plr)
-                if plr == LocalPlayer then handleSteal() end
-            end))
+ConnMgr.spawn(function()
+    while task.wait(0.2) do
+        if Config.IsAutoOn then
+            triggerPromptsAndClicks()
         end
-    end)
-end
-WSCache.signal:Connect(function(obj) hookInteractions(obj) end)
-for _, v in ipairs(workspace:GetDescendants()) do hookInteractions(v) end
+    end
+end)
 
 ConnMgr.add(LocalPlayer.Idled:Connect(function()
     if Config.IsAntiAFK then
@@ -1053,26 +793,6 @@ ConnMgr.add(LocalPlayer.Idled:Connect(function()
             vu:CaptureController(); vu:ClickButton2(Vector2.new())
         end)
     end
-end))
-
--- Keybinds (Only F4 remains)
-local Keybinds = { list = {} }
-function Keybinds:Register(key, cb) table.insert(self.list, { key=key, cb=cb }) end
-function Keybinds:Check(input)
-    if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
-    for _, kb in ipairs(self.list) do
-        if input.KeyCode == kb.key then
-            task.spawn(kb.cb); Audio:Play("toggle")
-        end
-    end
-end
-Keybinds:Register(Enum.KeyCode.F4, function()
-    resetCharacter()
-    Notify("Reset", "TP unstuck fixed!", PALETTE.Toxic, "R")
-end)
-ConnMgr.add(UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    Keybinds:Check(input)
 end))
 
 -- ═══════════════════════════════════════════════════════════════
@@ -1293,26 +1013,15 @@ local function AddThemePicker(page, order)
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   PAGES (ONLY FARM & SETTINGS)
+--   PAGES (AUTO FARM & SETTINGS ONLY)
 -- ═══════════════════════════════════════════════════════════════
 local farmPage = CreateTab("Farm", "🎃")
-AddSection(farmPage, "Farm Settings", 1)
-AddButton(farmPage, "Set Base Point", 2, function()
-    local _, _, hrp = getCharacter()
-    if hrp then
-        Config.BaseCFrames[1] = hrp.CFrame
-        Notify("Farm", "Base point saved!", PALETTE.Toxic, "✓")
-        ConfigMgr:Save(Config)
-    end
-end)
-AddToggle(farmPage, "Auto Farm Eggs", "Auto collect and deliver", false, 3, function(s)
+AddSection(farmPage, "Egg Auto Farm", 1)
+AddToggle(farmPage, "Auto Collect Eggs", "Auto trigger prompts/clicks", false, 2, function(s)
     Config.IsAutoOn = s
-    updateStatus(s and "Farm: ON" or "Farm: OFF", s and PALETTE.Toxic or PALETTE.Pumpkin)
+    updateStatus(s and "Auto Farm: ON" or "Auto Farm: OFF", s and PALETTE.Toxic or PALETTE.Pumpkin)
 end)
-AddSlider(farmPage, "Farm Delay", 0.5, 5, 1, 1, 4, function(v) Config.StiffDuration = v end)
-AddSlider(farmPage, "Hold Delay", 0, 1, 0.2, 1, 5, function(v) Config.HoldDelay = v end)
-AddToggle(farmPage, "Use Pathfind", "Avoid detection", false, 6, function(s) Config.UsePathfind = s end)
-AddToggle(farmPage, "Safe TP", "Offset 3 studs up", true, 7, function(s) Config.SafeTP = s end)
+AddSlider(farmPage, "Max Distance", 5, 50, 20, 0, 3, function(v) Config.MaxDistance = v end)
 
 local setPage = CreateTab("Set", "⚙️")
 AddSection(setPage, "General", 1)
@@ -1321,33 +1030,24 @@ AddToggle(setPage, "Sound", "UI sounds on/off", true, 3, function(s) Audio.Enabl
 AddSection(setPage, "Theme", 4)
 AddThemePicker(setPage, 5)
 AddSection(setPage, "Data", 6)
-local kbInfo = Instance.new("TextLabel")
-kbInfo.LayoutOrder = 7; kbInfo.Size = UDim2.new(1,0,0,40); kbInfo.BackgroundTransparency = 1
-kbInfo.Text = "F4 - Reset TP Stuck\nRCtrl - Minimize UI"; kbInfo.TextColor3 = PALETTE.GhostWhite; kbInfo.Font = Enum.Font.Code; kbInfo.TextSize = 10; kbInfo.TextXAlignment = Enum.TextXAlignment.Left; kbInfo.TextYAlignment = Enum.TextYAlignment.Top; kbInfo.ZIndex = 8; kbInfo.Parent = setPage
 
-AddButton(setPage, "Reset TP Stuck (F4)", 8, function()
-    resetCharacter()
-    Notify("Reset", "Character fixed!", PALETTE.Toxic, "✓")
-end)
-AddButton(setPage, "Save Config", 9, function()
+local kbInfo = Instance.new("TextLabel")
+kbInfo.LayoutOrder = 7; kbInfo.Size = UDim2.new(1,0,0,25); kbInfo.BackgroundTransparency = 1
+kbInfo.Text = "RCtrl - Minimize UI"; kbInfo.TextColor3 = PALETTE.GhostWhite; kbInfo.Font = Enum.Font.Code; kbInfo.TextSize = 10; kbInfo.TextXAlignment = Enum.TextXAlignment.Left; kbInfo.TextYAlignment = Enum.TextYAlignment.Top; kbInfo.ZIndex = 8; kbInfo.Parent = setPage
+
+AddButton(setPage, "Save Config", 8, function()
     ConfigMgr:Save(Config)
     Notify("Config", "Saved!", PALETTE.Pumpkin, "💾")
 end)
 
 local function CleanupAll()
     pcall(function()
-        Config.IsAutoOn=false
-        resetCharacter()
-        local char = LocalPlayer.Character
-        if char then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.CFrame = hrp.CFrame + Vector3.new(0,3,0); hrp.AssemblyLinearVelocity = Vector3.zero end
-        end
+        Config.IsAutoOn = false
         ConnMgr.purge()
     end)
 end
 
-AddButton(setPage, "Close UI", 10, function()
+AddButton(setPage, "Close UI", 9, function()
     Audio:Play("close", 0.3)
     CleanupAll(); ScreenGui:Destroy()
 end)
@@ -1441,8 +1141,8 @@ do
     end))
     ConnMgr.add(UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
-    end))
-end
+    end)
+end)
 
 ConnMgr.add(UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
@@ -1455,7 +1155,7 @@ end))
 Audio:Play("open", 0.25)
 Tween(MainScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = UI_SCALE })
 task.delay(0.3, function()
-    Notify("by ouncopybara", "EGG FARM LITE loaded!", PALETTE.Toxic, "👻")
+    Notify("by ouncopybara", "EGG FARM ONLY loaded!", PALETTE.Toxic, "👻")
 end)
-updateStatus("👻 Farm Lite ready", PALETTE.Toxic)
-print("[GhostUI] Lite Edition loaded (Full Visuals)")
+updateStatus("👻 Farm ready", PALETTE.Toxic)
+print("[GhostUI] Egg Farm Only Edition loaded")
