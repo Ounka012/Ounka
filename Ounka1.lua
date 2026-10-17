@@ -1,8 +1,6 @@
 -- ============================================================
---   👻 GHOST MODE v10.2 | FULL EDITION
+--   👻 GHOST MODE v10.2 | FULL EDITION (No Location Save)
 --   by ouncopybara | Halloween Ghost Theme + All Systems
---   Keep: Aimbot, ESP, Chams, Farm, Movement, Notifications,
---         Tabs, Theme Picker, Config Save, Image System
 -- ============================================================
 
 if not game:IsLoaded() then game.Loaded:Wait() end
@@ -146,7 +144,7 @@ ConnMgr.spawn(function()
 end)
 
 -- ═══════════════════════════════════════════════════════════════
---   PREMIUM IMAGE SYSTEM (កាន់តែពេញលេញ)
+--   PREMIUM IMAGE SYSTEM 
 -- ═══════════════════════════════════════════════════════════════
 local CustomImage  = ""
 local ImageReady   = Signal.new()
@@ -280,7 +278,7 @@ function ConfigMgr:Save(data)
         local d = data or self.Data
         local s = {}
         for k, v in pairs(d) do
-            if k ~= "Themes" and k ~= "BaseCFrames" and k ~= "SavedLocations" then
+            if k ~= "Themes" and k ~= "BaseCFrames" then
                 local tv = type(v)
                 if tv == "string" or tv == "number" or tv == "boolean" then s[k] = v end
             end
@@ -289,12 +287,6 @@ function ConfigMgr:Save(data)
             s.BaseCFrames = {}
             for i, cf in ipairs(d.BaseCFrames) do
                 if typeof(cf) == "CFrame" then s.BaseCFrames[i] = CFrameToTable(cf) end
-            end
-        end
-        if d.SavedLocations then
-            s.SavedLocations = {}
-            for name, cf in pairs(d.SavedLocations) do
-                if typeof(cf) == "CFrame" then s.SavedLocations[name] = CFrameToTable(cf) end
             end
         end
         writefile(self.File, HttpService:JSONEncode(s))
@@ -352,7 +344,7 @@ local PALETTE = {
 --   CONFIG
 -- ═══════════════════════════════════════════════════════════════
 local Config = {
-    BaseCFrames = {}, SavedLocations = {},
+    BaseCFrames = {},
     IsAutoOn=false, StiffDuration=1.0, HoldDelay=0.2,
     IsSpeedOn=false, SpeedValue=60,
     IsFlyOn=false, FlySpeed=100,
@@ -381,7 +373,7 @@ do
     local savedCfg = ConfigMgr:Load()
     if savedCfg and type(savedCfg) == "table" then
         for k, v in pairs(savedCfg) do
-            if k ~= "Themes" and k ~= "BaseCFrames" and k ~= "SavedLocations" then
+            if k ~= "Themes" and k ~= "BaseCFrames" then
                 if Config[k] ~= nil and type(Config[k]) == type(v) then Config[k] = v end
             end
         end
@@ -390,13 +382,6 @@ do
             for i, tbl in ipairs(savedCfg.BaseCFrames) do
                 local cf = TableToCFrame(tbl)
                 if cf then Config.BaseCFrames[i] = cf end
-            end
-        end
-        if type(savedCfg.SavedLocations) == "table" then
-            Config.SavedLocations = {}
-            for name, tbl in pairs(savedCfg.SavedLocations) do
-                local cf = TableToCFrame(tbl)
-                if cf then Config.SavedLocations[name] = cf end
             end
         end
     end
@@ -866,7 +851,7 @@ ConnMgr.spawn(function()
 end)
 
 -- ═══════════════════════════════════════════════════════════════
---   NOTIFICATIONS (ពេញលេញ + queue)
+--   NOTIFICATIONS 
 -- ═══════════════════════════════════════════════════════════════
 local NotifHolder = Instance.new("Frame")
 NotifHolder.Name = "Notifications"
@@ -2134,48 +2119,6 @@ AddToggle(combatPage, "Tracers", "Draw line to target", false, 10, function(s) C
 AddToggle(combatPage, "Chams", "Color highlight", false, 11, function(s) Config.ChamsEnabled = s end)
 AddSlider(combatPage, "ESP Range", 100, 5000, 1000, 0, 12, function(v) Config.ESPRange = v end)
 
-local tpPage = CreateTab("TP", "📍")
-AddSection(tpPage, "Save Locations", 1)
-local locationBox = AddTextInput(tpPage, "Location Name", "e.g. Home", 2, function() end)
-
-local savedListOrder = 4
-local function rebuildSavedList()
-    for _, c in ipairs(tpPage:GetChildren()) do
-        if c:IsA("TextButton") and c:GetAttribute("IsSavedLoc") then c:Destroy() end
-    end
-    local i = 0
-    for name, cf in pairs(Config.SavedLocations) do
-        if typeof(cf) == "CFrame" then
-            local btn = AddButton(tpPage, "TP → " .. name, savedListOrder + i, function()
-                local _, _, hrp = getCharacter()
-                if hrp then
-                    instantTeleport(hrp, cf, 0.2)
-                    task.wait(0.3); resetCharacter()
-                    Notify("Teleport", "To " .. name, PALETTE.Pumpkin, "📍")
-                end
-            end)
-            btn:SetAttribute("IsSavedLoc", true)
-            i = i + 1
-        end
-    end
-end
-
-AddButton(tpPage, "Save Current Location", 3, function()
-    local name = locationBox.Text
-    if name and name ~= "" then
-        local _, _, hrp = getCharacter()
-        if hrp then
-            Config.SavedLocations[name] = hrp.CFrame
-            Notify("Location", "Saved: " .. name, PALETTE.Pumpkin, "📍")
-            ConfigMgr:Save(Config)
-            rebuildSavedList()
-        end
-    else
-        Notify("Location", "Enter a name!", PALETTE.Blood, "!")
-    end
-end)
-rebuildSavedList()
-
 local setPage = CreateTab("Set", "⚙️")
 AddSection(setPage, "General", 1)
 AddToggle(setPage, "Anti AFK", "Prevent idle kick", true, 2, function(s) Config.IsAntiAFK = s end)
@@ -2422,4 +2365,4 @@ task.delay(0.3, function()
 end)
 updateStatus("👻 Ghost ready • v10.2", PALETTE.Toxic)
 
-print("[GhostUI] v10.2 loaded | Image:", CustomImage ~= "" and "OK" or "Fallback")
+print("[GhostUI] v10.2 loaded (TP Tab Removed) | Image:", CustomImage ~= "" and "OK" or "Fallback")
