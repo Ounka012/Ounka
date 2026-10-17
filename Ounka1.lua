@@ -1,5 +1,5 @@
 -- ============================================================
---   👻 GHOST MODE v10.2 | LITE EDITION (ONLY EGG FARM/TP)
+--   👻 GHOST MODE v10.2 | LITE EDITION (FARM ONLY + FULL VISUALS)
 --   by ouncopybara | Halloween Ghost Theme
 -- ============================================================
 
@@ -130,7 +130,6 @@ end)
 local CustomImage  = ""
 local ImageReady   = Signal.new()
 local ImageObjects = {}
-
 local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 local IMAGE_FALLBACKS = {
     "rbxassetid://13110332857",
@@ -453,7 +452,7 @@ local function ApplyTheme(name)
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   SCREEN GUI & VISUALS
+--   SCREEN GUI & FULL VISUALS RESTORED
 -- ═══════════════════════════════════════════════════════════════
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GhostUI"
@@ -479,7 +478,7 @@ local function calcScale()
 end
 local UI_SCALE = calcScale()
 
--- Background/Vignette
+-- VIGNETTE
 local Vignette = Instance.new("Frame")
 Vignette.Size = UDim2.new(1,0,1,0)
 Vignette.BackgroundColor3 = Color3.new(0,0,0)
@@ -495,7 +494,51 @@ VigGrad.Transparency = NumberSequence.new({
 VigGrad.Rotation = 90
 VigGrad.Parent = Vignette
 
--- Main Ghost UI
+-- LIGHTNING
+local Lightning = Instance.new("Frame")
+Lightning.Size = UDim2.new(1,0,1,0)
+Lightning.BackgroundColor3 = PALETTE.Witch
+Lightning.BackgroundTransparency = 1
+Lightning.BorderSizePixel = 0
+Lightning.ZIndex = 500
+Lightning.Parent = ScreenGui
+
+-- FOG
+local FogHolder = Instance.new("Frame")
+FogHolder.Size = UDim2.new(1,0,1,0)
+FogHolder.BackgroundTransparency = 1
+FogHolder.ZIndex = 2
+FogHolder.Parent = ScreenGui
+
+local fogList = {}
+for i = 1, 6 do
+    local fog = Instance.new("ImageLabel")
+    fog.Size = UDim2.new(0, math.random(200, 340), 0, math.random(90, 150))
+    fog.Position = UDim2.new(math.random(), 0, math.random(), 0)
+    fog.BackgroundTransparency = 1
+    fog.Image = "rbxassetid://5028857084"
+    fog.ImageColor3 = (i % 2 == 0) and PALETTE.Witch or PALETTE.Pumpkin
+    fog.ImageTransparency = 0.88
+    fog.ScaleType = Enum.ScaleType.Slice
+    fog.SliceCenter = Rect.new(24,24,276,276)
+    fog.ZIndex = 2
+    fog.Parent = FogHolder
+    table.insert(fogList, { obj=fog, speed=math.random(5,15)/150, seed=math.random()*100 })
+end
+
+ConnMgr.spawn(function()
+    while FogHolder.Parent do
+        local dt = RunService.RenderStepped:Wait()
+        for _, f in ipairs(fogList) do
+            local newX = f.obj.Position.X.Scale + f.speed * dt
+            if newX > 1.2 then newX = -0.2 end
+            local newY = f.obj.Position.Y.Scale + math.sin(tick() + f.seed) * 0.0005
+            f.obj.Position = UDim2.new(newX, 0, newY, 0)
+        end
+    end
+end)
+
+-- GHOST AURA
 local GhostAura = Instance.new("ImageLabel")
 GhostAura.Size = UDim2.new(0, BASE_W+140, 0, BASE_H+140)
 GhostAura.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -508,8 +551,11 @@ GhostAura.ScaleType = Enum.ScaleType.Slice
 GhostAura.SliceCenter = Rect.new(24,24,276,276)
 GhostAura.ZIndex = 1
 GhostAura.Parent = ScreenGui
-local AuraScale = Instance.new("UIScale"); AuraScale.Scale = UI_SCALE; AuraScale.Parent = GhostAura
+local AuraScale = Instance.new("UIScale")
+AuraScale.Scale = UI_SCALE
+AuraScale.Parent = GhostAura
 
+-- MAIN GHOST
 local Ghost = Instance.new("Frame")
 Ghost.Size = UDim2.new(0, BASE_W, 0, BASE_H)
 Ghost.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -521,62 +567,285 @@ Ghost.Active = true
 Ghost.ZIndex = 5
 Ghost.Parent = ScreenGui
 Corner(Ghost, UDim.new(0, 110))
-local MainScale = Instance.new("UIScale"); MainScale.Scale = UI_SCALE; MainScale.Parent = Ghost
+
+local MainScale = Instance.new("UIScale")
+MainScale.Scale = UI_SCALE
+MainScale.Parent = Ghost
 
 local GhostGrad = Instance.new("UIGradient")
 GhostGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, PALETTE.NightLight),
+    ColorSequenceKeypoint.new(0,    PALETTE.NightLight),
     ColorSequenceKeypoint.new(0.35, PALETTE.Night),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(6,4,14)),
+    ColorSequenceKeypoint.new(1,    Color3.fromRGB(6,4,14)),
 })
-GhostGrad.Rotation = 90; GhostGrad.Parent = Ghost
+GhostGrad.Rotation = 90
+GhostGrad.Parent = Ghost
 
 local GhostStroke = Stroke(Ghost, PALETTE.Witch, 2.5, 0.15)
 StrokeGrad = Instance.new("UIGradient")
 StrokeGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, PALETTE.Witch), ColorSequenceKeypoint.new(0.3, PALETTE.Pumpkin),
-    ColorSequenceKeypoint.new(0.5, PALETTE.GhostWhite), ColorSequenceKeypoint.new(0.7, PALETTE.Witch),
-    ColorSequenceKeypoint.new(1, PALETTE.Pumpkin),
+    ColorSequenceKeypoint.new(0,   PALETTE.Witch),
+    ColorSequenceKeypoint.new(0.3, PALETTE.Pumpkin),
+    ColorSequenceKeypoint.new(0.5, PALETTE.GhostWhite),
+    ColorSequenceKeypoint.new(0.7, PALETTE.Witch),
+    ColorSequenceKeypoint.new(1,   PALETTE.Pumpkin),
 })
 StrokeGrad.Parent = GhostStroke
+ConnMgr.spawn(function()
+    while Ghost.Parent do
+        StrokeGrad.Rotation = 0
+        Tween(StrokeGrad, TweenInfo.new(6, Enum.EasingStyle.Linear), { Rotation = 360 })
+        task.wait(6)
+    end
+end)
 
 local GhostBgImg = Instance.new("ImageLabel")
-GhostBgImg.Size = UDim2.new(1,0,1,0); GhostBgImg.BackgroundTransparency = 1
+GhostBgImg.Size = UDim2.new(1,0,1,0)
+GhostBgImg.BackgroundTransparency = 1
 GhostBgImg.Image = CustomImage ~= "" and CustomImage or IMAGE_FALLBACKS[1]
-GhostBgImg.ImageTransparency = 0.92; GhostBgImg.ScaleType = Enum.ScaleType.Crop
-GhostBgImg.ZIndex = 3; GhostBgImg.Parent = Ghost
-Corner(GhostBgImg, UDim.new(0, 110)); registerImage(GhostBgImg)
+GhostBgImg.ImageTransparency = 0.92
+GhostBgImg.ScaleType = Enum.ScaleType.Crop
+GhostBgImg.ZIndex = 3
+GhostBgImg.Parent = Ghost
+Corner(GhostBgImg, UDim.new(0, 110))
+registerImage(GhostBgImg)
 
--- Title
+-- WAVY BOTTOM
+local WaveHolder = Instance.new("Frame")
+WaveHolder.Size = UDim2.new(1,0,0,50)
+WaveHolder.Position = UDim2.new(0,0,1,-25)
+WaveHolder.BackgroundTransparency = 1
+WaveHolder.ZIndex = 4
+WaveHolder.Parent = Ghost
+for i = 0, 2 do
+    local wave = Instance.new("Frame")
+    wave.Size = UDim2.new(0.34, 0, 0, 50)
+    wave.Position = UDim2.new(i * 0.33, 0, 0, 0)
+    wave.BackgroundColor3 = PALETTE.Night
+    wave.BackgroundTransparency = 0.02
+    wave.BorderSizePixel = 0
+    wave.ZIndex = 4
+    wave.Parent = WaveHolder
+    Corner(wave, UDim.new(1, 0))
+end
+
+-- FACE
+local FaceHolder = Instance.new("Frame")
+FaceHolder.Size = UDim2.new(1, 0, 0, 100)
+FaceHolder.Position = UDim2.new(0, 0, 0, 14)
+FaceHolder.BackgroundTransparency = 1
+FaceHolder.ZIndex = 6
+FaceHolder.Parent = Ghost
+
+local EyeL = Instance.new("Frame")
+EyeL.Size = UDim2.new(0, 30, 0, 38)
+EyeL.Position = UDim2.new(0.5, -78, 0, 26)
+EyeL.BackgroundColor3 = PALETTE.EyeGlow
+EyeL.BorderSizePixel = 0
+EyeL.ZIndex = 7
+EyeL.Parent = FaceHolder
+Corner(EyeL, UDim.new(1, 0))
+local EyeLGlow = Instance.new("ImageLabel")
+EyeLGlow.Size = UDim2.new(1, 70, 1, 70)
+EyeLGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+EyeLGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+EyeLGlow.BackgroundTransparency = 1
+EyeLGlow.Image = "rbxassetid://5028857084"
+EyeLGlow.ImageColor3 = PALETTE.EyeGlow
+EyeLGlow.ImageTransparency = 0.25
+EyeLGlow.ScaleType = Enum.ScaleType.Slice
+EyeLGlow.SliceCenter = Rect.new(24,24,276,276)
+EyeLGlow.ZIndex = 6
+EyeLGlow.Parent = EyeL
+
+local EyeR = EyeL:Clone()
+EyeR.Position = UDim2.new(0.5, 48, 0, 26)
+EyeR.Parent = FaceHolder
+
+local Mouth = Instance.new("Frame")
+Mouth.Size = UDim2.new(0, 70, 0, 28)
+Mouth.Position = UDim2.new(0.5, -35, 0, 74)
+Mouth.BackgroundColor3 = PALETTE.Night
+Mouth.BorderSizePixel = 0
+Mouth.ZIndex = 7
+Mouth.Parent = FaceHolder
+Corner(Mouth, UDim.new(0, 14))
+local MouthStroke = Stroke(Mouth, PALETTE.EyeGlow, 2, 0.3)
+
+-- TITLE
 local TitleBadge = Instance.new("TextLabel")
-TitleBadge.Size = UDim2.new(0, 300, 0, 36); TitleBadge.Position = UDim2.new(0.5, -150, 0, 122)
-TitleBadge.BackgroundColor3 = PALETTE.WitchDeep; TitleBadge.BackgroundTransparency = 0.25
+TitleBadge.Size = UDim2.new(0, 300, 0, 36)
+TitleBadge.Position = UDim2.new(0.5, -150, 0, 122)
+TitleBadge.BackgroundColor3 = PALETTE.WitchDeep
+TitleBadge.BackgroundTransparency = 0.25
 TitleBadge.Text = "👻  EGG FARM LITE  👻"
-TitleBadge.TextColor3 = PALETTE.GhostWhite; TitleBadge.Font = Enum.Font.GothamBlack
-TitleBadge.TextSize = 16; TitleBadge.BorderSizePixel = 0; TitleBadge.ZIndex = 7; TitleBadge.Parent = Ghost
-Corner(TitleBadge, UDim.new(1, 0)); Stroke(TitleBadge, PALETTE.Pumpkin, 1.5, 0.25)
+TitleBadge.TextColor3 = PALETTE.GhostWhite
+TitleBadge.Font = Enum.Font.GothamBlack
+TitleBadge.TextSize = 16
+TitleBadge.BorderSizePixel = 0
+TitleBadge.ZIndex = 7
+TitleBadge.Parent = Ghost
+Corner(TitleBadge, UDim.new(1, 0))
+Stroke(TitleBadge, PALETTE.Pumpkin, 1.5, 0.25)
 
 local Subtitle = Instance.new("TextLabel")
-Subtitle.Size = UDim2.new(0, 340, 0, 16); Subtitle.Position = UDim2.new(0.5, -170, 0, 162)
+Subtitle.Size = UDim2.new(0, 340, 0, 16)
+Subtitle.Position = UDim2.new(0.5, -170, 0, 162)
 Subtitle.BackgroundTransparency = 1
 Subtitle.Text = "by ouncopybara  •  " .. Config.Themes[Config.Theme].Name
-Subtitle.TextColor3 = PALETTE.Pumpkin; Subtitle.Font = Enum.Font.GothamBold
-Subtitle.TextSize = 10; Subtitle.ZIndex = 7; Subtitle.Parent = Ghost; Subtitle.TextStrokeTransparency = 0.4
+Subtitle.TextColor3 = PALETTE.Pumpkin
+Subtitle.Font = Enum.Font.GothamBold
+Subtitle.TextSize = 10
+Subtitle.ZIndex = 7
+Subtitle.Parent = Ghost
+Subtitle.TextStrokeTransparency = 0.4
 
--- Window Buttons
+local PerfLabel = Instance.new("TextLabel")
+PerfLabel.Size = UDim2.new(0, 200, 0, 14)
+PerfLabel.Position = UDim2.new(0.5, -100, 0, 180)
+PerfLabel.BackgroundTransparency = 1
+PerfLabel.Font = Enum.Font.Code
+PerfLabel.TextSize = 9
+PerfLabel.TextColor3 = Color3.fromRGB(150,140,180)
+PerfLabel.ZIndex = 7
+PerfLabel.Parent = Ghost
+ConnMgr.spawn(function()
+    while PerfLabel.Parent do
+        PerfLabel.Text = string.format("FPS:%d  MEM:%d  PING:%d", Perf.fps, Perf.memory, Perf.ping)
+        task.wait(1)
+    end
+end)
+
+-- WINDOW BUTTONS
 local function GhostButton(text, xOff, color)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 34, 0, 34); b.Position = UDim2.new(1, xOff, 0, 20)
-    b.BackgroundColor3 = color; b.Text = text; b.TextColor3 = PALETTE.GhostWhite
-    b.Font = Enum.Font.GothamBlack; b.TextSize = 15; b.BorderSizePixel = 0; b.AutoButtonColor = false
-    b.ZIndex = 20; b.Parent = Ghost; Corner(b, UDim.new(1, 0))
+    b.Size = UDim2.new(0, 34, 0, 34)
+    b.Position = UDim2.new(1, xOff, 0, 20)
+    b.BackgroundColor3 = color
+    b.Text = text
+    b.TextColor3 = PALETTE.GhostWhite
+    b.Font = Enum.Font.GothamBlack
+    b.TextSize = 15
+    b.BorderSizePixel = 0
+    b.AutoButtonColor = false
+    b.ZIndex = 20
+    b.Parent = Ghost
+    Corner(b, UDim.new(1, 0))
     local st = Stroke(b, PALETTE.GhostWhite, 1.2, 0.4)
-    b.MouseEnter:Connect(function() Tween(b, INFO_FAST, { Size = UDim2.new(0, 38, 0, 38) }); Tween(st, INFO_FAST, { Color = PALETTE.Pumpkin }) end)
-    b.MouseLeave:Connect(function() Tween(b, INFO_FAST, { Size = UDim2.new(0, 34, 0, 34) }); Tween(st, INFO_FAST, { Color = PALETTE.GhostWhite }) end)
+    b.MouseEnter:Connect(function()
+        Tween(b, INFO_FAST, { Size = UDim2.new(0, 38, 0, 38) })
+        Tween(st, INFO_FAST, { Color = PALETTE.Pumpkin })
+    end)
+    b.MouseLeave:Connect(function()
+        Tween(b, INFO_FAST, { Size = UDim2.new(0, 34, 0, 34) })
+        Tween(st, INFO_FAST, { Color = PALETTE.GhostWhite })
+    end)
     return b
 end
 local CloseBtn = GhostButton("✕", -46, PALETTE.Blood)
 local MinBtn   = GhostButton("–", -88, PALETTE.WitchDeep)
+
+-- FLOATING ANIMATION
+local basePos = Ghost.Position
+ConnMgr.spawn(function()
+    while Ghost.Parent do
+        local t = tick()
+        local dx = math.sin(t * 1.4) * 3
+        local dy = math.sin(t * 1.8 + 0.5) * 8
+        Ghost.Position = UDim2.new(basePos.X.Scale, basePos.X.Offset + dx,
+                                   basePos.Y.Scale, basePos.Y.Offset + dy)
+        GhostAura.Position = UDim2.new(0.5, dx, 0.5, dy)
+        RunService.RenderStepped:Wait()
+    end
+end)
+
+-- BLINK ANIMATION
+ConnMgr.spawn(function()
+    while Ghost.Parent do
+        task.wait(math.random(30, 60) / 10)
+        Tween(EyeL, TweenInfo.new(0.05), { Size = UDim2.new(0, 30, 0, 3) })
+        Tween(EyeR, TweenInfo.new(0.05), { Size = UDim2.new(0, 30, 0, 3) })
+        task.wait(0.1)
+        Tween(EyeL, TweenInfo.new(0.15), { Size = UDim2.new(0, 30, 0, 38) })
+        Tween(EyeR, TweenInfo.new(0.15), { Size = UDim2.new(0, 30, 0, 38) })
+    end
+end)
+
+-- EYE PULSE ANIMATION
+ConnMgr.spawn(function()
+    while Ghost.Parent do
+        Tween(EyeL, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+            BackgroundColor3 = PALETTE.EyeGlowRed
+        })
+        Tween(EyeR, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+            BackgroundColor3 = PALETTE.EyeGlowRed
+        })
+        task.wait(6)
+    end
+end)
+
+-- MOUTH PULSE ANIMATION
+ConnMgr.spawn(function()
+    while Ghost.Parent do
+        MouthStroke.Transparency = 0.2
+        Tween(MouthStroke, TweenInfo.new(0.7), { Transparency = 0.85 })
+        task.wait(0.8)
+        Tween(MouthStroke, TweenInfo.new(0.7), { Transparency = 0.2 })
+        task.wait(0.8)
+    end
+end)
+
+-- LIGHTNING ANIMATION
+ConnMgr.spawn(function()
+    while Ghost.Parent do
+        task.wait(math.random(10, 25))
+        Lightning.BackgroundTransparency = 0.85
+        Tween(Lightning, TweenInfo.new(0.08), { BackgroundTransparency = 1 })
+        Audio:Play("thunder", 0.12)
+        task.wait(0.15)
+        Lightning.BackgroundTransparency = 0.9
+        Tween(Lightning, TweenInfo.new(0.06), { BackgroundTransparency = 1 })
+    end
+end)
+
+-- ORBS
+local orbHolder = Instance.new("Frame")
+orbHolder.Size = UDim2.new(1, 0, 1, 0)
+orbHolder.BackgroundTransparency = 1
+orbHolder.ZIndex = 3
+orbHolder.Parent = Ghost
+for i = 1, 5 do
+    local orb = Instance.new("Frame")
+    orb.Size = UDim2.new(0, 9, 0, 9)
+    orb.BackgroundColor3 = (i % 2 == 0) and PALETTE.Pumpkin or PALETTE.Witch
+    orb.BorderSizePixel = 0
+    orb.ZIndex = 3
+    orb.Parent = orbHolder
+    Corner(orb, UDim.new(1, 0))
+    local glow = Instance.new("ImageLabel")
+    glow.Size = UDim2.new(1, 50, 1, 50)
+    glow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    glow.AnchorPoint = Vector2.new(0.5, 0.5)
+    glow.BackgroundTransparency = 1
+    glow.Image = "rbxassetid://5028857084"
+    glow.ImageColor3 = orb.BackgroundColor3
+    glow.ImageTransparency = 0.4
+    glow.ScaleType = Enum.ScaleType.Slice
+    glow.SliceCenter = Rect.new(24,24,276,276)
+    glow.ZIndex = 2
+    glow.Parent = orb
+    ConnMgr.spawn(function()
+        local angle = (i / 5) * math.pi * 2
+        while Ghost.Parent do
+            local dt = RunService.RenderStepped:Wait()
+            angle = angle + dt * 0.7
+            local r = 260
+            local cx = math.cos(angle) * r
+            local cy = math.sin(angle) * (r * 0.75)
+            orb.Position = UDim2.new(0.5, cx, 0.5, cy)
+        end
+    end)
+end
 
 -- ═══════════════════════════════════════════════════════════════
 --   NOTIFICATIONS 
@@ -1112,9 +1381,9 @@ local function SetMinimized(state)
         ReopenBtn.Visible = true; ReopenBtn.Size = UDim2.new(0,0,0,0)
         Tween(ReopenBtn, INFO_SPRING, { Size = UDim2.new(0,60,0,60) })
         Tween(MainScale, INFO_FAST, { Scale = UI_SCALE * 0.85 })
-        Ghost.Visible = false; GhostAura.Visible = false; Vignette.Visible = false
+        Ghost.Visible = false; GhostAura.Visible = false; Vignette.Visible = false; FogHolder.Visible = false; Lightning.Visible = false
     else
-        Ghost.Visible = true; GhostAura.Visible = true; Vignette.Visible = true
+        Ghost.Visible = true; GhostAura.Visible = true; Vignette.Visible = true; FogHolder.Visible = true; Lightning.Visible = true
         Tween(MainScale, INFO_SPRING, { Scale = UI_SCALE })
         ReopenBtn.Visible = false
     end
@@ -1189,4 +1458,4 @@ task.delay(0.3, function()
     Notify("by ouncopybara", "EGG FARM LITE loaded!", PALETTE.Toxic, "👻")
 end)
 updateStatus("👻 Farm Lite ready", PALETTE.Toxic)
-print("[GhostUI] Lite Edition loaded")
+print("[GhostUI] Lite Edition loaded (Full Visuals)")
