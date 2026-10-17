@@ -1,5 +1,5 @@
 -- ============================================================
---   👻 GHOST MODE v10.2 | EGG FARM ONLY (NO BASE TP + FULL VISUALS)
+--   👻 GHOST MODE v10.2 | EGG FARM AUTO (FIXED GUI)
 --   by ouncopybara | Halloween Ghost Theme
 -- ============================================================
 
@@ -31,23 +31,34 @@ if not Camera then
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   GUIParent
+--   GUIParent (FIXED FALLBACK)
 -- ═══════════════════════════════════════════════════════════════
 local GUIParent
 do
+    local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 10)
     local ok1, h = pcall(function() return gethui() end)
-    if ok1 and h then GUIParent = h
+    if ok1 and h then 
+        GUIParent = h
     else
         local ok2, c = pcall(function() return game:GetService("CoreGui") end)
-        if ok2 and c then GUIParent = c
-        else GUIParent = safeWait(LocalPlayer, "PlayerGui", 10) or LocalPlayer:FindFirstChildOfClass("PlayerGui") end
+        if ok2 and c then 
+            GUIParent = c
+        else 
+            GUIParent = playerGui 
+        end
     end
-    if not GUIParent then GUIParent = safeWait(LocalPlayer, "PlayerGui", 10) end
+    if not GUIParent then GUIParent = playerGui end
 end
 
 pcall(function()
     for _, g in ipairs(GUIParent:GetChildren()) do
         if g.Name == "GhostUI" or g.Name == "by_ouncopybara_ADV" then g:Destroy() end
+    end
+    local pg = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if pg then
+        for _, g in ipairs(pg:GetChildren()) do
+            if g.Name == "GhostUI" then g:Destroy() end
+        end
     end
 end)
 
@@ -388,7 +399,10 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 2147483647
 ScreenGui.Enabled = true
-ScreenGui.Parent = GUIParent
+pcall(function() ScreenGui.Parent = GUIParent end)
+if not ScreenGui.Parent then
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
 
 local BASE_W, BASE_H = 440, 620
 local function calcScale()
@@ -512,7 +526,7 @@ StrokeGrad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0.7, PALETTE.Witch),
     ColorSequenceKeypoint.new(1,   PALETTE.Pumpkin),
 })
-StrokeGrad.Parent = StrokeGrad
+StrokeGrad.Parent = GhostStroke
 ConnMgr.spawn(function()
     while Ghost.Parent do
         StrokeGrad.Rotation = 0
@@ -948,7 +962,7 @@ local function AddSlider(page, title, min, max, default, decimals, order, callba
     valLbl.Size = UDim2.new(0,50,0,16); valLbl.Position = UDim2.new(1,-58,0,9); valLbl.BackgroundTransparency = 1; valLbl.Text = tostring(default)
     valLbl.TextColor3 = PALETTE.Pumpkin; valLbl.Font = Enum.Font.GothamBold; valLbl.TextSize = 11; valLbl.TextXAlignment = Enum.TextXAlignment.Right; valLbl.ZIndex = 9; valLbl.Parent = row
     local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(1,-24,0,6); bar.Position = UDim2.new(0,12,1,-18); bar.BackgroundColor3 = Color3.fromRGB(35,30,50); bar.BorderSizePixel = 0; bar.ZIndex = 9; bar.Parent = row; Corner(bar, UDim.new(1,0))
+    bar.Size = UDim2.new(1,-24,0,6); bar.Position = UDim2.new(0,12,1,-18); bar.BackgroundColor3 = Color3.fromRGB(35,30,50); bar.BorderSizePixel = 0; bar.ZIndex = 9; row.Parent = row; Corner(bar, UDim.new(1,0))
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new((default-min)/(max-min),0,1,0); fill.BackgroundColor3 = PALETTE.Pumpkin; fill.BorderSizePixel = 0; fill.ZIndex = 10; fill.Parent = bar; Corner(fill, UDim.new(1,0))
     local fg = Instance.new("UIGradient")
@@ -1141,8 +1155,8 @@ do
     end))
     ConnMgr.add(UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
-    end)
-end)
+    end))
+end
 
 ConnMgr.add(UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
