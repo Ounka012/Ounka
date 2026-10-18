@@ -1,9 +1,11 @@
 -- ============================================================
---   👻 GHOST MODE v12.0 | ULTIMATE EDITION
+--   👻 GHOST MODE v13.0 | ULTIMATE PREMIUM EDITION
 --   by ouncopybara
---   ✅ Noclip Flight (ធ្លុះជញ្ជាំង 100%)
---   ✅ Orbit Farm (Grab → Escape 100m → Patrol map → Repeat)
+--   ✅ TELEPORT GRAB 100% (គ្រប់ទីកន្លែង ភ្លាមៗ គ្មានខាត)
+--   ✅ Force Grab (Touch + Prompt + ClickDetector)
+--   ✅ Escape 100m + Orbit Patrol
 --   ✅ Server Spawn Explorer (Auto Detect)
+--   ✅ Noclip 100% (ធ្លុះជញ្ជាំង)
 --   ✅ Anti-AFK
 --   ✅ No Sound • No Fog/Lightning/Float
 --   👀 Eye Blink + Glow Pulse (ALWAYS ON)
@@ -736,7 +738,7 @@ AddButton(mainPage, "Close UI", 7, function()
 end)
 
 -- ═══════════════════════════════════════════════════════════════
---   🌸 SERVER SPAWN EXPLORER + NOCLIP + ORBIT FARM
+--   🌸 SERVER SPAWN EXPLORER + NOCLIP + TELEPORT GRAB + ORBIT FARM
 -- ═══════════════════════════════════════════════════════════════
 local EXP = {
     MAX_RENDER = 60, SPAWN_LIFETIME = 30, MOVE_THRESHOLD = 0.5,
@@ -746,11 +748,12 @@ local EXP = {
 local FarmConfig = {
     EscapeHeight = 100,
     EscapeSpeed  = 500,
-    NextDelay    = 0.15,
+    NextDelay    = 0.05,
     OrbitRadius  = 300,
-    OrbitSpeed   = 120,
+    OrbitSpeed   = 150,
     OrbitHeight  = 100,
-    OrbitMinTime = 0.6,
+    OrbitMinTime = 0.1,
+    MaxGrabTries = 3,
 }
 
 local Explorer = {
@@ -759,7 +762,7 @@ local Explorer = {
     flightVel = nil, target = nil, searchText = "", running = true,
     noclipConn = nil,
 }
-local Farming = { active = false }
+local Farming = { active = false, grabbed = 0 }
 local Orbit = { active = false, angle = 0, bv = nil, conn = nil, startTime = 0, center = Vector3.new(0, 100, 0) }
 
 -- Noclip
@@ -869,12 +872,22 @@ local function exIsMoving(obj)
         or obj.AssemblyAngularVelocity.Magnitude > 0.1
 end
 
--- Flight
+-- Core
 local function exGetRoot()
     local char = LocalPlayer.Character
     return char and char:FindFirstChild("HumanoidRootPart")
 end
 
+local function exGetPart(obj)
+    if not obj then return nil end
+    if obj:IsA("BasePart") then return obj end
+    if obj:IsA("Model") then
+        return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true)
+    end
+    return nil
+end
+
+-- Manual flight (BodyVelocity)
 local function exStopFlight(silent)
     if Explorer.flightConn then Explorer.flightConn:Disconnect(); Explorer.flightConn = nil end
     if Explorer.flightVel then Explorer.flightVel:Destroy(); Explorer.flightVel = nil end
@@ -888,9 +901,7 @@ end
 
 local function exFlyTo(object, onArrive)
     if not object or not object:IsDescendantOf(workspace) then return end
-    local part
-    if object:IsA("BasePart") then part = object
-    elseif object:IsA("Model") then part = object.PrimaryPart or object:FindFirstChildWhichIsA("BasePart", true) end
+    local part = exGetPart(object)
     if not part then return end
     local root = exGetRoot()
     if not root then return end
@@ -1041,7 +1052,145 @@ local function exScanAll()
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   🔁 ORBIT FARM — Grab → Escape → Orbit → Repeat
+--   🎯 TELEPORT GRAB — 100% យកបានគ្រប់ទីកន្លែង
+-- ═══════════════════════════════════════════════════════════════
+
+local function exForceGrab(root, part, obj)
+    -- 1. Force touch on/off
+    pcall(function() firetouchinterest(root, part, 0) end)
+    task.wait(0.03)
+    pcall(function() firetouchinterest(root, part, 1) end)
+
+    -- 2. Fire ProximityPrompt / ClickDetector ក្នុង object + parent
+    local function firePrompts(container)
+        if not container then return end
+        for _, d in ipairs(container:GetChildren()) do
+            if d:IsA("ProximityPrompt") then
+                pcall(function() fireproximityprompt(d) end)
+            elseif d:IsA("ClickDetector") then
+                pcall(function() fireclickdetector(d) end)
+            end
+        end
+    end
+    firePrompts(obj)
+    firePrompts(obj.Parent)
+    firePrompts(part)
+
+    -- 3. Descendant prompts
+    for _, d in ipairs(obj:GetDescendants()) do
+        if d:IsA("ProximityPrompt") then
+            pcall(function() fireproximityprompt(d) end)
+        elseif d:IsA("ClickDetector") then
+            pcall(function() fireclickdetector(d) end)
+        end
+    end
+end
+
+local function exTeleportGrab(object, onDone)
+    if not object or not object.Parent or not object:IsDescendantOf(workspace) then
+        if onDone then task.spawn(onDone) end
+        return false
+    end
+
+    local part = exGetPart(object)
+    if not part then
+        if onDone then task.spawn(onDone) end
+        return false
+    end
+
+    local root = exGetRoot()
+    if not root then
+        if onDone then task.spawn(onDone) end
+        return false
+    end
+
+    startNoclip()
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then hum.PlatformStand = true end
+
+    pcall(function() updateStatus("🎯 Grab: " .. object.Name, PALETTE.Toxic) end)
+
+    local grabbed = false
+    for try = 1, FarmConfig.MaxGrabTries do
+        if not object.Parent or not object:IsDescendantOf(workspace) then
+            grabbed = true
+            break
+        end
+
+        local curPart = exGetPart(object)
+        if not curPart then grabbed = true; break end
+
+        -- Teleport ទៅលើវត្ថុ
+        pcall(function()
+            root.CFrame = CFrame.new(curPart.Position + Vector3.new(0, 2, 0))
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.AssemblyAngularVelocity = Vector3.zero
+        end)
+        task.wait(0.02)
+
+        exForceGrab(root, curPart, object)
+        task.wait(0.04)
+
+        -- បើនៅមាន → teleport ចូលវត្ថុផ្ទាល់
+        if object.Parent and object:IsDescendantOf(workspace) then
+            pcall(function()
+                root.CFrame = CFrame.new(curPart.Position)
+            end)
+            task.wait(0.03)
+            exForceGrab(root, curPart, object)
+            task.wait(0.03)
+        end
+
+        -- ពិនិត្យថាវត្ថុអស់ឬនៅ
+        if not object.Parent or not object:IsDescendantOf(workspace) then
+            grabbed = true
+            break
+        end
+        task.wait(0.02)
+    end
+
+    if grabbed then
+        Farming.grabbed += 1
+        pcall(function() updateStatus("✓ Grabbed: " .. tostring(object.Name), PALETTE.Toxic) end)
+    else
+        pcall(function() updateStatus("✗ Missed: " .. tostring(object.Name), PALETTE.Blood) end)
+    end
+
+    if onDone then task.spawn(onDone) end
+    return grabbed
+end
+
+-- ⬆️ Escape up 100m
+local function exEscapeUp(onDone)
+    local root = exGetRoot()
+    if not root then
+        if onDone then task.spawn(onDone) end
+        return
+    end
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then hum.PlatformStand = true end
+    startNoclip()
+
+    local bv = Instance.new("BodyVelocity")
+    bv.Name = "FarmEscapeVelocity"
+    bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
+    bv.P = 50000
+    bv.Velocity = Vector3.new(0, FarmConfig.EscapeSpeed, 0)
+    bv.Parent = root
+
+    pcall(function() updateStatus("⬆ Escaping 100m...", PALETTE.Pumpkin) end)
+
+    local duration = FarmConfig.EscapeHeight / FarmConfig.EscapeSpeed
+    task.delay(duration, function()
+        if bv and bv.Parent then bv:Destroy() end
+        if onDone then task.spawn(onDone) end
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════════════
+--   ORBIT PATROL
 -- ═══════════════════════════════════════════════════════════════
 
 local function exComputeOrbitCenter()
@@ -1084,7 +1233,7 @@ local function exStartOrbit()
     local root = exGetRoot()
     if not root then
         exStopOrbit()
-        if Farming.active then task.wait(0.3); exFarmNextTarget() end
+        if Farming.active then task.wait(0.2); exFarmNextTarget() end
         return
     end
 
@@ -1093,13 +1242,25 @@ local function exStartOrbit()
     if hum then hum.PlatformStand = true end
     startNoclip()
 
+    -- Warp ទៅ orbit ភ្លាម
+    local startPos = Orbit.center + Vector3.new(
+        math.cos(Orbit.angle) * FarmConfig.OrbitRadius,
+        0,
+        math.sin(Orbit.angle) * FarmConfig.OrbitRadius
+    )
+    pcall(function()
+        root.CFrame = CFrame.new(startPos)
+        root.AssemblyLinearVelocity = Vector3.zero
+        root.AssemblyAngularVelocity = Vector3.zero
+    end)
+
     Orbit.bv = Instance.new("BodyVelocity")
     Orbit.bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
     Orbit.bv.P = 50000
     Orbit.bv.Velocity = Vector3.zero
     Orbit.bv.Parent = root
 
-    pcall(function() updateStatus("🔄 Orbiting map (patrol)...", PALETTE.Witch) end)
+    pcall(function() updateStatus("🔄 Orbit patrol...", PALETTE.Witch) end)
 
     Orbit.conn = RunService.Heartbeat:Connect(function(dt)
         if not Orbit.active or not Farming.active then
@@ -1119,13 +1280,14 @@ local function exStartOrbit()
         local delta = targetPos - root.Position
         local dist = delta.Magnitude
 
-        if dist > 5 then
-            Orbit.bv.Velocity = delta.Unit * math.min(FarmConfig.OrbitSpeed * 4, dist * 4)
+        if dist > 3 then
+            Orbit.bv.Velocity = delta.Unit * math.min(FarmConfig.OrbitSpeed * 8, dist * 8)
         else
             local tangent = Vector3.new(-math.sin(Orbit.angle), 0, math.cos(Orbit.angle))
             Orbit.bv.Velocity = tangent * FarmConfig.OrbitSpeed
         end
 
+        -- Instant grab on new spawn
         local elapsed = os.clock() - Orbit.startTime
         if elapsed >= FarmConfig.OrbitMinTime and exHasValidTarget() then
             exStopOrbit()
@@ -1134,65 +1296,27 @@ local function exStartOrbit()
     end)
 end
 
-local function exEscapeUp(onDone)
-    local root = exGetRoot()
-    if not root then
-        if onDone then task.spawn(onDone) end
-        return
-    end
-    local char = LocalPlayer.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if hum then hum.PlatformStand = true end
-    startNoclip()
-
-    local bv = Instance.new("BodyVelocity")
-    bv.Name = "FarmEscapeVelocity"
-    bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
-    bv.P = 50000
-    bv.Velocity = Vector3.new(0, FarmConfig.EscapeSpeed, 0)
-    bv.Parent = root
-
-    pcall(function() updateStatus("⬆ Escaping 100m...", PALETTE.Pumpkin) end)
-
-    local duration = FarmConfig.EscapeHeight / FarmConfig.EscapeSpeed
-    task.delay(duration, function()
-        if bv and bv.Parent then bv:Destroy() end
-        if onDone then task.spawn(onDone) end
-    end)
-end
+-- ═══════════════════════════════════════════════════════════════
+--   FARM LOOP
+-- ═══════════════════════════════════════════════════════════════
 
 exFarmNextTarget = function()
     if not Farming.active then return end
     local root = exGetRoot()
     if not root then
-        task.wait(0.3)
+        task.wait(0.15)
         if Farming.active then exFarmNextTarget() end
         return
     end
 
+    -- រកវត្ថុជិតបំផុត
     local best, bestDist = nil, math.huge
-    for _, obj in ipairs(Explorer.objects) do
-        if obj and obj.Parent and obj:IsDescendantOf(workspace) then
-            local part
-            if obj:IsA("BasePart") then part = obj
-            elseif obj:IsA("Model") then part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true) end
+    for obj, _ in pairs(Explorer.spawned) do
+        if obj.Parent and obj:IsDescendantOf(workspace) and exIsServerSpawn(obj) then
+            local part = exGetPart(obj)
             if part then
                 local d = (part.Position - root.Position).Magnitude
                 if d < bestDist then bestDist = d; best = obj end
-            end
-        end
-    end
-
-    if not best then
-        for obj, _ in pairs(Explorer.spawned) do
-            if obj.Parent and obj:IsDescendantOf(workspace) and exIsServerSpawn(obj) then
-                local part
-                if obj:IsA("BasePart") then part = obj
-                elseif obj:IsA("Model") then part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true) end
-                if part then
-                    local d = (part.Position - root.Position).Magnitude
-                    if d < bestDist then bestDist = d; best = obj end
-                end
             end
         end
     end
@@ -1202,9 +1326,10 @@ exFarmNextTarget = function()
         return
     end
 
-    exFlyTo(best, function()
+    -- Teleport grab → escape → next
+    exTeleportGrab(best, function()
         if not Farming.active then return end
-        task.wait(0.05)
+        task.wait(0.03)
         if not Farming.active then return end
         exEscapeUp(function()
             task.wait(FarmConfig.NextDelay)
@@ -1216,9 +1341,10 @@ end
 local function exStartFarming()
     if Farming.active then return end
     Farming.active = true
+    Farming.grabbed = 0
     Explorer.autoFly = false
     startNoclip()
-    Notify("Loop Farm", "🎯 Grab → Escape → Orbit → Repeat", PALETTE.Toxic, "🔁")
+    Notify("Loop Farm", "🎯 Teleport → Escape → Orbit ∞", PALETTE.Toxic, "🔁")
     exFarmNextTarget()
 end
 
@@ -1228,7 +1354,7 @@ local function exStopFarming()
     exStopOrbit()
     exStopFlight(true)
     stopNoclip(true)
-    Notify("Loop Farm", "⏹ Stopped", PALETTE.Blood, "🛑")
+    Notify("Loop Farm", "⏹ Stopped (" .. tostring(Farming.grabbed) .. " grabs)", PALETTE.Blood, "🛑")
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -1243,7 +1369,6 @@ AddToggle(spawnPage, "Auto Fly", "ហោះទៅវត្ថុ server ថ្�
     if s then Notify("Auto Fly", "Enabled", PALETTE.Toxic, "🚀") end
 end)
 
--- Speed row
 local speedRow = Instance.new("Frame", spawnPage)
 speedRow.LayoutOrder = 3; speedRow.Size = UDim2.new(1,0,0,44)
 speedRow.BackgroundColor3 = PALETTE.NightLight; speedRow.BackgroundTransparency = 0.35
@@ -1251,12 +1376,12 @@ speedRow.BorderSizePixel = 0; speedRow.ZIndex = 8
 Corner(speedRow, UDim.new(0,12)); Stroke(speedRow, PALETTE.Witch, 1, 0.6)
 local speedLbl = Instance.new("TextLabel", speedRow)
 speedLbl.Size = UDim2.new(1,-120,0,16); speedLbl.Position = UDim2.new(0,12,0,6)
-speedLbl.BackgroundTransparency = 1; speedLbl.Text = "Flight Speed (noclip)"
+speedLbl.BackgroundTransparency = 1; speedLbl.Text = "Manual Flight Speed"
 speedLbl.TextColor3 = PALETTE.GhostWhite; speedLbl.Font = Enum.Font.GothamBold
 speedLbl.TextSize = 11; speedLbl.TextXAlignment = Enum.TextXAlignment.Left; speedLbl.ZIndex = 9
 local speedSub = Instance.new("TextLabel", speedRow)
 speedSub.Size = UDim2.new(1,-120,0,13); speedSub.Position = UDim2.new(0,12,0,24)
-speedSub.BackgroundTransparency = 1; speedSub.Text = "5 - 300 studs/sec • ធ្លុះជញ្ជាំង"
+speedSub.BackgroundTransparency = 1; speedSub.Text = "5 - 300 studs/sec"
 speedSub.TextColor3 = Color3.fromRGB(150,140,180); speedSub.Font = Enum.Font.Gotham
 speedSub.TextSize = 9; speedSub.TextXAlignment = Enum.TextXAlignment.Left; speedSub.ZIndex = 9
 local speedBox = Instance.new("TextBox", speedRow)
@@ -1282,19 +1407,19 @@ AddTextInput(spawnPage, "Search spawned items...", "", 7, function(txt)
     task.spawn(exRenderRows)
 end)
 
--- Orbit Farm
 AddSection(spawnPage, "Orbit Farm (Auto)", 9)
-AddToggle(spawnPage, "🔁 Orbit Farm Mode",
-    "Grab → Escape 100m → Orbit map → Repeat",
+AddToggle(spawnPage, "🔁 Teleport Grab Farm",
+    "Teleport → Grab → Escape 100m → Orbit ∞",
     false, 10, function(s)
         if s then exStartFarming() else exStopFarming() end
     end)
 
 local farmInfo = Instance.new("TextLabel", spawnPage)
-farmInfo.LayoutOrder = 11; farmInfo.Size = UDim2.new(1,4,0,52)
+farmInfo.LayoutOrder = 11; farmInfo.Size = UDim2.new(1,4,0,56)
 farmInfo.BackgroundTransparency = 1
-farmInfo.Text = string.format("⬆ Escape: %d studs @ %d/s\n🔄 Orbit: r=%d @ %d/s\n📦 Patrol → grab → repeat ∞",
-    FarmConfig.EscapeHeight, FarmConfig.EscapeSpeed, FarmConfig.OrbitRadius, FarmConfig.OrbitSpeed)
+farmInfo.Text = string.format(
+    "💥 Teleport Grab (100%%)\n⬆ Escape: %d studs\n🔄 Orbit: r=%d @ %d/s",
+    FarmConfig.EscapeHeight, FarmConfig.OrbitRadius, FarmConfig.OrbitSpeed)
 farmInfo.TextColor3 = Color3.fromRGB(150,140,180); farmInfo.Font = Enum.Font.Code
 farmInfo.TextSize = 9; farmInfo.TextXAlignment = Enum.TextXAlignment.Left
 farmInfo.TextYAlignment = Enum.TextYAlignment.Top; farmInfo.ZIndex = 8
@@ -1503,9 +1628,9 @@ end))
 -- ═══════════════════════════════════════════════════════════════
 Tween(MainScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = UI_SCALE })
 task.delay(0.3, function()
-    Notify("👻 v12.0 Ultimate", "Noclip + Orbit Farm Ready!", PALETTE.Toxic, "👻")
+    Notify("👻 v13.0 ULTIMATE", "Teleport Grab 100% Ready!", PALETTE.Toxic, "👻")
     Notify("Explorer", "Server spawn scanner active", PALETTE.Witch, "🌸")
-    Notify("Orbit Farm", "Grab → Escape 100m → Patrol ∞", PALETTE.Pumpkin, "🔁")
+    Notify("Farm", "Teleport → Escape → Orbit ∞", PALETTE.Pumpkin, "🔁")
 end)
 
-print("[GhostUI v12.0] ULTIMATE — Noclip + Orbit Farm + Explorer")
+print("[GhostUI v13.0] ULTIMATE — Teleport Grab 100% | Noclip | Orbit Farm | Explorer")
