@@ -1,5 +1,7 @@
 -- =====================================================================
--- EVADE SCRIPT 2026 - VIP LEVEL ULTIMATE (MOBILE OPTIMIZED) - FIXED
+-- EVADE SCRIPT 2026 - VIP ULTIMATE (HALLOWEEN UPDATE)
+-- មុខងារ: Kill All, Auto Trap, Silent Walk, VIP ESP, Auto Farm (Wisp/Spellbook/Voucher),
+-- Auto Revive (Voucher), Nextbot Avoid, Speed, Jump, Gravity, ESP, & Dance Fix
 -- =====================================================================
 
 local Players = game:GetService("Players")
@@ -15,7 +17,7 @@ local Config = {
     Speed = 80,
     JumpPower = 70,
     Gravity = 0.5,
-    BackgroundImage = "https://files.catbox.moe/ka5x56.jpg", -- រូបផ្ទៃខាងក្រោយ
+    BackgroundImage = "https://files.catbox.moe/ka5x56.jpg", 
 }
 
 -- ==================== TOGGLES STATE ====================
@@ -24,12 +26,13 @@ local Toggles = {
     AutoTrap = false,
     SilentWalk = false,
     VIPESP = false,
-    AutoFarm = false,
+    AutoFarm = false,       -- ប្រមូលរបស់ទាំងអស់ (Coin, Candy, Wisp, Spellbook, Voucher, Lore)
+    CollectablesESP = false,-- បង្ហាញទីតាំងរបស់ប្រមូល
     NextbotAvoid = false,
     Speed = false,
     Jump = false,
     Gravity = false,
-    AutoRevive = false,
+    AutoRevive = false,     -- រួមបញ្ចូល Voucher
     AutoVote = false,
 }
 
@@ -97,7 +100,7 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -60, 1, 0)
 titleLabel.Position = UDim2.new(0, 12, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "🪷 VIP EVADE ULTIMATE"
+titleLabel.Text = "🪷 VIP EVADE ULTIMATE 🎃"
 titleLabel.TextColor3 = Color3.fromRGB(255, 200, 220)
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 18
@@ -185,7 +188,7 @@ contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     contentScroll.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 20)
 end)
 
--- ==================== UI BUILDERS (TOUCH-FRIENDLY) ====================
+-- ==================== UI BUILDERS ====================
 local function CreateSection(parent, title)
     local section = Instance.new("TextLabel")
     section.Size = UDim2.new(1, 0, 0, 28)
@@ -303,11 +306,16 @@ local function CreateButton(parent, text, callback)
 end
 
 -- ==================== BUILD UI ====================
-CreateSection(contentScroll, "🪷 VIP CORE (ULTIMATE)")
+CreateSection(contentScroll, "🪷 VIP CORE (HALLOWEEN)")
 CreateToggle(contentScroll, "🔥 Kill All Nextbots", "សម្លាប់ Nextbot ទាំងអស់ (Instant Win)", "KillAll")
-CreateToggle(contentScroll, "🪤 Auto Trap Place", "ដាក់អន្ទាក់ដោយស្វ័យប្រវត្តិ (VIP Farm)", "AutoTrap")
-CreateToggle(contentScroll, "👻 Silent Walk", "ដើរស្ងាត់ៗ ល្បឿនលឿន (120)", "SilentWalk")
-CreateToggle(contentScroll, "👁️ VIP ESP", "បង្ហាញឈ្មោះ និងចម្ងាយ", "VIPESP")
+CreateToggle(contentScroll, "🪤 Auto Trap Place", "ដាក់អន្ទាក់ដោយស្វ័យប្រវត្តិ", "AutoTrap")
+CreateToggle(contentScroll, "👻 Silent Walk (Dance Fix)", "ដើរលឿន 120 ទោះបីជាកំពុងរាំ", "SilentWalk")
+CreateToggle(contentScroll, "👁️ VIP ESP", "បង្ហាញឈ្មោះ និងចម្ងាយអ្នកលេង", "VIPESP")
+
+CreateSection(contentScroll, "🎃 HALLOWEEN FARMING")
+CreateToggle(contentScroll, "💰 Auto Farm (All Items)", "ប្រមូល Coin, Wisp, Spellbook, Voucher", "AutoFarm")
+CreateToggle(contentScroll, "✨ Collectables ESP", "បង្ហាញទីតាំងរបស់ប្រមូល (ពណ៌ខៀវ)", "CollectablesESP")
+CreateToggle(contentScroll, "💖 Auto Revive (Voucher)", "រស់ឡើងវិញភ្លាមៗដោយប្រើ Voucher", "AutoRevive")
 
 CreateSection(contentScroll, "🏃 MOVEMENT ENHANCEMENTS")
 CreateToggle(contentScroll, "💨 Speed Hack", "បង្កើនល្បឿនដល់ 80", "Speed")
@@ -315,9 +323,7 @@ CreateToggle(contentScroll, "🦘 Jump Boost", "បង្កើនកម្ល�
 CreateToggle(contentScroll, "🌌 Low Gravity", "ថយចុះទំនាញ លោតកាន់តែខ្ពស់", "Gravity")
 
 CreateSection(contentScroll, "⚡ SUPPORT TOOLS")
-CreateToggle(contentScroll, "💰 Auto Farm", "ស្វ័យប្រមូលកាក់ / ស្ករ", "AutoFarm")
 CreateToggle(contentScroll, "🏃 Nextbot Avoid", "គេចចេញពី Bot ដោយស្វ័យប្រវត្តិ", "NextbotAvoid")
-CreateToggle(contentScroll, "💖 Auto Revive", "រស់ឡើងវិញដោយស្វ័យប្រវត្តិ", "AutoRevive")
 CreateToggle(contentScroll, "🗳️ Auto Vote", "បោះឆ្នោតដោយស្វ័យប្រវត្តិ", "AutoVote")
 
 CreateSection(contentScroll, "⚙️ UTILITIES")
@@ -385,35 +391,39 @@ task.spawn(function()
     end
 end)
 
--- 3 & 5. COMBINED MOVEMENT (កែបញ្ហាប៉ះទង្គិចល្បឿន)
+-- 3. MOVEMENT FIX (កែបញ្ហារាំអត់លឿន)
 RunService.Heartbeat:Connect(function()
     pcall(function()
         local char = LocalPlayer.Character
         if not char then return end
         local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum and hum.Health > 0 then
-            -- អាទិភាពល្បឿន៖ Silent Walk (120) > Speed (80) > ធម្មតា (16)
-            if Toggles.SilentWalk then
-                hum.WalkSpeed = 120
-            elseif Toggles.Speed then
-                hum.WalkSpeed = Config.Speed
-            else
-                hum.WalkSpeed = 16
-            end
-            
-            -- Jump & Gravity
-            if Toggles.Jump then
-                hum.JumpPower = Config.JumpPower
-            elseif Toggles.Gravity then
-                hum.JumpPower = Config.JumpPower * (Config.Gravity * 2)
-            else
-                hum.JumpPower = 50
-            end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not hum or not root or hum.Health <= 0 then return end
+
+        -- កំណត់ល្បឿន
+        if Toggles.SilentWalk then hum.WalkSpeed = 120
+        elseif Toggles.Speed then hum.WalkSpeed = Config.Speed
+        else hum.WalkSpeed = 16 end
+
+        -- បង្ខំល្បឿន (Force Velocity) ដើម្បីឱ្យរត់បាន ទោះកំពុងរាំ
+        local moveDir = hum.MoveDirection
+        if (Toggles.SilentWalk or Toggles.Speed) and moveDir.Magnitude > 0 then
+            local speed = Toggles.SilentWalk and 120 or (Toggles.Speed and Config.Speed or 16)
+            root.Velocity = Vector3.new(moveDir.X * speed, root.Velocity.Y, moveDir.Z * speed)
+        end
+
+        -- Jump & Gravity
+        if Toggles.Jump then
+            hum.JumpPower = Config.JumpPower
+        elseif Toggles.Gravity then
+            hum.JumpPower = Config.JumpPower * (Config.Gravity * 2)
+        else
+            hum.JumpPower = 50
         end
     end)
 end)
 
--- 4. VIP ESP (Names + Distance) using TextLabels
+-- 4. VIP ESP (Players)
 local vipESPLabels = {}
 task.spawn(function()
     while true do
@@ -475,7 +485,49 @@ task.spawn(function()
     end
 end)
 
--- 6. AUTO FARM
+-- 5. COLLECTABLES ESP (សម្រាប់ Wisp, Spellbook, Voucher និងផ្សេងៗ)
+local collectLabels = {}
+task.spawn(function()
+    while true do
+        task.wait(0.15)
+        if Toggles.CollectablesESP then
+            pcall(function()
+                local camera = Workspace.CurrentCamera
+                for _, v in pairs(Workspace:GetDescendants()) do
+                    -- បន្ថែមឈ្មោះរបស់ Halloween ចូល
+                    if v:IsA("BasePart") and (v.Name == "Coin" or v.Name == "Candy" or v.Name == "Wisp" or v.Name == "Spellbook" or v.Name == "Voucher" or v.Name == "Lore") then
+                        local screenPos, onScreen = camera:WorldToViewportPoint(v.Position)
+                        if onScreen then
+                            if not collectLabels[v] then
+                                collectLabels[v] = Instance.new("TextLabel")
+                                collectLabels[v].BackgroundTransparency = 1
+                                collectLabels[v].TextColor3 = Color3.new(0, 1, 1) -- ពណ៌ខៀវ
+                                collectLabels[v].Font = Enum.Font.GothamBold
+                                collectLabels[v].TextScaled = true
+                                collectLabels[v].ZIndex = 10
+                                collectLabels[v].Parent = screenGui
+                            end
+                            local dist = math.floor((v.Position - camera.CFrame.Position).Magnitude)
+                            collectLabels[v].Text = "✨ " .. v.Name .. " | " .. dist .. "m"
+                            collectLabels[v].Size = UDim2.new(0, 150, 0, 28)
+                            collectLabels[v].Position = UDim2.new(0, screenPos.X - 75, 0, screenPos.Y - 40)
+                            collectLabels[v].Visible = true
+                        else
+                            if collectLabels[v] then collectLabels[v].Visible = false end
+                        end
+                    end
+                end
+            end)
+        else
+            for _, label in pairs(collectLabels) do
+                pcall(function() label:Destroy() end)
+            end
+            collectLabels = {}
+        end
+    end
+end)
+
+-- 6. AUTO FARM (ប្រមូលរបស់ Halloween ទាំងអស់)
 task.spawn(function()
     while true do
         task.wait(0.2)
@@ -485,7 +537,7 @@ task.spawn(function()
                 if not root then return end
                 local nearest, minDist = nil, math.huge
                 for _, v in pairs(Workspace:GetDescendants()) do
-                    if (v.Name == "Coin" or v.Name == "Candy" or v.Name == "CoinPart") and v:IsA("BasePart") then
+                    if v:IsA("BasePart") and (v.Name == "Coin" or v.Name == "Candy" or v.Name == "CoinPart" or v.Name == "Wisp" or v.Name == "Spellbook" or v.Name == "Voucher" or v.Name == "Lore") then
                         local d = (v.Position - root.Position).Magnitude
                         if d < minDist and d < 100 then
                             minDist = d
@@ -524,7 +576,7 @@ task.spawn(function()
     end
 end)
 
--- 8. AUTO REVIVE
+-- 8. AUTO REVIVE (រួមបញ្ចូល Voucher និង Quick Revive)
 task.spawn(function()
     while true do
         task.wait(1)
@@ -537,7 +589,8 @@ task.spawn(function()
                     if gui then
                         for _, g in pairs(gui:GetChildren()) do
                             for _, b in pairs(g:GetDescendants()) do
-                                if b:IsA("TextButton") and string.find(b.Text:lower(), "revive") then
+                                -- ស្វែងរកប៊ូតុង Revive, Respawn, ឬ Voucher
+                                if b:IsA("TextButton") and (string.find(b.Text:lower(), "revive") or string.find(b.Text:lower(), "respawn") or string.find(b.Text:lower(), "voucher") or string.find(b.Text:lower(), "quick")) then
                                     b:Fire()
                                     found = true
                                     break
@@ -581,7 +634,7 @@ local notify = Instance.new("TextLabel")
 notify.Size = UDim2.new(0, 400, 0, 110)
 notify.Position = UDim2.new(0.5, -200, 0, 30)
 notify.BackgroundColor3 = Color3.fromRGB(30, 18, 25)
-notify.Text = "🪷 VIP EVADE SCRIPT LOADED\n✅ Mobile Optimized!\n✅ Touch Controls Ready!\n🔥 All VIP Features Ready!"
+notify.Text = "🎃 HALLOWEEN EVADE SCRIPT LOADED\n✅ Mobile Optimized!\n✅ Auto Farm Wisps, Spellbooks & Vouchers!\n🔥 Dance Fix & ESP Ready!"
 notify.TextColor3 = Color3.fromRGB(220, 150, 200)
 notify.Font = Enum.Font.GothamBold
 notify.TextSize = 13
@@ -602,4 +655,4 @@ notifyStroke.Parent = notify
 task.wait(5)
 notify:Destroy()
 
-print("✅ VIP Evade Script (Mobile) Loaded! Tap Open VIP to show UI.")
+print("✅ VIP Evade Script (Halloween Update) Loaded! Tap Open VIP to show UI.")
