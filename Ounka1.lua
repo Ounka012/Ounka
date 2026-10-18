@@ -1,13 +1,12 @@
 -- ============================================================
---   👻 GHOST MODE v13.1 | ULTIMATE PREMIUM EDITION
+--   👻 GHOST MODE v13.2 | PREMIUM EDITION
 --   by ouncopybara
---   ✅ FRESH-ONLY FARM (យកតែវត្ថុកើតក្នុង ១៥ វិ)
---   ✅ Name Filter (coin|gem|loot)
---   ✅ Purge Old (ពេល farm start)
+--   🆕 Failed Grab → 10s Cooldown → Auto Skip Next Object
+--   ✅ Fresh-Only Farm (≤ 15s) + Name Filter
 --   ✅ Teleport Grab 100% (Touch+Prompt+Click)
 --   ✅ Orbit Patrol 100m
 --   ✅ Noclip 100%
---   ✅ Server Spawn Explorer (Auto Detect)
+--   ✅ Server Spawn Explorer
 --   ✅ Anti-AFK
 --   ✅ No Sound • No Fog/Lightning/Float
 --   👀 Eye Blink + Glow Pulse (ALWAYS ON)
@@ -16,9 +15,6 @@
 if not game:IsLoaded() then game.Loaded:Wait() end
 task.wait(0.4)
 
--- ═══════════════════════════════════════════════════════════════
---   GLOBAL CONFIG
--- ═══════════════════════════════════════════════════════════════
 local DISABLE_SOUNDS     = true
 local DISABLE_ANIMATIONS = true
 
@@ -470,7 +466,6 @@ ConnMgr.spawn(function()
     end
 end)
 
--- Orbs (static)
 local orbHolder = Instance.new("Frame", Ghost)
 orbHolder.Size = UDim2.new(1, 0, 1, 0); orbHolder.BackgroundTransparency = 1; orbHolder.ZIndex = 3
 for i = 1, 5 do
@@ -740,14 +735,13 @@ AddButton(mainPage, "Close UI", 7, function()
 end)
 
 -- ═══════════════════════════════════════════════════════════════
---   🌸 EXPLORER + NOCLIP + TELEPORT GRAB + ORBIT FARM (v13.1)
+--   v13.2 — FARM CONFIG + STATE
 -- ═══════════════════════════════════════════════════════════════
 local EXP = {
     MAX_RENDER = 60, SPAWN_LIFETIME = 30, MOVE_THRESHOLD = 0.5,
     DROP_RADIUS = 12, DROP_MEMORY = 5, ARRIVE_DIST = 3,
 }
 
--- 🆕 FRESH SPAWN FILTER + NAME FILTER
 local FarmConfig = {
     EscapeHeight = 100,
     EscapeSpeed  = 500,
@@ -757,8 +751,10 @@ local FarmConfig = {
     OrbitHeight  = 100,
     OrbitMinTime = 0.1,
     MaxGrabTries = 3,
-    GrabWindow   = 15,     -- យកតែវត្ថុកើតក្នុង 15s
-    NameFilter   = "",     -- ទំនេរ=អស់ | "coin|gem"
+    GrabWindow   = 15,
+    NameFilter   = "",
+    -- 🆕 Failed grab cooldown
+    FailCooldown = 10,   -- វិនាទីរង់ចាំបន្ទាប់ពី grab មិនបាន
 }
 
 local Explorer = {
@@ -767,8 +763,11 @@ local Explorer = {
     flightVel = nil, target = nil, searchText = "", running = true,
     noclipConn = nil,
 }
-local Farming = { active = false, grabbed = 0 }
+local Farming = { active = false, grabbed = 0, failed = 0 }
 local Orbit = { active = false, angle = 0, bv = nil, conn = nil, startTime = 0, center = Vector3.new(0, 100, 0) }
+
+-- 🆕 Failed objects cooldown: [obj] = os.clock() when failed
+local FailedObjects = {}
 
 -- Noclip
 local function startNoclip()
@@ -877,7 +876,6 @@ local function exIsMoving(obj)
         or obj.AssemblyAngularVelocity.Magnitude > 0.1
 end
 
--- 🆕 Name match
 local function exNameMatches(obj)
     local f = FarmConfig.NameFilter
     if not f or f == "" then return true end
@@ -889,19 +887,36 @@ local function exNameMatches(obj)
     return false
 end
 
--- 🆕 Fresh check
 local function exIsFreshSpawn(obj)
     local t = Explorer.spawned[obj]
     if not t then return false end
     return (os.clock() - t) <= FarmConfig.GrabWindow
 end
 
--- 🆕 Combined filter
+-- 🆕 Cooldown check
+local function exIsOnCooldown(obj)
+    local t = FailedObjects[obj]
+    if not t then return false end
+    if (os.clock() - t) >= FarmConfig.FailCooldown then
+        FailedObjects[obj] = nil
+        return false
+    end
+    return true
+end
+
+-- 🆕 Remaining cooldown seconds
+local function exCooldownRemaining(obj)
+    local t = FailedObjects[obj]
+    if not t then return 0 end
+    return math.max(0, FarmConfig.FailCooldown - (os.clock() - t))
+end
+
 local function exIsGrabbable(obj)
     if not obj.Parent or not obj:IsDescendantOf(workspace) then return false end
     if not exIsServerSpawn(obj) then return false end
     if not exIsFreshSpawn(obj) then return false end
     if not exNameMatches(obj) then return false end
+    if exIsOnCooldown(obj) then return false end     -- 🆕
     return true
 end
 
@@ -920,7 +935,6 @@ local function exGetPart(obj)
     return nil
 end
 
--- Manual flight
 local function exStopFlight(silent)
     if Explorer.flightConn then Explorer.flightConn:Disconnect(); Explorer.flightConn = nil end
     if Explorer.flightVel then Explorer.flightVel:Destroy(); Explorer.flightVel = nil end
@@ -997,18 +1011,23 @@ local function exRenderRows()
             total += 1
             if shown < EXP.MAX_RENDER then
                 shown += 1
+                local onCD = exIsOnCooldown(obj)     -- 🆕
                 local row = Instance.new("TextButton", explorerPage)
                 row.Name = "ExplorerRow"; row.LayoutOrder = 100 + shown
                 row.Size = UDim2.new(1,0,0,44)
                 row.BackgroundColor3 = PALETTE.NightLight; row.BackgroundTransparency = 0.35
                 row.Text = ""; row.BorderSizePixel = 0; row.AutoButtonColor = false
                 row.ClipsDescendants = true; row.ZIndex = 8
-                Corner(row, UDim.new(0,10)); Stroke(row, accent, 1, 0.6)
+                Corner(row, UDim.new(0,10))
+                Stroke(row, onCD and PALETTE.Blood or accent, 1, 0.6)
                 local dot = Instance.new("Frame", row)
                 dot.Size = UDim2.new(0,6,0,6); dot.Position = UDim2.new(0,8,0.5,-3)
-                dot.BackgroundColor3 = accent; dot.BorderSizePixel = 0; dot.ZIndex = 9
+                dot.BackgroundColor3 = onCD and PALETTE.Blood or accent
+                dot.BorderSizePixel = 0; dot.ZIndex = 9
                 Corner(dot, UDim.new(1,0))
-                local tag = exIsMoving(obj) and "🏃 MOVING" or "🆕 NEW"
+                -- Tag: cooldown or moving or new
+                local tag = onCD and string.format("⏳ %ds", math.ceil(exCooldownRemaining(obj)))
+                    or (exIsMoving(obj) and "🏃 MOVING" or "🆕 NEW")
                 local ttl = Instance.new("TextLabel", row)
                 ttl.Size = UDim2.new(1,-24,0,18); ttl.Position = UDim2.new(0,20,0,5)
                 ttl.BackgroundTransparency = 1; ttl.Text = obj.Name
@@ -1018,11 +1037,18 @@ local function exRenderRows()
                 local sub = Instance.new("TextLabel", row)
                 sub.Size = UDim2.new(1,-24,0,14); sub.Position = UDim2.new(0,20,0,24)
                 sub.BackgroundTransparency = 1; sub.Text = obj.ClassName .. " • " .. tag
-                sub.TextColor3 = Color3.fromRGB(150,140,180); sub.Font = Enum.Font.Gotham
+                sub.TextColor3 = onCD and PALETTE.Blood or Color3.fromRGB(150,140,180)
+                sub.Font = Enum.Font.Gotham
                 sub.TextSize = 9; sub.TextXAlignment = Enum.TextXAlignment.Left; sub.ZIndex = 9
                 row.MouseEnter:Connect(function() Tween(row, INFO_FAST, { BackgroundTransparency = 0.15 }) end)
                 row.MouseLeave:Connect(function() Tween(row, INFO_FAST, { BackgroundTransparency = 0.35 }) end)
-                row.MouseButton1Click:Connect(function() exFlyTo(obj) end)
+                row.MouseButton1Click:Connect(function()
+                    if exIsOnCooldown(obj) then
+                        Notify("Cooldown", string.format("%s — %ds", obj.Name, math.ceil(exCooldownRemaining(obj))), PALETTE.Blood, "⏳")
+                        return
+                    end
+                    exFlyTo(obj)
+                end)
             end
         end
     end
@@ -1042,19 +1068,26 @@ local function exRebuild(force)
         local valid = obj.Parent and obj:IsDescendantOf(workspace) and exIsServerSpawn(obj)
         if not valid then
             Explorer.spawned[obj] = nil
+            FailedObjects[obj] = nil
         else
             local age = now - t
             local moving = exIsMoving(obj)
-            -- 🆕 Filter: យកតែ fresh OR moving
             if age <= FarmConfig.GrabWindow or moving then
                 table.insert(newList, obj)
             else
                 Explorer.spawned[obj] = nil
+                FailedObjects[obj] = nil
             end
         end
     end
     for part, t in pairs(Explorer.playerDrops) do
         if (now - t) > EXP.DROP_MEMORY or not part.Parent then Explorer.playerDrops[part] = nil end
+    end
+    -- 🆕 Clean expired cooldowns
+    for obj, t in pairs(FailedObjects) do
+        if not obj.Parent or (now - t) > FarmConfig.FailCooldown then
+            FailedObjects[obj] = nil
+        end
     end
     local changed = force or (#newList ~= #Explorer.objects)
     if not changed then
@@ -1066,22 +1099,18 @@ local function exRebuild(force)
     if changed then task.spawn(exRenderRows) end
 end
 
--- 🆕 បិទ initial scan — យកតែ spawn ใหม่
-local function exInitialScan()
-    -- ❌ មិនស្កេនវត្ថុចាស់
-    return
-end
+local function exInitialScan() return end
 
 local function exScanAll()
     exStopFlight(true)
     Explorer.objects = {}
     exInitialScan()
     exRebuild(true)
-    Notify("Scanner", "Rescan — old objects ignored", PALETTE.Witch, "🔄")
+    Notify("Scanner", "Rescan — old ignored", PALETTE.Witch, "🔄")
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   🎯 TELEPORT GRAB 100%
+--   TELEPORT GRAB 100%
 -- ═══════════════════════════════════════════════════════════════
 
 local function exForceGrab(root, part, obj)
@@ -1171,9 +1200,18 @@ local function exTeleportGrab(object, onDone)
 
     if grabbed then
         Farming.grabbed += 1
+        FailedObjects[object] = nil     -- 🆕 clear cooldown if success
         pcall(function() updateStatus("✓ Grabbed: " .. tostring(object.Name), PALETTE.Toxic) end)
     else
-        pcall(function() updateStatus("✗ Missed: " .. tostring(object.Name), PALETTE.Blood) end)
+        -- 🆕 FAILED → mark 10s cooldown
+        FailedObjects[object] = os.clock()
+        Farming.failed += 1
+        pcall(function()
+            updateStatus(string.format("✗ Failed: %s (10s CD)", tostring(object.Name)), PALETTE.Blood)
+        end)
+        Notify("Grab Failed",
+            string.format("%s — skip %ds", object.Name, FarmConfig.FailCooldown),
+            PALETTE.Blood, "⏳")
     end
 
     if onDone then task.spawn(onDone) end
@@ -1322,9 +1360,11 @@ exFarmNextTarget = function()
         return
     end
 
-    -- 🎯 រកវត្ថុ FRESH ជិតបំផុត (រំលងវត្ថុចាស់)
+    -- 🆕 រកវត្ថុ FRESH ជិតបំផុត (skip cooldown)
     local best, bestDist = nil, math.huge
+    local cooldownCount = 0
     for obj, _ in pairs(Explorer.spawned) do
+        if exIsOnCooldown(obj) then cooldownCount += 1 end
         if exIsGrabbable(obj) then
             local part = exGetPart(obj)
             if part then
@@ -1335,10 +1375,17 @@ exFarmNextTarget = function()
     end
 
     if not best then
+        -- គ្មាន target → orbit
+        if cooldownCount > 0 then
+            pcall(function()
+                updateStatus(string.format("⏳ %d on cooldown — orbiting", cooldownCount), PALETTE.Witch)
+            end)
+        end
         exStartOrbit()
         return
     end
 
+    -- 🎯 Teleport grab → escape → next
     exTeleportGrab(best, function()
         if not Farming.active then return end
         task.wait(0.03)
@@ -1354,15 +1401,17 @@ local function exStartFarming()
     if Farming.active then return end
     Farming.active = true
     Farming.grabbed = 0
+    Farming.failed = 0
     Explorer.autoFly = false
     startNoclip()
 
-    -- 🧹 PURGE: លុបវត្ថុចាស់ៗចេញ
+    -- 🧹 Purge old objects + clear cooldowns
     local now = os.clock()
     local purged, kept = 0, 0
     for obj, t in pairs(Explorer.spawned) do
         if not obj.Parent or (now - t) > FarmConfig.GrabWindow then
             Explorer.spawned[obj] = nil
+            FailedObjects[obj] = nil
             purged += 1
         else
             kept += 1
@@ -1381,7 +1430,9 @@ local function exStopFarming()
     exStopOrbit()
     exStopFlight(true)
     stopNoclip(true)
-    Notify("Loop Farm", "⏹ Stopped (" .. tostring(Farming.grabbed) .. " grabs)", PALETTE.Blood, "🛑")
+    Notify("Loop Farm",
+        string.format("⏹ Stopped — %d grab, %d failed", Farming.grabbed, Farming.failed),
+        PALETTE.Blood, "🛑")
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -1434,13 +1485,12 @@ AddTextInput(spawnPage, "Search spawned items...", "", 7, function(txt)
     task.spawn(exRenderRows)
 end)
 
--- 🆕 Name filter input
 AddSection(spawnPage, "Farm Filter", 8)
 AddTextInput(spawnPage, "Name filter (coin|gem|loot)", "", 9, function(txt)
     FarmConfig.NameFilter = txt
 end)
 
--- 🆕 Grab window input
+-- Fresh Window
 local gwRow = Instance.new("Frame", spawnPage)
 gwRow.LayoutOrder = 10; gwRow.Size = UDim2.new(1,0,0,44)
 gwRow.BackgroundColor3 = PALETTE.NightLight; gwRow.BackgroundTransparency = 0.35
@@ -1468,19 +1518,47 @@ gwBox.FocusLost:Connect(function()
     gwBox.Text = tostring(FarmConfig.GrabWindow)
 end)
 
-AddSection(spawnPage, "Orbit Farm (Auto)", 11)
+-- 🆕 Fail Cooldown
+local cdRow = Instance.new("Frame", spawnPage)
+cdRow.LayoutOrder = 11; cdRow.Size = UDim2.new(1,0,0,44)
+cdRow.BackgroundColor3 = PALETTE.NightLight; cdRow.BackgroundTransparency = 0.35
+cdRow.BorderSizePixel = 0; cdRow.ZIndex = 8
+Corner(cdRow, UDim.new(0,12)); Stroke(cdRow, PALETTE.Witch, 1, 0.6)
+local cdLbl = Instance.new("TextLabel", cdRow)
+cdLbl.Size = UDim2.new(1,-120,0,16); cdLbl.Position = UDim2.new(0,12,0,6)
+cdLbl.BackgroundTransparency = 1; cdLbl.Text = "Fail Cooldown (sec)"
+cdLbl.TextColor3 = PALETTE.GhostWhite; cdLbl.Font = Enum.Font.GothamBold
+cdLbl.TextSize = 11; cdLbl.TextXAlignment = Enum.TextXAlignment.Left; cdLbl.ZIndex = 9
+local cdSub = Instance.new("TextLabel", cdRow)
+cdSub.Size = UDim2.new(1,-120,0,13); cdSub.Position = UDim2.new(0,12,0,24)
+cdSub.BackgroundTransparency = 1; cdSub.Text = "យកមិនបាន → skip N វិ"
+cdSub.TextColor3 = Color3.fromRGB(150,140,180); cdSub.Font = Enum.Font.Gotham
+cdSub.TextSize = 9; cdSub.TextXAlignment = Enum.TextXAlignment.Left; cdSub.ZIndex = 9
+local cdBox = Instance.new("TextBox", cdRow)
+cdBox.Size = UDim2.new(0,80,0,28); cdBox.Position = UDim2.new(1,-92,0.5,-14)
+cdBox.BackgroundColor3 = PALETTE.Night; cdBox.Text = tostring(FarmConfig.FailCooldown)
+cdBox.TextColor3 = PALETTE.GhostWhite; cdBox.Font = Enum.Font.GothamBold
+cdBox.TextSize = 12; cdBox.BorderSizePixel = 0; cdBox.ClearTextOnFocus = false
+cdBox.ZIndex = 9; Corner(cdBox, UDim.new(0,8)); Stroke(cdBox, PALETTE.Blood, 1, 0.5)
+cdBox.FocusLost:Connect(function()
+    local n = tonumber(cdBox.Text)
+    if n then FarmConfig.FailCooldown = math.clamp(n, 1, 300) end
+    cdBox.Text = tostring(FarmConfig.FailCooldown)
+end)
+
+AddSection(spawnPage, "Orbit Farm (Auto)", 12)
 AddToggle(spawnPage, "🔁 Teleport Grab Farm",
-    "Grab → Escape 100m → Orbit ∞ (Fresh Only)",
-    false, 12, function(s)
+    "Grab → Escape 100m → Orbit (fail → 10s CD)",
+    false, 13, function(s)
         if s then exStartFarming() else exStopFarming() end
     end)
 
 local farmInfo = Instance.new("TextLabel", spawnPage)
-farmInfo.LayoutOrder = 13; farmInfo.Size = UDim2.new(1,4,0,56)
+farmInfo.LayoutOrder = 14; farmInfo.Size = UDim2.new(1,4,0,68)
 farmInfo.BackgroundTransparency = 1
 farmInfo.Text = string.format(
-    "💥 Teleport Grab (100%%)\n⬆ Escape: %d studs\n🔄 Orbit: r=%d @ %d/s",
-    FarmConfig.EscapeHeight, FarmConfig.OrbitRadius, FarmConfig.OrbitSpeed)
+    "💥 Teleport Grab 100%%\n⬆ Escape: %d studs\n🔄 Orbit: r=%d @ %d/s\n⏳ Fail CD: %ds",
+    FarmConfig.EscapeHeight, FarmConfig.OrbitRadius, FarmConfig.OrbitSpeed, FarmConfig.FailCooldown)
 farmInfo.TextColor3 = Color3.fromRGB(150,140,180); farmInfo.Font = Enum.Font.Code
 farmInfo.TextSize = 9; farmInfo.TextXAlignment = Enum.TextXAlignment.Left
 farmInfo.TextYAlignment = Enum.TextYAlignment.Top; farmInfo.ZIndex = 8
@@ -1689,9 +1767,9 @@ end))
 -- ═══════════════════════════════════════════════════════════════
 Tween(MainScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = UI_SCALE })
 task.delay(0.3, function()
-    Notify("👻 v13.1 PREMIUM", "Fresh-Only Farm Ready!", PALETTE.Toxic, "👻")
-    Notify("Explorer", "Old objects ignored ✓", PALETTE.Witch, "🌸")
-    Notify("Farm", "Teleport → Escape → Orbit ∞", PALETTE.Pumpkin, "🔁")
+    Notify("👻 v13.2 PREMIUM", "Failed Grab → 10s Cooldown Ready!", PALETTE.Toxic, "👻")
+    Notify("Explorer", "Fresh-only scanner active", PALETTE.Witch, "🌸")
+    Notify("Farm", "Fail → skip 10s → next target", PALETTE.Pumpkin, "🔁")
 end)
 
-print("[GhostUI v13.1] PREMIUM — Fresh-Only Farm | Noclip | Teleport Grab 100%")
+print("[GhostUI v13.2] PREMIUM — Fail Cooldown 10s | Teleport Grab | Fresh-Only")
