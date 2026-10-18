@@ -1,11 +1,13 @@
 -- ============================================================
---   👻 GHOST MODE v13.0 | ULTIMATE PREMIUM EDITION
+--   👻 GHOST MODE v13.1 | ULTIMATE PREMIUM EDITION
 --   by ouncopybara
---   ✅ TELEPORT GRAB 100% (គ្រប់ទីកន្លែង ភ្លាមៗ គ្មានខាត)
---   ✅ Force Grab (Touch + Prompt + ClickDetector)
---   ✅ Escape 100m + Orbit Patrol
+--   ✅ FRESH-ONLY FARM (យកតែវត្ថុកើតក្នុង ១៥ វិ)
+--   ✅ Name Filter (coin|gem|loot)
+--   ✅ Purge Old (ពេល farm start)
+--   ✅ Teleport Grab 100% (Touch+Prompt+Click)
+--   ✅ Orbit Patrol 100m
+--   ✅ Noclip 100%
 --   ✅ Server Spawn Explorer (Auto Detect)
---   ✅ Noclip 100% (ធ្លុះជញ្ជាំង)
 --   ✅ Anti-AFK
 --   ✅ No Sound • No Fog/Lightning/Float
 --   👀 Eye Blink + Glow Pulse (ALWAYS ON)
@@ -738,13 +740,14 @@ AddButton(mainPage, "Close UI", 7, function()
 end)
 
 -- ═══════════════════════════════════════════════════════════════
---   🌸 SERVER SPAWN EXPLORER + NOCLIP + TELEPORT GRAB + ORBIT FARM
+--   🌸 EXPLORER + NOCLIP + TELEPORT GRAB + ORBIT FARM (v13.1)
 -- ═══════════════════════════════════════════════════════════════
 local EXP = {
     MAX_RENDER = 60, SPAWN_LIFETIME = 30, MOVE_THRESHOLD = 0.5,
     DROP_RADIUS = 12, DROP_MEMORY = 5, ARRIVE_DIST = 3,
 }
 
+-- 🆕 FRESH SPAWN FILTER + NAME FILTER
 local FarmConfig = {
     EscapeHeight = 100,
     EscapeSpeed  = 500,
@@ -754,6 +757,8 @@ local FarmConfig = {
     OrbitHeight  = 100,
     OrbitMinTime = 0.1,
     MaxGrabTries = 3,
+    GrabWindow   = 15,     -- យកតែវត្ថុកើតក្នុង 15s
+    NameFilter   = "",     -- ទំនេរ=អស់ | "coin|gem"
 }
 
 local Explorer = {
@@ -872,6 +877,34 @@ local function exIsMoving(obj)
         or obj.AssemblyAngularVelocity.Magnitude > 0.1
 end
 
+-- 🆕 Name match
+local function exNameMatches(obj)
+    local f = FarmConfig.NameFilter
+    if not f or f == "" then return true end
+    local name = (obj.Name or ""):lower()
+    for token in f:lower():gmatch("[^|,]+") do
+        token = token:gsub("^%s+", ""):gsub("%s+$", "")
+        if token ~= "" and name:find(token, 1, true) then return true end
+    end
+    return false
+end
+
+-- 🆕 Fresh check
+local function exIsFreshSpawn(obj)
+    local t = Explorer.spawned[obj]
+    if not t then return false end
+    return (os.clock() - t) <= FarmConfig.GrabWindow
+end
+
+-- 🆕 Combined filter
+local function exIsGrabbable(obj)
+    if not obj.Parent or not obj:IsDescendantOf(workspace) then return false end
+    if not exIsServerSpawn(obj) then return false end
+    if not exIsFreshSpawn(obj) then return false end
+    if not exNameMatches(obj) then return false end
+    return true
+end
+
 -- Core
 local function exGetRoot()
     local char = LocalPlayer.Character
@@ -887,7 +920,7 @@ local function exGetPart(obj)
     return nil
 end
 
--- Manual flight (BodyVelocity)
+-- Manual flight
 local function exStopFlight(silent)
     if Explorer.flightConn then Explorer.flightConn:Disconnect(); Explorer.flightConn = nil end
     if Explorer.flightVel then Explorer.flightVel:Destroy(); Explorer.flightVel = nil end
@@ -944,7 +977,7 @@ local function exFlyTo(object, onArrive)
     end)
 end
 
--- Render / Rebuild
+-- Render
 local explorerPage, explorerSectionLabel = nil, nil
 
 local function exClearRows()
@@ -1012,7 +1045,8 @@ local function exRebuild(force)
         else
             local age = now - t
             local moving = exIsMoving(obj)
-            if age <= EXP.SPAWN_LIFETIME or moving then
+            -- 🆕 Filter: យកតែ fresh OR moving
+            if age <= FarmConfig.GrabWindow or moving then
                 table.insert(newList, obj)
             else
                 Explorer.spawned[obj] = nil
@@ -1032,15 +1066,10 @@ local function exRebuild(force)
     if changed then task.spawn(exRenderRows) end
 end
 
+-- 🆕 បិទ initial scan — យកតែ spawn ใหม่
 local function exInitialScan()
-    for _, d in ipairs(workspace:GetDescendants()) do
-        if d:IsA("BasePart") and not d.Anchored and exIsServerSpawn(d) then
-            if d.AssemblyLinearVelocity.Magnitude > EXP.MOVE_THRESHOLD
-                or d.AssemblyAngularVelocity.Magnitude > 0.1 then
-                Explorer.spawned[d] = os.clock()
-            end
-        end
-    end
+    -- ❌ មិនស្កេនវត្ថុចាស់
+    return
 end
 
 local function exScanAll()
@@ -1048,20 +1077,18 @@ local function exScanAll()
     Explorer.objects = {}
     exInitialScan()
     exRebuild(true)
-    Notify("Scanner", "Rescan complete", PALETTE.Witch, "🔄")
+    Notify("Scanner", "Rescan — old objects ignored", PALETTE.Witch, "🔄")
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   🎯 TELEPORT GRAB — 100% យកបានគ្រប់ទីកន្លែង
+--   🎯 TELEPORT GRAB 100%
 -- ═══════════════════════════════════════════════════════════════
 
 local function exForceGrab(root, part, obj)
-    -- 1. Force touch on/off
     pcall(function() firetouchinterest(root, part, 0) end)
     task.wait(0.03)
     pcall(function() firetouchinterest(root, part, 1) end)
 
-    -- 2. Fire ProximityPrompt / ClickDetector ក្នុង object + parent
     local function firePrompts(container)
         if not container then return end
         for _, d in ipairs(container:GetChildren()) do
@@ -1076,7 +1103,6 @@ local function exForceGrab(root, part, obj)
     firePrompts(obj.Parent)
     firePrompts(part)
 
-    -- 3. Descendant prompts
     for _, d in ipairs(obj:GetDescendants()) do
         if d:IsA("ProximityPrompt") then
             pcall(function() fireproximityprompt(d) end)
@@ -1114,25 +1140,20 @@ local function exTeleportGrab(object, onDone)
     local grabbed = false
     for try = 1, FarmConfig.MaxGrabTries do
         if not object.Parent or not object:IsDescendantOf(workspace) then
-            grabbed = true
-            break
+            grabbed = true; break
         end
-
         local curPart = exGetPart(object)
         if not curPart then grabbed = true; break end
 
-        -- Teleport ទៅលើវត្ថុ
         pcall(function()
             root.CFrame = CFrame.new(curPart.Position + Vector3.new(0, 2, 0))
             root.AssemblyLinearVelocity = Vector3.zero
             root.AssemblyAngularVelocity = Vector3.zero
         end)
         task.wait(0.02)
-
         exForceGrab(root, curPart, object)
         task.wait(0.04)
 
-        -- បើនៅមាន → teleport ចូលវត្ថុផ្ទាល់
         if object.Parent and object:IsDescendantOf(workspace) then
             pcall(function()
                 root.CFrame = CFrame.new(curPart.Position)
@@ -1142,10 +1163,8 @@ local function exTeleportGrab(object, onDone)
             task.wait(0.03)
         end
 
-        -- ពិនិត្យថាវត្ថុអស់ឬនៅ
         if not object.Parent or not object:IsDescendantOf(workspace) then
-            grabbed = true
-            break
+            grabbed = true; break
         end
         task.wait(0.02)
     end
@@ -1161,7 +1180,7 @@ local function exTeleportGrab(object, onDone)
     return grabbed
 end
 
--- ⬆️ Escape up 100m
+-- Escape up 100m
 local function exEscapeUp(onDone)
     local root = exGetRoot()
     if not root then
@@ -1208,9 +1227,7 @@ end
 
 local function exHasValidTarget()
     for obj, _ in pairs(Explorer.spawned) do
-        if obj.Parent and obj:IsDescendantOf(workspace) and exIsServerSpawn(obj) then
-            return true
-        end
+        if exIsGrabbable(obj) then return true end
     end
     return false
 end
@@ -1221,7 +1238,7 @@ local function exStopOrbit()
     if Orbit.bv then Orbit.bv:Destroy(); Orbit.bv = nil end
 end
 
-local exFarmNextTarget -- forward declare
+local exFarmNextTarget
 
 local function exStartOrbit()
     if Orbit.active then return end
@@ -1242,7 +1259,6 @@ local function exStartOrbit()
     if hum then hum.PlatformStand = true end
     startNoclip()
 
-    -- Warp ទៅ orbit ភ្លាម
     local startPos = Orbit.center + Vector3.new(
         math.cos(Orbit.angle) * FarmConfig.OrbitRadius,
         0,
@@ -1270,13 +1286,11 @@ local function exStartOrbit()
         if not root or not Orbit.bv then return end
 
         Orbit.angle = Orbit.angle + (FarmConfig.OrbitSpeed / FarmConfig.OrbitRadius) * dt
-
         local targetPos = Orbit.center + Vector3.new(
             math.cos(Orbit.angle) * FarmConfig.OrbitRadius,
             0,
             math.sin(Orbit.angle) * FarmConfig.OrbitRadius
         )
-
         local delta = targetPos - root.Position
         local dist = delta.Magnitude
 
@@ -1287,7 +1301,6 @@ local function exStartOrbit()
             Orbit.bv.Velocity = tangent * FarmConfig.OrbitSpeed
         end
 
-        -- Instant grab on new spawn
         local elapsed = os.clock() - Orbit.startTime
         if elapsed >= FarmConfig.OrbitMinTime and exHasValidTarget() then
             exStopOrbit()
@@ -1309,10 +1322,10 @@ exFarmNextTarget = function()
         return
     end
 
-    -- រកវត្ថុជិតបំផុត
+    -- 🎯 រកវត្ថុ FRESH ជិតបំផុត (រំលងវត្ថុចាស់)
     local best, bestDist = nil, math.huge
     for obj, _ in pairs(Explorer.spawned) do
-        if obj.Parent and obj:IsDescendantOf(workspace) and exIsServerSpawn(obj) then
+        if exIsGrabbable(obj) then
             local part = exGetPart(obj)
             if part then
                 local d = (part.Position - root.Position).Magnitude
@@ -1326,7 +1339,6 @@ exFarmNextTarget = function()
         return
     end
 
-    -- Teleport grab → escape → next
     exTeleportGrab(best, function()
         if not Farming.active then return end
         task.wait(0.03)
@@ -1344,7 +1356,22 @@ local function exStartFarming()
     Farming.grabbed = 0
     Explorer.autoFly = false
     startNoclip()
-    Notify("Loop Farm", "🎯 Teleport → Escape → Orbit ∞", PALETTE.Toxic, "🔁")
+
+    -- 🧹 PURGE: លុបវត្ថុចាស់ៗចេញ
+    local now = os.clock()
+    local purged, kept = 0, 0
+    for obj, t in pairs(Explorer.spawned) do
+        if not obj.Parent or (now - t) > FarmConfig.GrabWindow then
+            Explorer.spawned[obj] = nil
+            purged += 1
+        else
+            kept += 1
+        end
+    end
+
+    Notify("Loop Farm",
+        string.format("🎯 ON | %d fresh | %d purged", kept, purged),
+        PALETTE.Toxic, "🔁")
     exFarmNextTarget()
 end
 
@@ -1407,15 +1434,49 @@ AddTextInput(spawnPage, "Search spawned items...", "", 7, function(txt)
     task.spawn(exRenderRows)
 end)
 
-AddSection(spawnPage, "Orbit Farm (Auto)", 9)
+-- 🆕 Name filter input
+AddSection(spawnPage, "Farm Filter", 8)
+AddTextInput(spawnPage, "Name filter (coin|gem|loot)", "", 9, function(txt)
+    FarmConfig.NameFilter = txt
+end)
+
+-- 🆕 Grab window input
+local gwRow = Instance.new("Frame", spawnPage)
+gwRow.LayoutOrder = 10; gwRow.Size = UDim2.new(1,0,0,44)
+gwRow.BackgroundColor3 = PALETTE.NightLight; gwRow.BackgroundTransparency = 0.35
+gwRow.BorderSizePixel = 0; gwRow.ZIndex = 8
+Corner(gwRow, UDim.new(0,12)); Stroke(gwRow, PALETTE.Witch, 1, 0.6)
+local gwLbl = Instance.new("TextLabel", gwRow)
+gwLbl.Size = UDim2.new(1,-120,0,16); gwLbl.Position = UDim2.new(0,12,0,6)
+gwLbl.BackgroundTransparency = 1; gwLbl.Text = "Fresh Window (sec)"
+gwLbl.TextColor3 = PALETTE.GhostWhite; gwLbl.Font = Enum.Font.GothamBold
+gwLbl.TextSize = 11; gwLbl.TextXAlignment = Enum.TextXAlignment.Left; gwLbl.ZIndex = 9
+local gwSub = Instance.new("TextLabel", gwRow)
+gwSub.Size = UDim2.new(1,-120,0,13); gwSub.Position = UDim2.new(0,12,0,24)
+gwSub.BackgroundTransparency = 1; gwSub.Text = "យកតែវត្ថុកើតក្នុង N វិ"
+gwSub.TextColor3 = Color3.fromRGB(150,140,180); gwSub.Font = Enum.Font.Gotham
+gwSub.TextSize = 9; gwSub.TextXAlignment = Enum.TextXAlignment.Left; gwSub.ZIndex = 9
+local gwBox = Instance.new("TextBox", gwRow)
+gwBox.Size = UDim2.new(0,80,0,28); gwBox.Position = UDim2.new(1,-92,0.5,-14)
+gwBox.BackgroundColor3 = PALETTE.Night; gwBox.Text = tostring(FarmConfig.GrabWindow)
+gwBox.TextColor3 = PALETTE.GhostWhite; gwBox.Font = Enum.Font.GothamBold
+gwBox.TextSize = 12; gwBox.BorderSizePixel = 0; gwBox.ClearTextOnFocus = false
+gwBox.ZIndex = 9; Corner(gwBox, UDim.new(0,8)); Stroke(gwBox, accent, 1, 0.5)
+gwBox.FocusLost:Connect(function()
+    local n = tonumber(gwBox.Text)
+    if n then FarmConfig.GrabWindow = math.clamp(n, 3, 120) end
+    gwBox.Text = tostring(FarmConfig.GrabWindow)
+end)
+
+AddSection(spawnPage, "Orbit Farm (Auto)", 11)
 AddToggle(spawnPage, "🔁 Teleport Grab Farm",
-    "Teleport → Grab → Escape 100m → Orbit ∞",
-    false, 10, function(s)
+    "Grab → Escape 100m → Orbit ∞ (Fresh Only)",
+    false, 12, function(s)
         if s then exStartFarming() else exStopFarming() end
     end)
 
 local farmInfo = Instance.new("TextLabel", spawnPage)
-farmInfo.LayoutOrder = 11; farmInfo.Size = UDim2.new(1,4,0,56)
+farmInfo.LayoutOrder = 13; farmInfo.Size = UDim2.new(1,4,0,56)
 farmInfo.BackgroundTransparency = 1
 farmInfo.Text = string.format(
     "💥 Teleport Grab (100%%)\n⬆ Escape: %d studs\n🔄 Orbit: r=%d @ %d/s",
@@ -1628,9 +1689,9 @@ end))
 -- ═══════════════════════════════════════════════════════════════
 Tween(MainScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = UI_SCALE })
 task.delay(0.3, function()
-    Notify("👻 v13.0 ULTIMATE", "Teleport Grab 100% Ready!", PALETTE.Toxic, "👻")
-    Notify("Explorer", "Server spawn scanner active", PALETTE.Witch, "🌸")
+    Notify("👻 v13.1 PREMIUM", "Fresh-Only Farm Ready!", PALETTE.Toxic, "👻")
+    Notify("Explorer", "Old objects ignored ✓", PALETTE.Witch, "🌸")
     Notify("Farm", "Teleport → Escape → Orbit ∞", PALETTE.Pumpkin, "🔁")
 end)
 
-print("[GhostUI v13.0] ULTIMATE — Teleport Grab 100% | Noclip | Orbit Farm | Explorer")
+print("[GhostUI v13.1] PREMIUM — Fresh-Only Farm | Noclip | Teleport Grab 100%")
