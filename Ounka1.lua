@@ -1,17 +1,17 @@
 -- ============================================================
---   👻 GHOST MODE v10.4 | UI + ANTI-AFK + SPAWN EXPLORER
+--   👻 GHOST MODE v10.5 | UI + ANTI-AFK + SPAWN EXPLORER
 --   by ouncopybara | Noclip Flight + Clean Mode
 --   ✅ Noclip: ហោះធ្លុះជញ្ជាំង គ្មានបុក
 --   ✅ ដកសំឡេងទាំងអស់ (No Sounds)
---   ✅ ដកចលនា/អានីមេស្យុងទាំងអស់ (No Animations)
+--   ✅ ដកចលនាទាំងអស់ លើកលែងភ្នែក (Eye always on)
 -- ============================================================
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 task.wait(0.4)
 
--- ⚙️ CONFIG — បិទ/បើក
-local DISABLE_SOUNDS     = true   -- ដកសំឡេងទាំងអស់
-local DISABLE_ANIMATIONS = true   -- ដកចលនាទាំងអស់
+-- ⚙️ CONFIG
+local DISABLE_SOUNDS     = true
+local DISABLE_ANIMATIONS = true
 
 local Players           = game:GetService("Players")
 local RunService        = game:GetService("RunService")
@@ -158,13 +158,10 @@ end
 loadImageSync()
 
 -- ═══════════════════════════════════════════════════════════════
---   AUDIO (មិនដំណើរការទេ — បិទសំឡេងទាំងអស់)
+--   AUDIO (បិទទាំងស្រុង)
 -- ═══════════════════════════════════════════════════════════════
 local Audio = { Enabled = false }
-function Audio:Play(name, vol)
-    if DISABLE_SOUNDS then return end
-    -- (បិទទាំងស្រុង — មិនបង្កើត Sound)
-end
+function Audio:Play(name, vol) if DISABLE_SOUNDS then return end end
 
 -- ═══════════════════════════════════════════════════════════════
 --   HELPERS
@@ -271,7 +268,6 @@ for i = 1, 6 do
     fog.ImageColor3 = (i % 2 == 0) and PALETTE.Witch or PALETTE.Pumpkin; fog.ImageTransparency = 0.88; fog.ScaleType = Enum.ScaleType.Slice; fog.SliceCenter = Rect.new(24,24,276,276); fog.ZIndex = 2
     table.insert(fogList, { obj=fog, speed=math.random(5,15)/150, seed=math.random()*100 })
 end
--- ⬇️ Fog animation បិទ
 if not DISABLE_ANIMATIONS then
     ConnMgr.spawn(function()
         while FogHolder.Parent do
@@ -350,7 +346,6 @@ GhostGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, PALETTE.NightL
 local GhostStroke = Stroke(Ghost, PALETTE.Witch, 2.5, 0.15)
 StrokeGrad = Instance.new("UIGradient", GhostStroke)
 StrokeGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, PALETTE.Witch), ColorSequenceKeypoint.new(0.3, PALETTE.Pumpkin), ColorSequenceKeypoint.new(0.5, PALETTE.GhostWhite), ColorSequenceKeypoint.new(0.7, PALETTE.Witch), ColorSequenceKeypoint.new(1, PALETTE.Pumpkin)})
--- ⬇️ Stroke rotation បិទ
 if not DISABLE_ANIMATIONS then
     ConnMgr.spawn(function()
         while Ghost.Parent do StrokeGrad.Rotation = 0; Tween(StrokeGrad, TweenInfo.new(6, Enum.EasingStyle.Linear), { Rotation = 360 }); task.wait(6) end
@@ -399,9 +394,13 @@ local CloseBtn = GhostButton("✕", -46, PALETTE.Blood)
 local MinBtn   = GhostButton("–", -88, PALETTE.WitchDeep)
 
 -- ═══════════════════════════════════════════════════════════════
---   FLOATING & ANIMATIONS — ⬇️ បិទទាំងអស់
+--   FLOATING & ANIMATIONS
+--   👀 ភ្នែក + មាត់ = តែងតែបើក (មិនបិទតាម DISABLE_ANIMATIONS)
+--   🌊 Float + ⚡ Lightning = បិទតាម flag
 -- ═══════════════════════════════════════════════════════════════
 local basePos = Ghost.Position
+
+-- 🌊 Float (បិទតាម flag)
 if not DISABLE_ANIMATIONS then
     ConnMgr.spawn(function()
         while Ghost.Parent do
@@ -410,21 +409,55 @@ if not DISABLE_ANIMATIONS then
             GhostAura.Position = UDim2.new(0.5, dx, 0.5, dy); RunService.RenderStepped:Wait()
         end
     end)
+end
+
+-- 👀 EYE BLINK — តែងតែបើក ✅
+ConnMgr.spawn(function()
+    while Ghost.Parent do
+        task.wait(math.random(30, 60) / 10)
+        Tween(EyeL, TweenInfo.new(0.05), { Size = UDim2.new(0, 30, 0, 3) })
+        Tween(EyeR, TweenInfo.new(0.05), { Size = UDim2.new(0, 30, 0, 3) })
+        task.wait(0.1)
+        Tween(EyeL, TweenInfo.new(0.15), { Size = UDim2.new(0, 30, 0, 38) })
+        Tween(EyeR, TweenInfo.new(0.15), { Size = UDim2.new(0, 30, 0, 38) })
+    end
+end)
+
+-- 👀 EYE PULSE (លឿង ↔ ក្រហម) — តែងតែបើក ✅
+ConnMgr.spawn(function()
+    while Ghost.Parent do
+        Tween(EyeL, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { BackgroundColor3 = PALETTE.EyeGlowRed })
+        Tween(EyeR, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { BackgroundColor3 = PALETTE.EyeGlowRed })
+        task.wait(6)
+    end
+end)
+
+-- 👄 MOUTH PULSE — តែងតែបើក ✅
+ConnMgr.spawn(function()
+    while Ghost.Parent do
+        MouthStroke.Transparency = 0.2
+        Tween(MouthStroke, TweenInfo.new(0.7), { Transparency = 0.85 })
+        task.wait(0.8)
+        Tween(MouthStroke, TweenInfo.new(0.7), { Transparency = 0.2 })
+        task.wait(0.8)
+    end
+end)
+
+-- ⚡ Lightning (បិទតាម flag)
+if not DISABLE_ANIMATIONS then
     ConnMgr.spawn(function()
-        while Ghost.Parent do task.wait(math.random(30, 60) / 10); Tween(EyeL, TweenInfo.new(0.05), { Size = UDim2.new(0, 30, 0, 3) }); Tween(EyeR, TweenInfo.new(0.05), { Size = UDim2.new(0, 30, 0, 3) }); task.wait(0.1); Tween(EyeL, TweenInfo.new(0.15), { Size = UDim2.new(0, 30, 0, 38) }); Tween(EyeR, TweenInfo.new(0.15), { Size = UDim2.new(0, 30, 0, 38) }) end
-    end)
-    ConnMgr.spawn(function()
-        while Ghost.Parent do Tween(EyeL, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { BackgroundColor3 = PALETTE.EyeGlowRed }); Tween(EyeR, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { BackgroundColor3 = PALETTE.EyeGlowRed }); task.wait(6) end
-    end)
-    ConnMgr.spawn(function()
-        while Ghost.Parent do MouthStroke.Transparency = 0.2; Tween(MouthStroke, TweenInfo.new(0.7), { Transparency = 0.85 }); task.wait(0.8); Tween(MouthStroke, TweenInfo.new(0.7), { Transparency = 0.2 }); task.wait(0.8) end
-    end)
-    ConnMgr.spawn(function()
-        while Ghost.Parent do task.wait(math.random(10, 25)); Lightning.BackgroundTransparency = 0.85; Tween(Lightning, TweenInfo.new(0.08), { BackgroundTransparency = 1 }); task.wait(0.15); Lightning.BackgroundTransparency = 0.9; Tween(Lightning, TweenInfo.new(0.06), { BackgroundTransparency = 1 }) end
+        while Ghost.Parent do
+            task.wait(math.random(10, 25))
+            Lightning.BackgroundTransparency = 0.85
+            Tween(Lightning, TweenInfo.new(0.08), { BackgroundTransparency = 1 })
+            task.wait(0.15)
+            Lightning.BackgroundTransparency = 0.9
+            Tween(Lightning, TweenInfo.new(0.06), { BackgroundTransparency = 1 })
+        end
     end)
 end
 
--- ⬇️ Orbs — បង្ហាញតែជា static (មិនវិល)
+-- ⬇️ Orbs — static បើ DISABLE_ANIMATIONS = true
 local orbHolder = Instance.new("Frame", Ghost)
 orbHolder.Size = UDim2.new(1, 0, 1, 0); orbHolder.BackgroundTransparency = 1; orbHolder.ZIndex = 3
 for i = 1, 5 do
@@ -439,8 +472,8 @@ for i = 1, 5 do
         ConnMgr.spawn(function()
             while Ghost.Parent do
                 local dt = RunService.RenderStepped:Wait(); angle = angle + dt * 0.7
-                local r = 260; local cx = math.cos(angle) * r; local cy = math.sin(angle) * (r * 0.75)
-                orb.Position = UDim2.new(0.5, cx, 0.5, cy)
+                local cx2 = math.cos(angle) * r; local cy2 = math.sin(angle) * (r * 0.75)
+                orb.Position = UDim2.new(0.5, cx2, 0.5, cy2)
             end
         end)
     end
@@ -601,13 +634,10 @@ end
 -- ═══════════════════════════════════════════════════════════════
 
 local mainPage = CreateTab("Menu", "👻")
-
 AddSection(mainPage, "General Features", 1)
 AddToggle(mainPage, "Anti AFK", "ការពារហ្គេមទាត់ចេញពេលទុកចោលយូរ", true, 2, function(s) Config.IsAntiAFK = s end)
-
 AddSection(mainPage, "Theme Picker", 4)
 AddThemePicker(mainPage, 5)
-
 AddSection(mainPage, "System", 6)
 AddButton(mainPage, "Close UI", 7, function()
     ConnMgr.purge()
@@ -630,7 +660,7 @@ local Explorer = {
     noclipConn = nil,
 }
 
--- ── 🚀 NOCLIP ──
+-- ── Noclip ──
 local function startNoclip()
     if Explorer.noclipConn then Explorer.noclipConn:Disconnect() end
     Explorer.noclipConn = RunService.Stepped:Connect(function()
@@ -750,7 +780,6 @@ local function exStopFlight(silent)
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if hum then hum.PlatformStand = false end
-    -- 🛑 បិទ noclip + ដាក់ CanCollide វិញ
     stopNoclip(true)
     if not silent then pcall(function() updateStatus("Flight stopped", PALETTE.Blood) end) end
 end
@@ -766,14 +795,10 @@ local function exFlyTo(object)
     exStopFlight(true)
     root = exGetRoot(); if not root then return end
     Explorer.target = object; Explorer.isFlying = true
-
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if hum then hum.PlatformStand = true end
-
-    -- 🚀 បើក NOCLIP — ហោះធ្លុះជញ្ជាំង
     startNoclip()
-
     Explorer.flightVel = Instance.new("BodyVelocity")
     Explorer.flightVel.MaxForce = Vector3.new(1e6, 1e6, 1e6)
     Explorer.flightVel.P = 8000
@@ -924,7 +949,6 @@ AddToggle(spawnPage, "Auto Fly", "ហោះទៅវត្ថុ server ថ្�
     if s then Notify("Auto Fly", "Enabled", PALETTE.Toxic, "🚀") end
 end)
 
--- Speed row
 local speedRow = Instance.new("Frame", spawnPage)
 speedRow.LayoutOrder = 3; speedRow.Size = UDim2.new(1,0,0,44)
 speedRow.BackgroundColor3 = PALETTE.NightLight; speedRow.BackgroundTransparency = 0.35
@@ -1129,4 +1153,4 @@ task.delay(0.3, function()
     Notify("Explorer", "Spawn scanner active", PALETTE.Witch, "🌸")
 end)
 
-print("[GhostUI] v10.4 Loaded | Noclip Flight | No Sound | No Animation")
+print("[GhostUI] v10.5 Loaded | Noclip + Eye Always On + No Sound")
