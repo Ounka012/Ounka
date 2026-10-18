@@ -1,18 +1,20 @@
 -- ============================================================
---   👻 GHOST MODE v11.0 | PREMIUM EDITION
+--   👻 GHOST MODE v12.0 | ULTIMATE EDITION
 --   by ouncopybara
---   ✅ Noclip Flight (ធ្លុះជញ្ជាំង)
---   ✅ Loop Farm (ហោះ → យក → ឡើង 100m → រកបន្ទាប់ រហូត)
---   ✅ Server Spawn Explorer (Auto-fly)
+--   ✅ Noclip Flight (ធ្លុះជញ្ជាំង 100%)
+--   ✅ Orbit Farm (Grab → Escape 100m → Patrol map → Repeat)
+--   ✅ Server Spawn Explorer (Auto Detect)
 --   ✅ Anti-AFK
---   ✅ No Sounds • No Animations (លើកលែងភ្នែក)
---   👀 ភ្នែកប៉ីប៉ោច + ភ្លឺភ្លែត តែងតែបើក
+--   ✅ No Sound • No Fog/Lightning/Float
+--   👀 Eye Blink + Glow Pulse (ALWAYS ON)
 -- ============================================================
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 task.wait(0.4)
 
--- ⚙️ GLOBAL CONFIG
+-- ═══════════════════════════════════════════════════════════════
+--   GLOBAL CONFIG
+-- ═══════════════════════════════════════════════════════════════
 local DISABLE_SOUNDS     = true
 local DISABLE_ANIMATIONS = true
 
@@ -20,7 +22,6 @@ local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
 local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local SoundService     = game:GetService("SoundService")
 
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
@@ -95,7 +96,6 @@ function Signal:Fire(...) for _, fn in ipairs(self.h) do task.spawn(fn, ...) end
 -- ═══════════════════════════════════════════════════════════════
 local CustomImage = ""
 local ImageReady = Signal.new()
-
 local IMAGE_URL = "https://files.catbox.moe/ka5x56.jpg"
 local IMAGE_FALLBACKS = {
     "rbxassetid://13110332857",
@@ -141,12 +141,6 @@ local function registerImage(label)
     ImageReady:Connect(function(url) pcall(function() if label.Parent then label.Image = url end end) end)
 end
 loadImageSync()
-
--- ═══════════════════════════════════════════════════════════════
---   AUDIO (បិទទាំងស្រុង)
--- ═══════════════════════════════════════════════════════════════
-local Audio = { Enabled = false }
-function Audio:Play() end -- no-op
 
 -- ═══════════════════════════════════════════════════════════════
 --   HELPERS
@@ -234,7 +228,8 @@ end
 -- ═══════════════════════════════════════════════════════════════
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "GhostUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.IgnoreGuiInset = true
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling; ScreenGui.DisplayOrder = 2147483647; ScreenGui.Parent = GUIParent
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling; ScreenGui.DisplayOrder = 2147483647
+ScreenGui.Parent = GUIParent
 
 local Vignette = Instance.new("Frame", ScreenGui)
 Vignette.Size = UDim2.new(1,0,1,0); Vignette.BackgroundColor3 = Color3.new(0,0,0)
@@ -368,7 +363,6 @@ GhostBgImg.Image = CustomImage ~= "" and CustomImage or IMAGE_FALLBACKS[1]
 GhostBgImg.ImageTransparency = 0.92; GhostBgImg.ScaleType = Enum.ScaleType.Crop
 GhostBgImg.ZIndex = 3; Corner(GhostBgImg, UDim.new(0, 110)); registerImage(GhostBgImg)
 
--- Waves
 local WaveHolder = Instance.new("Frame", Ghost)
 WaveHolder.Size = UDim2.new(1,0,0,50); WaveHolder.Position = UDim2.new(0,0,1,-25)
 WaveHolder.BackgroundTransparency = 1; WaveHolder.ZIndex = 4
@@ -379,7 +373,6 @@ for i = 0, 2 do
     wave.BorderSizePixel = 0; wave.ZIndex = 4; Corner(wave, UDim.new(1, 0))
 end
 
--- Face
 local FaceHolder = Instance.new("Frame", Ghost)
 FaceHolder.Size = UDim2.new(1, 0, 0, 100); FaceHolder.Position = UDim2.new(0, 0, 0, 14)
 FaceHolder.BackgroundTransparency = 1; FaceHolder.ZIndex = 6
@@ -405,7 +398,6 @@ Mouth.BackgroundColor3 = PALETTE.Night; Mouth.BorderSizePixel = 0; Mouth.ZIndex 
 Corner(Mouth, UDim.new(0, 14))
 local MouthStroke = Stroke(Mouth, PALETTE.EyeGlow, 2, 0.3)
 
--- Title
 local TitleBadge = Instance.new("TextLabel", Ghost)
 TitleBadge.Size = UDim2.new(0, 300, 0, 36); TitleBadge.Position = UDim2.new(0.5, -150, 0, 122)
 TitleBadge.BackgroundColor3 = PALETTE.WitchDeep; TitleBadge.BackgroundTransparency = 0.25
@@ -430,7 +422,6 @@ ConnMgr.spawn(function()
     end
 end)
 
--- Window buttons
 local function GhostButton(text, xOff, color)
     local b = Instance.new("TextButton", Ghost)
     b.Size = UDim2.new(0, 34, 0, 34); b.Position = UDim2.new(1, xOff, 0, 20)
@@ -446,9 +437,8 @@ local CloseBtn = GhostButton("✕", -46, PALETTE.Blood)
 local MinBtn   = GhostButton("–", -88, PALETTE.WitchDeep)
 
 -- ═══════════════════════════════════════════════════════════════
---   👀 EYE ANIMATIONS — តែងតែបើក
+--   👀 EYE ANIMATIONS — ALWAYS ON
 -- ═══════════════════════════════════════════════════════════════
--- Blink
 ConnMgr.spawn(function()
     while Ghost.Parent do
         task.wait(math.random(30, 60) / 10)
@@ -459,7 +449,6 @@ ConnMgr.spawn(function()
         Tween(EyeR, TweenInfo.new(0.15), { Size = UDim2.new(0, 30, 0, 38) })
     end
 end)
--- Pulse glow
 ConnMgr.spawn(function()
     while Ghost.Parent do
         Tween(EyeL, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { BackgroundColor3 = PALETTE.EyeGlowRed })
@@ -467,7 +456,6 @@ ConnMgr.spawn(function()
         task.wait(6)
     end
 end)
--- Mouth pulse
 ConnMgr.spawn(function()
     while Ghost.Parent do
         MouthStroke.Transparency = 0.2
@@ -553,7 +541,6 @@ local function PlayClickEffect(btn)
     end)
 end
 
--- Tabs
 local tabs = {}
 local function SelectTab(tab)
     for _, t in ipairs(tabs) do
@@ -578,7 +565,6 @@ local function CreateTab(name, icon)
     indicator.Size = UDim2.new(0,3,0,0); indicator.Position = UDim2.new(0,2,0.5,0)
     indicator.AnchorPoint = Vector2.new(0,0.5); indicator.BackgroundColor3 = PALETTE.Pumpkin
     indicator.BorderSizePixel = 0; indicator.ZIndex = 9; Corner(indicator, UDim.new(1,0))
-    Instance.new("TextLabel", btn).Parent = btn
     local ic = Instance.new("TextLabel", btn)
     ic.Size = UDim2.new(1,0,0,18); ic.Position = UDim2.new(0,0,0,6)
     ic.BackgroundTransparency = 1; ic.Text = icon; ic.TextSize = 14; ic.ZIndex = 9
@@ -750,7 +736,7 @@ AddButton(mainPage, "Close UI", 7, function()
 end)
 
 -- ═══════════════════════════════════════════════════════════════
---   🌸 SERVER SPAWN EXPLORER + NOCLIP + LOOP FARM
+--   🌸 SERVER SPAWN EXPLORER + NOCLIP + ORBIT FARM
 -- ═══════════════════════════════════════════════════════════════
 local EXP = {
     MAX_RENDER = 60, SPAWN_LIFETIME = 30, MOVE_THRESHOLD = 0.5,
@@ -761,6 +747,10 @@ local FarmConfig = {
     EscapeHeight = 100,
     EscapeSpeed  = 500,
     NextDelay    = 0.15,
+    OrbitRadius  = 300,
+    OrbitSpeed   = 120,
+    OrbitHeight  = 100,
+    OrbitMinTime = 0.6,
 }
 
 local Explorer = {
@@ -770,6 +760,7 @@ local Explorer = {
     noclipConn = nil,
 }
 local Farming = { active = false }
+local Orbit = { active = false, angle = 0, bv = nil, conn = nil, startTime = 0, center = Vector3.new(0, 100, 0) }
 
 -- Noclip
 local function startNoclip()
@@ -891,7 +882,7 @@ local function exStopFlight(silent)
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if hum then hum.PlatformStand = false end
-    stopNoclip(not Farming.active)
+    stopNoclip(not Farming.active and not Orbit.active)
     if not silent then pcall(function() updateStatus("Flight stopped", PALETTE.Blood) end) end
 end
 
@@ -1050,8 +1041,98 @@ local function exScanAll()
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   🔁 LOOP FARM — ហោះ → យក → ឡើង 100m → រកបន្ទាប់ រហូត
+--   🔁 ORBIT FARM — Grab → Escape → Orbit → Repeat
 -- ═══════════════════════════════════════════════════════════════
+
+local function exComputeOrbitCenter()
+    local spawn = workspace:FindFirstChildOfClass("SpawnLocation")
+    if spawn then
+        return Vector3.new(spawn.Position.X, FarmConfig.OrbitHeight, spawn.Position.Z)
+    end
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        return Vector3.new(hrp.Position.X, FarmConfig.OrbitHeight, hrp.Position.Z)
+    end
+    return Vector3.new(0, FarmConfig.OrbitHeight, 0)
+end
+
+local function exHasValidTarget()
+    for obj, _ in pairs(Explorer.spawned) do
+        if obj.Parent and obj:IsDescendantOf(workspace) and exIsServerSpawn(obj) then
+            return true
+        end
+    end
+    return false
+end
+
+local function exStopOrbit()
+    Orbit.active = false
+    if Orbit.conn then Orbit.conn:Disconnect(); Orbit.conn = nil end
+    if Orbit.bv then Orbit.bv:Destroy(); Orbit.bv = nil end
+end
+
+local exFarmNextTarget -- forward declare
+
+local function exStartOrbit()
+    if Orbit.active then return end
+    Orbit.active = true
+    Orbit.angle = math.random() * math.pi * 2
+    Orbit.center = exComputeOrbitCenter()
+    Orbit.startTime = os.clock()
+
+    local root = exGetRoot()
+    if not root then
+        exStopOrbit()
+        if Farming.active then task.wait(0.3); exFarmNextTarget() end
+        return
+    end
+
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then hum.PlatformStand = true end
+    startNoclip()
+
+    Orbit.bv = Instance.new("BodyVelocity")
+    Orbit.bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
+    Orbit.bv.P = 50000
+    Orbit.bv.Velocity = Vector3.zero
+    Orbit.bv.Parent = root
+
+    pcall(function() updateStatus("🔄 Orbiting map (patrol)...", PALETTE.Witch) end)
+
+    Orbit.conn = RunService.Heartbeat:Connect(function(dt)
+        if not Orbit.active or not Farming.active then
+            exStopOrbit(); return
+        end
+        local root = exGetRoot()
+        if not root or not Orbit.bv then return end
+
+        Orbit.angle = Orbit.angle + (FarmConfig.OrbitSpeed / FarmConfig.OrbitRadius) * dt
+
+        local targetPos = Orbit.center + Vector3.new(
+            math.cos(Orbit.angle) * FarmConfig.OrbitRadius,
+            0,
+            math.sin(Orbit.angle) * FarmConfig.OrbitRadius
+        )
+
+        local delta = targetPos - root.Position
+        local dist = delta.Magnitude
+
+        if dist > 5 then
+            Orbit.bv.Velocity = delta.Unit * math.min(FarmConfig.OrbitSpeed * 4, dist * 4)
+        else
+            local tangent = Vector3.new(-math.sin(Orbit.angle), 0, math.cos(Orbit.angle))
+            Orbit.bv.Velocity = tangent * FarmConfig.OrbitSpeed
+        end
+
+        local elapsed = os.clock() - Orbit.startTime
+        if elapsed >= FarmConfig.OrbitMinTime and exHasValidTarget() then
+            exStopOrbit()
+            exFarmNextTarget()
+        end
+    end)
+end
 
 local function exEscapeUp(onDone)
     local root = exGetRoot()
@@ -1080,7 +1161,7 @@ local function exEscapeUp(onDone)
     end)
 end
 
-local function exFarmNextTarget()
+exFarmNextTarget = function()
     if not Farming.active then return end
     local root = exGetRoot()
     if not root then
@@ -1103,9 +1184,21 @@ local function exFarmNextTarget()
     end
 
     if not best then
-        pcall(function() updateStatus("⏳ Waiting for spawns...", PALETTE.Witch) end)
-        task.wait(0.3)
-        if Farming.active then exFarmNextTarget() end
+        for obj, _ in pairs(Explorer.spawned) do
+            if obj.Parent and obj:IsDescendantOf(workspace) and exIsServerSpawn(obj) then
+                local part
+                if obj:IsA("BasePart") then part = obj
+                elseif obj:IsA("Model") then part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true) end
+                if part then
+                    local d = (part.Position - root.Position).Magnitude
+                    if d < bestDist then bestDist = d; best = obj end
+                end
+            end
+        end
+    end
+
+    if not best then
+        exStartOrbit()
         return
     end
 
@@ -1125,13 +1218,14 @@ local function exStartFarming()
     Farming.active = true
     Explorer.autoFly = false
     startNoclip()
-    Notify("Loop Farm", "🎯 Started — fly → escape → next", PALETTE.Toxic, "🔁")
+    Notify("Loop Farm", "🎯 Grab → Escape → Orbit → Repeat", PALETTE.Toxic, "🔁")
     exFarmNextTarget()
 end
 
 local function exStopFarming()
     if not Farming.active then return end
     Farming.active = false
+    exStopOrbit()
     exStopFlight(true)
     stopNoclip(true)
     Notify("Loop Farm", "⏹ Stopped", PALETTE.Blood, "🛑")
@@ -1188,19 +1282,19 @@ AddTextInput(spawnPage, "Search spawned items...", "", 7, function(txt)
     task.spawn(exRenderRows)
 end)
 
--- Loop Farm
-AddSection(spawnPage, "Loop Farm (Auto)", 9)
-AddToggle(spawnPage, "🔁 Loop Farm Mode",
-    "ហោះ → យក → ឡើង 100m → រកបន្ទាប់ រហូត",
+-- Orbit Farm
+AddSection(spawnPage, "Orbit Farm (Auto)", 9)
+AddToggle(spawnPage, "🔁 Orbit Farm Mode",
+    "Grab → Escape 100m → Orbit map → Repeat",
     false, 10, function(s)
         if s then exStartFarming() else exStopFarming() end
     end)
 
 local farmInfo = Instance.new("TextLabel", spawnPage)
-farmInfo.LayoutOrder = 11; farmInfo.Size = UDim2.new(1,4,0,32)
+farmInfo.LayoutOrder = 11; farmInfo.Size = UDim2.new(1,4,0,52)
 farmInfo.BackgroundTransparency = 1
-farmInfo.Text = string.format("⬆ Escape: %d studs @ %d studs/s\n📦 Loop រហូតដល់បិទ toggle",
-    FarmConfig.EscapeHeight, FarmConfig.EscapeSpeed)
+farmInfo.Text = string.format("⬆ Escape: %d studs @ %d/s\n🔄 Orbit: r=%d @ %d/s\n📦 Patrol → grab → repeat ∞",
+    FarmConfig.EscapeHeight, FarmConfig.EscapeSpeed, FarmConfig.OrbitRadius, FarmConfig.OrbitSpeed)
 farmInfo.TextColor3 = Color3.fromRGB(150,140,180); farmInfo.Font = Enum.Font.Code
 farmInfo.TextSize = 9; farmInfo.TextXAlignment = Enum.TextXAlignment.Left
 farmInfo.TextYAlignment = Enum.TextYAlignment.Top; farmInfo.ZIndex = 8
@@ -1409,9 +1503,9 @@ end))
 -- ═══════════════════════════════════════════════════════════════
 Tween(MainScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = UI_SCALE })
 task.delay(0.3, function()
-    Notify("👻 Premium Edition", "UI + Noclip + Farm Ready!", PALETTE.Toxic, "👻")
-    Notify("Explorer", "Spawn scanner active", PALETTE.Witch, "🌸")
-    Notify("Loop Farm", "Toggle ដើម្បីចាប់ផ្ដើម", PALETTE.Pumpkin, "🔁")
+    Notify("👻 v12.0 Ultimate", "Noclip + Orbit Farm Ready!", PALETTE.Toxic, "👻")
+    Notify("Explorer", "Server spawn scanner active", PALETTE.Witch, "🌸")
+    Notify("Orbit Farm", "Grab → Escape 100m → Patrol ∞", PALETTE.Pumpkin, "🔁")
 end)
 
-print("[GhostUI v11.0] Premium Edition Ready | Noclip + Loop Farm + Explorer")
+print("[GhostUI v12.0] ULTIMATE — Noclip + Orbit Farm + Explorer")
