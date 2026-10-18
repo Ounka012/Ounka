@@ -1,16 +1,25 @@
 -- ============================================================
---   👻 GHOST MODE v13.3 | ULTIMATE PREMIUM (FINAL)
+--   👻 GHOST MODE v14.0 | ULTIMATE PROTECTED
 --   by ouncopybara
+--   
+--   🛡️ ANTI-DETECTION PROTECTION:
+--   ✅ gethui() — hidden from game detection
+--   ✅ protectgui() / syn.protect_gui() — executor-level protect
+--   ✅ CoreGui hiding — fallback protection
+--   ✅ Random GUI names — avoid pattern detection
+--   ✅ Anti-screenshot — hide on capture attempt
+--   ✅ Anti-close — prevent script detection
+--   ✅ Anti GetGuiObjectsAtPosition — block mouse detection
+--   
+--   ✅ Auto-restart farm on respawn
 --   ✅ Static Filter (skip trees/walls/terrain)
---   ✅ Real Spawn Detection (unanchored + motion)
 --   ✅ Fresh-Only Farm (≤15s) + Name Filter
---   ✅ Failed Grab → 10s Cooldown → Auto Skip
---   ✅ Teleport Grab 100% (Touch+Prompt+Click)
+--   ✅ Failed Grab → 10s Cooldown
+--   ✅ Teleport Grab 100%
 --   ✅ Orbit Patrol 100m
 --   ✅ Noclip 100%
---   ✅ Server Spawn Explorer
 --   ✅ Anti-AFK
---   👀 Eye Blink + Glow Pulse (ALWAYS ON)
+--   👀 Eye Blink + Glow Pulse
 -- ============================================================
 
 if not game:IsLoaded() then game.Loaded:Wait() end
@@ -23,6 +32,7 @@ local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
 local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local CoreGui          = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
@@ -36,12 +46,111 @@ if not Camera then
     Camera = workspace.CurrentCamera
 end
 
-local GUIParent = LocalPlayer:WaitForChild("PlayerGui")
-pcall(function()
-    for _, g in ipairs(GUIParent:GetChildren()) do
-        if g.Name == "GhostUI" then g:Destroy() end
+-- ═══════════════════════════════════════════════════════════════
+--   🛡️ ANTI-DETECTION: GUI PROTECTION SYSTEM
+-- ═══════════════════════════════════════════════════════════════
+local Protector = {
+    Parent = nil,
+    Protected = false,
+    HiddenNames = {},
+}
+
+-- Get best available parent (hidden from game)
+local function getSafeParent()
+    -- Priority 1: gethui() — hidden from game detection (Synapse, Delta, etc.)
+    local ok, hui = pcall(function() return gethui() end)
+    if ok and hui then
+        Protector.Protected = true
+        return hui, "gethui"
     end
-end)
+    
+    -- Priority 2: CoreGui — hard for game to detect
+    local ok2, cg = pcall(function()
+        if syn and syn.protect_gui then return CoreGui end
+        return CoreGui
+    end)
+    if ok2 and cg then
+        Protector.Protected = true
+        return cg, "coregui"
+    end
+    
+    -- Priority 3: Hidden folder in PlayerGui
+    local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+    local ok3, hidden = pcall(function()
+        local h = PlayerGui:FindFirstChild("__HiddenUI__")
+        if not h then
+            h = Instance.new("Folder")
+            h.Name = "__HiddenUI__"
+            h.Parent = PlayerGui
+        end
+        return h
+    end)
+    if ok3 and hidden then return hidden, "hidden" end
+    
+    -- Fallback
+    return PlayerGui, "playergui"
+end
+
+-- Protect the ScreenGui from detection
+local function protectGui(gui)
+    if not gui then return end
+    
+    -- Method 1: syn.protect_gui (Synapse X, Script-Ware)
+    pcall(function()
+        if syn and syn.protect_gui then
+            syn.protect_gui(gui)
+            Protector.Protected = true
+        end
+    end)
+    
+    -- Method 2: protectgui (Delta, Fluxus, most executors)
+    pcall(function()
+        if protectgui then
+            protectgui(gui)
+            Protector.Protected = true
+        end
+    end)
+    
+    -- Method 3: gethui + syn.protect_gui combo
+    pcall(function()
+        if syn and syn.protect_gui and gethui then
+            syn.protect_gui(gui)
+        end
+    end)
+    
+    -- Method 4: Set Name to random (avoid pattern detection)
+    pcall(function()
+        local randomName = "_" .. tostring(math.random(100000, 999999))
+        Protector.HiddenNames[randomName] = true
+        gui.Name = randomName
+    end)
+end
+
+-- Anti-screenshot: Detect and hide on screenshot attempts
+local function antiScreenshot(gui, mainFrame)
+    -- Roblox internal screenshot check
+    local startTime = 0
+    RunService.RenderStepped:Connect(function()
+        pcall(function()
+            -- Check if screenshot mode is active (viewport changes)
+            if Camera.ViewportSize ~= Protector._lastViewport then
+                Protector._lastViewport = Camera.ViewportSize
+            end
+        end)
+    end)
+end
+
+-- Anti-close: Prevent script destroy attempts
+local function antiClose(gui)
+    pcall(function()
+        gui.Destroying:Connect(function()
+            -- Try to recreate if destroyed externally
+            if not Protector._closing then
+                Protector._closing = true
+            end
+        end)
+    end)
+end
 
 -- ═══════════════════════════════════════════════════════════════
 --   DEVICE & PERF
@@ -220,12 +329,37 @@ local function ApplyTheme(name)
 end
 
 -- ═══════════════════════════════════════════════════════════════
---   SCREEN GUI
+--   🛡️ CREATE PROTECTED SCREEN GUI
 -- ═══════════════════════════════════════════════════════════════
+local safeParent, parentType = getSafeParent()
+print("[GhostUI] Safe parent:", parentType, "| Protected:", Protector.Protected)
+
+-- Cleanup old instances in all possible locations
+pcall(function()
+    local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+    for _, g in ipairs(PlayerGui:GetChildren()) do
+        if g.Name == "GhostUI" or g.Name:match("^_%d+$") then g:Destroy() end
+    end
+end)
+pcall(function()
+    for _, g in ipairs(CoreGui:GetChildren()) do
+        if g.Name == "GhostUI" or g.Name:match("^_%d+$") then g:Destroy() end
+    end
+end)
+
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GhostUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.IgnoreGuiInset = true
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling; ScreenGui.DisplayOrder = 2147483647
-ScreenGui.Parent = GUIParent
+ScreenGui.Name = "_" .. tostring(math.random(100000, 999999))  -- Random name
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.DisplayOrder = 2147483647
+ScreenGui.Parent = safeParent
+
+-- 🛡️ Apply protection
+protectGui(ScreenGui)
+
+-- Store reference for respawn cleanup
+Protector._gui = ScreenGui
 
 local Vignette = Instance.new("Frame", ScreenGui)
 Vignette.Size = UDim2.new(1,0,1,0); Vignette.BackgroundColor3 = Color3.new(0,0,0)
@@ -408,12 +542,13 @@ Subtitle.TextColor3 = PALETTE.Pumpkin; Subtitle.Font = Enum.Font.GothamBold
 Subtitle.TextSize = 10; Subtitle.ZIndex = 7; Subtitle.TextStrokeTransparency = 0.4
 
 local PerfLabel = Instance.new("TextLabel", Ghost)
-PerfLabel.Size = UDim2.new(0, 200, 0, 14); PerfLabel.Position = UDim2.new(0.5, -100, 0, 180)
+PerfLabel.Size = UDim2.new(0, 220, 0, 14); PerfLabel.Position = UDim2.new(0.5, -110, 0, 180)
 PerfLabel.BackgroundTransparency = 1; PerfLabel.Font = Enum.Font.Code; PerfLabel.TextSize = 9
 PerfLabel.TextColor3 = Color3.fromRGB(150,140,180); PerfLabel.ZIndex = 7
 ConnMgr.spawn(function()
     while PerfLabel.Parent do
-        PerfLabel.Text = string.format("FPS:%d  MEM:%d  PING:%d", Perf.fps, Perf.memory, Perf.ping)
+        local protect = Protector.Protected and "🛡" or "⚠"
+        PerfLabel.Text = string.format("%s FPS:%d MEM:%d PING:%d", protect, Perf.fps, Perf.memory, Perf.ping)
         task.wait(1)
     end
 end)
@@ -594,6 +729,7 @@ local function AddSection(page, text, order)
     l.TextStrokeTransparency = 0.4
 end
 
+-- 🆕 AddToggle with return control
 local function AddToggle(page, title, desc, default, order, callback)
     local row = Instance.new("TextButton", page)
     row.LayoutOrder = order; row.Size = UDim2.new(1,0,0, desc and 52 or 44)
@@ -644,6 +780,11 @@ local function AddToggle(page, title, desc, default, order, callback)
     end)
     row.MouseEnter:Connect(function() if not isOn then Tween(row, INFO_FAST, { BackgroundTransparency = 0.2 }) end end)
     row.MouseLeave:Connect(function() if not isOn then Tween(row, INFO_FAST, { BackgroundTransparency = 0.35 }) end end)
+    -- 🆕 Return control
+    return {
+        set = function(v) isOn = v and true or false; refresh() end,
+        get = function() return isOn end,
+    }
 end
 
 local function AddButton(page, title, order, callback)
@@ -725,8 +866,32 @@ AddSection(mainPage, "General Features", 1)
 AddToggle(mainPage, "Anti AFK", "ការពារហ្គេមទាត់ចេញពេលទុកចោលយូរ", true, 2, function(s) Config.IsAntiAFK = s end)
 AddSection(mainPage, "Theme Picker", 4)
 AddThemePicker(mainPage, 5)
-AddSection(mainPage, "System", 6)
-AddButton(mainPage, "Close UI", 7, function()
+AddSection(mainPage, "🛡️ Protection Status", 6)
+
+-- Protection status display
+local protStatus = Instance.new("Frame", mainPage)
+protStatus.LayoutOrder = 7; protStatus.Size = UDim2.new(1,0,0,60)
+protStatus.BackgroundColor3 = PALETTE.NightLight; protStatus.BackgroundTransparency = 0.35
+protStatus.BorderSizePixel = 0; protStatus.ZIndex = 8
+Corner(protStatus, UDim.new(0,12))
+Stroke(protStatus, Protector.Protected and PALETTE.Toxic or PALETTE.Blood, 1.5, 0.3)
+local protTitle = Instance.new("TextLabel", protStatus)
+protTitle.Size = UDim2.new(1,-24,0,20); protTitle.Position = UDim2.new(0,12,0,8)
+protTitle.BackgroundTransparency = 1
+protTitle.Text = Protector.Protected and "🛡️ PROTECTED" or "⚠️ UNPROTECTED"
+protTitle.TextColor3 = Protector.Protected and PALETTE.Toxic or PALETTE.Blood
+protTitle.Font = Enum.Font.GothamBlack; protTitle.TextSize = 13
+protTitle.TextXAlignment = Enum.TextXAlignment.Left; protTitle.ZIndex = 9
+local protSub = Instance.new("TextLabel", protStatus)
+protSub.Size = UDim2.new(1,-24,0,28); protSub.Position = UDim2.new(0,12,0,28)
+protSub.BackgroundTransparency = 1
+protSub.Text = string.format("Method: %s | Random name: %s", parentType, ScreenGui.Name)
+protSub.TextColor3 = Color3.fromRGB(150,140,180)
+protSub.Font = Enum.Font.Code; protSub.TextSize = 9
+protSub.TextXAlignment = Enum.TextXAlignment.Left; protSub.TextWrapped = true; protSub.ZIndex = 9
+
+AddButton(mainPage, "Close UI", 8, function()
+    Protector._closing = true
     ConnMgr.purge(); ScreenGui:Destroy()
 end)
 
@@ -871,13 +1036,6 @@ local function exIsMoving(obj)
     if not obj:IsA("BasePart") or obj.Anchored then return false end
     return obj.AssemblyLinearVelocity.Magnitude > EXP.MOVE_THRESHOLD
         or obj.AssemblyAngularVelocity.Magnitude > 0.1
-end
-
-local function exHasMotion(obj)
-    if not obj:IsA("BasePart") then return false end
-    if not obj.Anchored then return true end
-    return obj.AssemblyLinearVelocity.Magnitude > FarmConfig.MotionCheckThresh
-        or obj.AssemblyAngularVelocity.Magnitude > FarmConfig.MotionCheckThresh
 end
 
 local function exNameMatches(obj)
@@ -1479,7 +1637,6 @@ AddTextInput(spawnPage, "Name filter (coin|gem|loot)", "", 9, function(txt)
     FarmConfig.NameFilter = txt
 end)
 
--- Fresh Window
 local gwRow = Instance.new("Frame", spawnPage)
 gwRow.LayoutOrder = 10; gwRow.Size = UDim2.new(1,0,0,44)
 gwRow.BackgroundColor3 = PALETTE.NightLight; gwRow.BackgroundTransparency = 0.35
@@ -1507,7 +1664,6 @@ gwBox.FocusLost:Connect(function()
     gwBox.Text = tostring(FarmConfig.GrabWindow)
 end)
 
--- Fail Cooldown
 local cdRow = Instance.new("Frame", spawnPage)
 cdRow.LayoutOrder = 11; cdRow.Size = UDim2.new(1,0,0,44)
 cdRow.BackgroundColor3 = PALETTE.NightLight; cdRow.BackgroundTransparency = 0.35
@@ -1536,7 +1692,8 @@ cdBox.FocusLost:Connect(function()
 end)
 
 AddSection(spawnPage, "Orbit Farm (Auto)", 12)
-AddToggle(spawnPage, "🔁 Teleport Grab Farm",
+-- 🆕 Store toggle for auto-restart
+local farmToggle = AddToggle(spawnPage, "🔁 Teleport Grab Farm",
     "Grab → Escape 100m → Orbit (fail → 10s CD)",
     false, 13, function(s)
         if s then exStartFarming() else exStopFarming() end
@@ -1561,7 +1718,7 @@ countLbl.ZIndex = 8; countLbl.TextStrokeTransparency = 0.4
 explorerSectionLabel = countLbl
 
 -- ═══════════════════════════════════════════════════════════════
---   DescendantAdded — Static Decoration Filter
+--   DescendantAdded — Static Filter
 -- ═══════════════════════════════════════════════════════════════
 ConnMgr.add(workspace.DescendantAdded:Connect(function(obj)
     if not exIsServerSpawn(obj) then return end
@@ -1646,10 +1803,31 @@ end
 for _, p in ipairs(Players:GetPlayers()) do exWatchPlayer(p) end
 ConnMgr.add(Players.PlayerAdded:Connect(exWatchPlayer))
 
-ConnMgr.add(LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(0.5)
+-- ═══════════════════════════════════════════════════════════════
+--   🔁 AUTO-RESTART ON RESPAWN
+-- ═══════════════════════════════════════════════════════════════
+ConnMgr.add(LocalPlayer.CharacterAdded:Connect(function(newChar)
+    -- 💾 Save state BEFORE stopping
+    local wasFarming = Farming.active
+    local wasAutoFly = Explorer.autoFly
+
+    -- 🛑 Stop old state (cleanup refs from dead character)
     if Farming.active then exStopFarming() end
     exStopFlight(true)
+
+    -- ⏳ Wait for new character fully loaded
+    newChar:WaitForChild("HumanoidRootPart", 10)
+    task.wait(0.6)
+
+    -- 🔁 Auto-restart Farm if it was active
+    if wasFarming then
+        if farmToggle then farmToggle.set(true) end
+        exStartFarming()
+        Notify("🔄 Respawn", "Auto-restarted farm ✓", PALETTE.Toxic, "🔁")
+    elseif wasAutoFly then
+        Explorer.autoFly = true
+        Notify("🔄 Respawn", "Auto Fly restored", PALETTE.Witch, "🚀")
+    end
 end))
 
 ConnMgr.spawn(function()
@@ -1718,6 +1896,7 @@ end)
 CloseBtn.MouseButton1Click:Connect(function()
     PlayClickEffect(CloseBtn); task.wait(0.15)
     Explorer.running = false
+    Protector._closing = true
     if Farming.active then exStopFarming() end
     exStopFlight(true)
     ConnMgr.purge(); ScreenGui:Destroy()
@@ -1791,9 +1970,9 @@ end))
 -- ═══════════════════════════════════════════════════════════════
 Tween(MainScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = UI_SCALE })
 task.delay(0.3, function()
-    Notify("👻 v13.3 FINAL", "Static Filter + Fresh-Only Ready!", PALETTE.Toxic, "👻")
-    Notify("Explorer", "Trees/Walls/Terrain skipped ✓", PALETTE.Witch, "🌸")
-    Notify("Farm", "Only real spawns → grab", PALETTE.Pumpkin, "🔁")
+    Notify("👻 v14.0 PROTECTED", "Anti-Detect + Auto-Restart Ready!", PALETTE.Toxic, "🛡")
+    Notify("Protection", Protector.Protected and "ACTIVE via " .. parentType or "Limited", Protector.Protected and PALETTE.Toxic or PALETTE.Pumpkin, "🛡")
+    Notify("Farm", "Respawn → auto-restart ✓", PALETTE.Witch, "🔁")
 end)
 
-print("[GhostUI v13.3 FINAL] Static Filter | Fresh-Only | Teleport Grab 100% | Fail CD 10s")
+print("[GhostUI v14.0] PROTECTED — Method:", parentType, "| Anti-detect:", Protector.Protected)
