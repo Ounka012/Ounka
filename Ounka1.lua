@@ -1,10 +1,17 @@
 -- ============================================================
---   👻 GHOST MODE v10.3 | UI + ANTI-AFK + SPAWN EXPLORER
---   by ouncopybara | Full Integration
+--   👻 GHOST MODE v10.4 | UI + ANTI-AFK + SPAWN EXPLORER
+--   by ouncopybara | Noclip Flight + Clean Mode
+--   ✅ Noclip: ហោះធ្លុះជញ្ជាំង គ្មានបុក
+--   ✅ ដកសំឡេងទាំងអស់ (No Sounds)
+--   ✅ ដកចលនា/អានីមេស្យុងទាំងអស់ (No Animations)
 -- ============================================================
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 task.wait(0.4)
+
+-- ⚙️ CONFIG — បិទ/បើក
+local DISABLE_SOUNDS     = true   -- ដកសំឡេងទាំងអស់
+local DISABLE_ANIMATIONS = true   -- ដកចលនាទាំងអស់
 
 local Players           = game:GetService("Players")
 local RunService        = game:GetService("RunService")
@@ -30,11 +37,7 @@ if not Camera then
     Camera = workspace.CurrentCamera
 end
 
--- ═══════════════════════════════════════════════════════════════
---   GUIParent
--- ═══════════════════════════════════════════════════════════════
 local GUIParent = LocalPlayer:WaitForChild("PlayerGui")
-
 pcall(function()
     for _, g in ipairs(GUIParent:GetChildren()) do
         if g.Name == "GhostUI" or g.Name == "by_ouncopybara_ADV" then g:Destroy() end
@@ -155,28 +158,12 @@ end
 loadImageSync()
 
 -- ═══════════════════════════════════════════════════════════════
---   AUDIO
+--   AUDIO (មិនដំណើរការទេ — បិទសំឡេងទាំងអស់)
 -- ═══════════════════════════════════════════════════════════════
-local Audio = {
-    Enabled = true,
-    Sounds = {
-        click  = "rbxassetid://6034521064",
-        toggle = "rbxassetid://6895079853",
-        open   = "rbxassetid://1842923308",
-        close  = "rbxassetid://1842923308",
-        thunder= "rbxassetid://131237241",
-    }
-}
+local Audio = { Enabled = false }
 function Audio:Play(name, vol)
-    if not self.Enabled then return end
-    pcall(function()
-        local s = Instance.new("Sound")
-        s.SoundId = self.Sounds[name] or self.Sounds.click
-        s.Volume = vol or 0.3
-        s.Parent = SoundService
-        s:Play()
-        task.delay(2, function() pcall(function() s:Destroy() end) end)
-    end)
+    if DISABLE_SOUNDS then return end
+    -- (បិទទាំងស្រុង — មិនបង្កើត Sound)
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -284,17 +271,20 @@ for i = 1, 6 do
     fog.ImageColor3 = (i % 2 == 0) and PALETTE.Witch or PALETTE.Pumpkin; fog.ImageTransparency = 0.88; fog.ScaleType = Enum.ScaleType.Slice; fog.SliceCenter = Rect.new(24,24,276,276); fog.ZIndex = 2
     table.insert(fogList, { obj=fog, speed=math.random(5,15)/150, seed=math.random()*100 })
 end
-ConnMgr.spawn(function()
-    while FogHolder.Parent do
-        local dt = RunService.RenderStepped:Wait()
-        for _, f in ipairs(fogList) do
-            local newX = f.obj.Position.X.Scale + f.speed * dt
-            if newX > 1.2 then newX = -0.2 end
-            local newY = f.obj.Position.Y.Scale + math.sin(tick() + f.seed) * 0.0005
-            f.obj.Position = UDim2.new(newX, 0, newY, 0)
+-- ⬇️ Fog animation បិទ
+if not DISABLE_ANIMATIONS then
+    ConnMgr.spawn(function()
+        while FogHolder.Parent do
+            local dt = RunService.RenderStepped:Wait()
+            for _, f in ipairs(fogList) do
+                local newX = f.obj.Position.X.Scale + f.speed * dt
+                if newX > 1.2 then newX = -0.2 end
+                local newY = f.obj.Position.Y.Scale + math.sin(tick() + f.seed) * 0.0005
+                f.obj.Position = UDim2.new(newX, 0, newY, 0)
+            end
         end
-    end
-end)
+    end)
+end
 
 -- ═══════════════════════════════════════════════════════════════
 --   NOTIFICATIONS
@@ -315,7 +305,6 @@ local function renderNotif(data)
     local ttl = Instance.new("TextLabel", n); ttl.Size = UDim2.new(1,-70,0,18); ttl.Position = UDim2.new(0,54,0,12); ttl.BackgroundTransparency = 1; ttl.Text = data.title or ""; ttl.TextColor3 = col; ttl.Font = Enum.Font.GothamBold; ttl.TextSize = 12; ttl.TextXAlignment = Enum.TextXAlignment.Left; ttl.ZIndex = 202
     local msgLbl = Instance.new("TextLabel", n); msgLbl.Size = UDim2.new(1,-70,0,30); msgLbl.Position = UDim2.new(0,54,0,32); msgLbl.BackgroundTransparency = 1; msgLbl.Text = data.msg or ""; msgLbl.TextColor3 = PALETTE.GhostWhite; msgLbl.Font = Enum.Font.Gotham; msgLbl.TextSize = 10; msgLbl.TextWrapped = true; msgLbl.TextXAlignment = Enum.TextXAlignment.Left; msgLbl.TextYAlignment = Enum.TextYAlignment.Top; msgLbl.ZIndex = 202
     local prog = Instance.new("Frame", n); prog.Size = UDim2.new(1,-18,0,2); prog.Position = UDim2.new(0,12,1,-7); prog.BackgroundColor3 = col; prog.BackgroundTransparency = 0.4; prog.BorderSizePixel = 0; prog.ZIndex = 202; Corner(prog, UDim.new(1,0))
-    Audio:Play("toggle", 0.2)
     Tween(n, INFO_SPRING, { Position = UDim2.new(0,0,0,n.Position.Y.Offset) }); Tween(prog, TweenInfo.new(3.5, Enum.EasingStyle.Linear), { Size = UDim2.new(0,0,0,2) })
     task.delay(3.7, function()
         pcall(function()
@@ -361,9 +350,12 @@ GhostGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, PALETTE.NightL
 local GhostStroke = Stroke(Ghost, PALETTE.Witch, 2.5, 0.15)
 StrokeGrad = Instance.new("UIGradient", GhostStroke)
 StrokeGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, PALETTE.Witch), ColorSequenceKeypoint.new(0.3, PALETTE.Pumpkin), ColorSequenceKeypoint.new(0.5, PALETTE.GhostWhite), ColorSequenceKeypoint.new(0.7, PALETTE.Witch), ColorSequenceKeypoint.new(1, PALETTE.Pumpkin)})
-ConnMgr.spawn(function()
-    while Ghost.Parent do StrokeGrad.Rotation = 0; Tween(StrokeGrad, TweenInfo.new(6, Enum.EasingStyle.Linear), { Rotation = 360 }); task.wait(6) end
-end)
+-- ⬇️ Stroke rotation បិទ
+if not DISABLE_ANIMATIONS then
+    ConnMgr.spawn(function()
+        while Ghost.Parent do StrokeGrad.Rotation = 0; Tween(StrokeGrad, TweenInfo.new(6, Enum.EasingStyle.Linear), { Rotation = 360 }); task.wait(6) end
+    end)
+end
 
 local GhostBgImg = Instance.new("ImageLabel", Ghost)
 GhostBgImg.Size = UDim2.new(1,0,1,0); GhostBgImg.BackgroundTransparency = 1; GhostBgImg.Image = CustomImage ~= "" and CustomImage or IMAGE_FALLBACKS[1]; GhostBgImg.ImageTransparency = 0.92; GhostBgImg.ScaleType = Enum.ScaleType.Crop; GhostBgImg.ZIndex = 3; Corner(GhostBgImg, UDim.new(0, 110)); registerImage(GhostBgImg)
@@ -406,28 +398,33 @@ end
 local CloseBtn = GhostButton("✕", -46, PALETTE.Blood)
 local MinBtn   = GhostButton("–", -88, PALETTE.WitchDeep)
 
--- FLOATING & ANIMATIONS
+-- ═══════════════════════════════════════════════════════════════
+--   FLOATING & ANIMATIONS — ⬇️ បិទទាំងអស់
+-- ═══════════════════════════════════════════════════════════════
 local basePos = Ghost.Position
-ConnMgr.spawn(function()
-    while Ghost.Parent do
-        local t = tick(); local dx = math.sin(t * 1.4) * 3; local dy = math.sin(t * 1.8 + 0.5) * 8
-        Ghost.Position = UDim2.new(basePos.X.Scale, basePos.X.Offset + dx, basePos.Y.Scale, basePos.Y.Offset + dy)
-        GhostAura.Position = UDim2.new(0.5, dx, 0.5, dy); RunService.RenderStepped:Wait()
-    end
-end)
-ConnMgr.spawn(function()
-    while Ghost.Parent do task.wait(math.random(30, 60) / 10); Tween(EyeL, TweenInfo.new(0.05), { Size = UDim2.new(0, 30, 0, 3) }); Tween(EyeR, TweenInfo.new(0.05), { Size = UDim2.new(0, 30, 0, 3) }); task.wait(0.1); Tween(EyeL, TweenInfo.new(0.15), { Size = UDim2.new(0, 30, 0, 38) }); Tween(EyeR, TweenInfo.new(0.15), { Size = UDim2.new(0, 30, 0, 38) }) end
-end)
-ConnMgr.spawn(function()
-    while Ghost.Parent do Tween(EyeL, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { BackgroundColor3 = PALETTE.EyeGlowRed }); Tween(EyeR, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { BackgroundColor3 = PALETTE.EyeGlowRed }); task.wait(6) end
-end)
-ConnMgr.spawn(function()
-    while Ghost.Parent do MouthStroke.Transparency = 0.2; Tween(MouthStroke, TweenInfo.new(0.7), { Transparency = 0.85 }); task.wait(0.8); Tween(MouthStroke, TweenInfo.new(0.7), { Transparency = 0.2 }); task.wait(0.8) end
-end)
-ConnMgr.spawn(function()
-    while Ghost.Parent do task.wait(math.random(10, 25)); Lightning.BackgroundTransparency = 0.85; Tween(Lightning, TweenInfo.new(0.08), { BackgroundTransparency = 1 }); Audio:Play("thunder", 0.12); task.wait(0.15); Lightning.BackgroundTransparency = 0.9; Tween(Lightning, TweenInfo.new(0.06), { BackgroundTransparency = 1 }) end
-end)
+if not DISABLE_ANIMATIONS then
+    ConnMgr.spawn(function()
+        while Ghost.Parent do
+            local t = tick(); local dx = math.sin(t * 1.4) * 3; local dy = math.sin(t * 1.8 + 0.5) * 8
+            Ghost.Position = UDim2.new(basePos.X.Scale, basePos.X.Offset + dx, basePos.Y.Scale, basePos.Y.Offset + dy)
+            GhostAura.Position = UDim2.new(0.5, dx, 0.5, dy); RunService.RenderStepped:Wait()
+        end
+    end)
+    ConnMgr.spawn(function()
+        while Ghost.Parent do task.wait(math.random(30, 60) / 10); Tween(EyeL, TweenInfo.new(0.05), { Size = UDim2.new(0, 30, 0, 3) }); Tween(EyeR, TweenInfo.new(0.05), { Size = UDim2.new(0, 30, 0, 3) }); task.wait(0.1); Tween(EyeL, TweenInfo.new(0.15), { Size = UDim2.new(0, 30, 0, 38) }); Tween(EyeR, TweenInfo.new(0.15), { Size = UDim2.new(0, 30, 0, 38) }) end
+    end)
+    ConnMgr.spawn(function()
+        while Ghost.Parent do Tween(EyeL, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { BackgroundColor3 = PALETTE.EyeGlowRed }); Tween(EyeR, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { BackgroundColor3 = PALETTE.EyeGlowRed }); task.wait(6) end
+    end)
+    ConnMgr.spawn(function()
+        while Ghost.Parent do MouthStroke.Transparency = 0.2; Tween(MouthStroke, TweenInfo.new(0.7), { Transparency = 0.85 }); task.wait(0.8); Tween(MouthStroke, TweenInfo.new(0.7), { Transparency = 0.2 }); task.wait(0.8) end
+    end)
+    ConnMgr.spawn(function()
+        while Ghost.Parent do task.wait(math.random(10, 25)); Lightning.BackgroundTransparency = 0.85; Tween(Lightning, TweenInfo.new(0.08), { BackgroundTransparency = 1 }); task.wait(0.15); Lightning.BackgroundTransparency = 0.9; Tween(Lightning, TweenInfo.new(0.06), { BackgroundTransparency = 1 }) end
+    end)
+end
 
+-- ⬇️ Orbs — បង្ហាញតែជា static (មិនវិល)
 local orbHolder = Instance.new("Frame", Ghost)
 orbHolder.Size = UDim2.new(1, 0, 1, 0); orbHolder.BackgroundTransparency = 1; orbHolder.ZIndex = 3
 for i = 1, 5 do
@@ -435,14 +432,18 @@ for i = 1, 5 do
     orb.Size = UDim2.new(0, 9, 0, 9); orb.BackgroundColor3 = (i % 2 == 0) and PALETTE.Pumpkin or PALETTE.Witch; orb.BorderSizePixel = 0; orb.ZIndex = 3; Corner(orb, UDim.new(1, 0))
     local glow = Instance.new("ImageLabel", orb)
     glow.Size = UDim2.new(1, 50, 1, 50); glow.Position = UDim2.new(0.5, 0, 0.5, 0); glow.AnchorPoint = Vector2.new(0.5, 0.5); glow.BackgroundTransparency = 1; glow.Image = "rbxassetid://5028857084"; glow.ImageColor3 = orb.BackgroundColor3; glow.ImageTransparency = 0.4; glow.ScaleType = Enum.ScaleType.Slice; glow.SliceCenter = Rect.new(24,24,276,276); glow.ZIndex = 2
-    ConnMgr.spawn(function()
-        local angle = (i / 5) * math.pi * 2
-        while Ghost.Parent do
-            local dt = RunService.RenderStepped:Wait(); angle = angle + dt * 0.7
-            local r = 260; local cx = math.cos(angle) * r; local cy = math.sin(angle) * (r * 0.75)
-            orb.Position = UDim2.new(0.5, cx, 0.5, cy)
-        end
-    end)
+    local angle = (i / 5) * math.pi * 2
+    local r = 260; local cx = math.cos(angle) * r; local cy = math.sin(angle) * (r * 0.75)
+    orb.Position = UDim2.new(0.5, cx, 0.5, cy)
+    if not DISABLE_ANIMATIONS then
+        ConnMgr.spawn(function()
+            while Ghost.Parent do
+                local dt = RunService.RenderStepped:Wait(); angle = angle + dt * 0.7
+                local r = 260; local cx = math.cos(angle) * r; local cy = math.sin(angle) * (r * 0.75)
+                orb.Position = UDim2.new(0.5, cx, 0.5, cy)
+            end
+        end)
+    end
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -510,7 +511,7 @@ local function CreateTab(name, icon)
     table.insert(tabs, tab)
     btn.MouseEnter:Connect(function() if not tab.Active then Tween(btn, INFO_FAST, { BackgroundTransparency = 0.93 }) end end)
     btn.MouseLeave:Connect(function() if not tab.Active then Tween(btn, INFO_FAST, { BackgroundTransparency = 1 }) end end)
-    btn.MouseButton1Click:Connect(function() SelectTab(tab); Audio:Play("click", 0.15); PlayClickEffect(btn) end)
+    btn.MouseButton1Click:Connect(function() SelectTab(tab); PlayClickEffect(btn) end)
     return page
 end
 
@@ -542,7 +543,7 @@ local function AddToggle(page, title, desc, default, order, callback)
     end
     if isOn then sw.BackgroundColor3 = PALETTE.Pumpkin; knob.Position = UDim2.new(1,-19,0.5,-8); row.BackgroundTransparency = 0.1 end
     table.insert(switchRegistry, { frame = sw, get = function() return isOn end })
-    row.MouseButton1Click:Connect(function() isOn = not isOn; refresh(); Audio:Play("toggle", 0.2); PlayClickEffect(sw); if callback then pcall(callback, isOn) end end)
+    row.MouseButton1Click:Connect(function() isOn = not isOn; refresh(); PlayClickEffect(sw); if callback then pcall(callback, isOn) end end)
     row.MouseEnter:Connect(function() if not isOn then Tween(row, INFO_FAST, { BackgroundTransparency = 0.2 }) end end)
     row.MouseLeave:Connect(function() if not isOn then Tween(row, INFO_FAST, { BackgroundTransparency = 0.35 }) end end)
 end
@@ -557,34 +558,19 @@ local function AddButton(page, title, order, callback)
     b.MouseLeave:Connect(function() Tween(scale, INFO_FAST, { Scale = 1 }) end)
     b.MouseButton1Down:Connect(function() Tween(scale, INFO_FAST, { Scale = 0.96 }); PlayClickEffect(b) end)
     b.MouseButton1Up:Connect(function() Tween(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1.03 }) end)
-    b.MouseButton1Click:Connect(function() Audio:Play("click", 0.2); pcall(callback) end)
+    b.MouseButton1Click:Connect(function() pcall(callback) end)
     return b
 end
 
--- 🆕 TextInput helper (សម្រាប់ Explorer)
 local function AddTextInput(page, placeholder, default, order, callback)
     local row = Instance.new("Frame", page)
-    row.LayoutOrder = order
-    row.Size = UDim2.new(1,0,0,38)
-    row.BackgroundColor3 = PALETTE.NightLight
-    row.BackgroundTransparency = 0.35
-    row.BorderSizePixel = 0
-    row.ZIndex = 8
-    Corner(row, UDim.new(0,10))
-    Stroke(row, PALETTE.Witch, 1, 0.6)
+    row.LayoutOrder = order; row.Size = UDim2.new(1,0,0,38); row.BackgroundColor3 = PALETTE.NightLight; row.BackgroundTransparency = 0.35; row.BorderSizePixel = 0; row.ZIndex = 8; Corner(row, UDim.new(0,10)); Stroke(row, PALETTE.Witch, 1, 0.6)
     local tb = Instance.new("TextBox", row)
-    tb.Size = UDim2.new(1,-20,1,0)
-    tb.Position = UDim2.new(0,10,0,0)
-    tb.BackgroundTransparency = 1
-    tb.Text = default or ""
-    tb.PlaceholderText = placeholder or ""
-    tb.PlaceholderColor3 = Color3.fromRGB(150,140,180)
-    tb.TextColor3 = PALETTE.GhostWhite
-    tb.Font = Enum.Font.Gotham
-    tb.TextSize = 11
-    tb.TextXAlignment = Enum.TextXAlignment.Left
-    tb.ClearTextOnFocus = false
-    tb.ZIndex = 9
+    tb.Size = UDim2.new(1,-20,1,0); tb.Position = UDim2.new(0,10,0,0); tb.BackgroundTransparency = 1
+    tb.Text = default or ""; tb.PlaceholderText = placeholder or ""
+    tb.PlaceholderColor3 = Color3.fromRGB(150,140,180); tb.TextColor3 = PALETTE.GhostWhite
+    tb.Font = Enum.Font.Gotham; tb.TextSize = 11; tb.TextXAlignment = Enum.TextXAlignment.Left
+    tb.ClearTextOnFocus = false; tb.ZIndex = 9
     tb:GetPropertyChangedSignal("Text"):Connect(function()
         if callback then pcall(callback, tb.Text) end
     end)
@@ -618,20 +604,18 @@ local mainPage = CreateTab("Menu", "👻")
 
 AddSection(mainPage, "General Features", 1)
 AddToggle(mainPage, "Anti AFK", "ការពារហ្គេមទាត់ចេញពេលទុកចោលយូរ", true, 2, function(s) Config.IsAntiAFK = s end)
-AddToggle(mainPage, "Sound", "បិទ/បើកសំឡេង UI ខ្មោច", true, 3, function(s) Audio.Enabled = s end)
 
 AddSection(mainPage, "Theme Picker", 4)
 AddThemePicker(mainPage, 5)
 
 AddSection(mainPage, "System", 6)
 AddButton(mainPage, "Close UI", 7, function()
-    Audio:Play("close", 0.3)
     ConnMgr.purge()
     ScreenGui:Destroy()
 end)
 
 -- ═══════════════════════════════════════════════════════════════
---   🌸 SERVER SPAWN EXPLORER (Integrated)
+--   🌸 SERVER SPAWN EXPLORER + NOCLIP FLIGHT
 -- ═══════════════════════════════════════════════════════════════
 
 local EXP = {
@@ -643,7 +627,39 @@ local Explorer = {
     autoFly = false, speed = 60, objects = {}, spawned = {},
     playerDrops = {}, isFlying = false, flightConn = nil,
     flightVel = nil, target = nil, searchText = "", running = true,
+    noclipConn = nil,
 }
+
+-- ── 🚀 NOCLIP ──
+local function startNoclip()
+    if Explorer.noclipConn then Explorer.noclipConn:Disconnect() end
+    Explorer.noclipConn = RunService.Stepped:Connect(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+    end)
+end
+
+local function stopNoclip(restore)
+    if Explorer.noclipConn then
+        Explorer.noclipConn:Disconnect()
+        Explorer.noclipConn = nil
+    end
+    if restore then
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") and not part:IsA("Accessory") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end
 
 -- ── Filters ──
 local function exIsPlayerHeld(obj)
@@ -734,6 +750,8 @@ local function exStopFlight(silent)
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if hum then hum.PlatformStand = false end
+    -- 🛑 បិទ noclip + ដាក់ CanCollide វិញ
+    stopNoclip(true)
     if not silent then pcall(function() updateStatus("Flight stopped", PALETTE.Blood) end) end
 end
 
@@ -748,17 +766,21 @@ local function exFlyTo(object)
     exStopFlight(true)
     root = exGetRoot(); if not root then return end
     Explorer.target = object; Explorer.isFlying = true
+
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if hum then hum.PlatformStand = true end
+
+    -- 🚀 បើក NOCLIP — ហោះធ្លុះជញ្ជាំង
+    startNoclip()
+
     Explorer.flightVel = Instance.new("BodyVelocity")
     Explorer.flightVel.MaxForce = Vector3.new(1e6, 1e6, 1e6)
     Explorer.flightVel.P = 8000
     Explorer.flightVel.Velocity = Vector3.zero
     Explorer.flightVel.Parent = root
-    pcall(function() updateStatus("Flying: " .. object.Name, PALETTE.Toxic) end)
-    Notify("Flight", "Flying to " .. object.Name, PALETTE.Toxic, "🚀")
-    Audio:Play("toggle", 0.2)
+    pcall(function() updateStatus("Flying (noclip): " .. object.Name, PALETTE.Toxic) end)
+    Notify("Flight", "Noclip → " .. object.Name, PALETTE.Toxic, "🚀")
     local speed = math.clamp(Explorer.speed, 5, 300)
     Explorer.flightConn = RunService.Heartbeat:Connect(function()
         if not Explorer.target or not Explorer.target:IsDescendantOf(workspace)
@@ -830,7 +852,7 @@ local function exRenderRows()
                 sub.TextXAlignment = Enum.TextXAlignment.Left; sub.ZIndex = 9
                 row.MouseEnter:Connect(function() Tween(row, INFO_FAST, { BackgroundTransparency = 0.15 }) end)
                 row.MouseLeave:Connect(function() Tween(row, INFO_FAST, { BackgroundTransparency = 0.35 }) end)
-                row.MouseButton1Click:Connect(function() Audio:Play("click", 0.15); exFlyTo(obj) end)
+                row.MouseButton1Click:Connect(function() exFlyTo(obj) end)
             end
         end
     end
@@ -910,12 +932,12 @@ speedRow.BorderSizePixel = 0; speedRow.ZIndex = 8
 Corner(speedRow, UDim.new(0,12)); Stroke(speedRow, PALETTE.Witch, 1, 0.6)
 local speedLbl = Instance.new("TextLabel", speedRow)
 speedLbl.Size = UDim2.new(1,-120,0,16); speedLbl.Position = UDim2.new(0,12,0,6)
-speedLbl.BackgroundTransparency = 1; speedLbl.Text = "Flight Speed"
+speedLbl.BackgroundTransparency = 1; speedLbl.Text = "Flight Speed (noclip)"
 speedLbl.TextColor3 = PALETTE.GhostWhite; speedLbl.Font = Enum.Font.GothamBold
 speedLbl.TextSize = 11; speedLbl.TextXAlignment = Enum.TextXAlignment.Left; speedLbl.ZIndex = 9
 local speedSub = Instance.new("TextLabel", speedRow)
 speedSub.Size = UDim2.new(1,-120,0,13); speedSub.Position = UDim2.new(0,12,0,24)
-speedSub.BackgroundTransparency = 1; speedSub.Text = "5 - 300 studs/sec"
+speedSub.BackgroundTransparency = 1; speedSub.Text = "5 - 300 studs/sec • ធ្លុះជញ្ជាំង"
 speedSub.TextColor3 = Color3.fromRGB(150,140,180); speedSub.Font = Enum.Font.Gotham
 speedSub.TextSize = 9; speedSub.TextXAlignment = Enum.TextXAlignment.Left; speedSub.ZIndex = 9
 local speedBox = Instance.new("TextBox", speedRow)
@@ -938,7 +960,6 @@ AddTextInput(spawnPage, "Search spawned items...", "", 7, function(txt)
     task.spawn(exRenderRows)
 end)
 
--- Count label
 local countLbl = Instance.new("TextLabel", spawnPage)
 countLbl.LayoutOrder = 8; countLbl.Size = UDim2.new(1,4,0,20)
 countLbl.BackgroundTransparency = 1; countLbl.Text = "🌸 DETECTED OBJECTS (0)"
@@ -1046,7 +1067,7 @@ end
 
 MinBtn.MouseButton1Click:Connect(function() PlayClickEffect(MinBtn); task.wait(0.1); SetMinimized(true) end)
 CloseBtn.MouseButton1Click:Connect(function()
-    PlayClickEffect(CloseBtn); task.wait(0.15); Audio:Play("close", 0.3)
+    PlayClickEffect(CloseBtn); task.wait(0.15)
     Explorer.running = false; exStopFlight(true); ConnMgr.purge(); ScreenGui:Destroy()
 end)
 
@@ -1102,12 +1123,10 @@ end))
 -- ═══════════════════════════════════════════════════════════════
 --   INIT
 -- ═══════════════════════════════════════════════════════════════
-Audio:Play("open", 0.25)
 Tween(MainScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = UI_SCALE })
 task.delay(0.3, function()
-    Notify("by ouncopybara", "UI + Anti-AFK + Explorer Ready!", PALETTE.Toxic, "👻")
-    Notify("Image", CustomImage ~= "" and "Loaded OK" or "Using fallback", CustomImage ~= "" and PALETTE.Toxic or PALETTE.Pumpkin, "🖼")
+    Notify("by ouncopybara", "UI + Noclip Flight Ready!", PALETTE.Toxic, "👻")
     Notify("Explorer", "Spawn scanner active", PALETTE.Witch, "🌸")
 end)
 
-print("[GhostUI] v10.3 Loaded | UI + Anti-AFK + Explorer | Image:", CustomImage ~= "" and "OK" or "Fallback")
+print("[GhostUI] v10.4 Loaded | Noclip Flight | No Sound | No Animation")
